@@ -18,14 +18,19 @@ server/   API Express (Node 20) + sirve el frontend compilado desde server/publi
 client/   Panel de administración en React + Vite
 ```
 
-Los datos se guardan como JSON en `server/data/` (clientes, plantillas de documentos,
-calendario DIAN, historial de envíos). Sin base de datos en esta fase.
+Los datos viven en **MySQL/MariaDB** (tablas: clientes, plantillas, calendario,
+config, envios). Las tablas se crean y se precargan solas al primer arranque.
 
 ## Desarrollo local
 
+Requiere podman (o Docker) solo para la base de datos local:
+
 ```bash
-# 1. Backend
+# 1. Base de datos (contenedor MariaDB en 127.0.0.1:3307)
 cd server
+npm run db:local
+
+# 2. Backend
 cp .env.example .env   # editar: ADMIN_PASSWORD, GMAIL_USER, GMAIL_APP_PASSWORD
 npm install
 npm run dev            # http://localhost:3001
@@ -42,15 +47,21 @@ Límite de Gmail personal: ~500 correos/día.
 
 ## Despliegue en el hosting (cPanel + Node.js Selector)
 
-1. Compilar el frontend: `cd client && npm run build` (queda en `server/public/`).
-2. En cPanel → **Setup Node.js App**: crear la app con Node **20.20.2**, application
+1. Crear la base de datos en cPanel → **MySQL Databases**: una DB, un usuario y
+   asignarle todos los privilegios (cPanel antepone el prefijo de la cuenta,
+   ej. `repolite_renta`).
+2. Compilar el frontend: `cd client && npm run build` (queda en `server/public/`).
+3. En cPanel → **Setup Node.js App**: crear la app con Node **20.20.2**, application
    root apuntando a la carpeta del proyecto, startup file `server.js`.
-3. Subir por SFTP el contenido de `server/` (incluido `public/`, sin `node_modules`
-   ni `data/`).
-4. Configurar las variables de entorno (`ADMIN_PASSWORD`, `GMAIL_USER`,
-   `GMAIL_APP_PASSWORD`) en el panel de la app.
-5. Botón **Run NPM Install** (las dependencias son livianas: express, nodemailer,
-   dotenv) y luego **Restart**.
+4. Subir por SFTP el contenido de `server/` (incluido `public/`, sin `node_modules`).
+5. Configurar las variables de entorno en el panel de la app: `ADMIN_PASSWORD`,
+   `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `DB_HOST=localhost`, `DB_PORT=3306`,
+   `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+6. Botón **Run NPM Install** (dependencias livianas: express, mysql2, nodemailer,
+   dotenv) y luego **Restart**. Las tablas se crean solas al arrancar.
+
+Si existían datos de la versión JSON (`server/data/*.json`), migrarlos con
+`npm run migrar-json`.
 
 ## Calendario DIAN
 

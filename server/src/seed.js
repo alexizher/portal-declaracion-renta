@@ -1,4 +1,5 @@
-const { load, save } = require('./store');
+// Datos iniciales que se insertan en la base de datos la primera vez que
+// arranca la aplicación (solo si las tablas están vacías).
 
 // Calendario tributario DIAN — declaración de renta personas naturales,
 // año gravable 2025 (vence en 2026). Decreto 2229 de 2023.
@@ -117,12 +118,4 @@ const CONFIG_INICIAL = {
   remitente: '',
 };
 
-function seedSiFalta() {
-  if (!load('calendario', null)) save('calendario', CALENDARIO_2026);
-  if (!load('plantillas', null)) save('plantillas', PLANTILLAS_INICIALES);
-  if (!load('config', null)) save('config', CONFIG_INICIAL);
-  if (!load('clientes', null)) save('clientes', []);
-  if (!load('envios', null)) save('envios', []);
-}
-
-module.exports = { seedSiFalta };
+module.exports = { CALENDARIO_2026, PLANTILLAS_INICIALES, CONFIG_INICIAL };

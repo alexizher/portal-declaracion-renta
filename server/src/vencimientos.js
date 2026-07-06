@@ -1,5 +1,3 @@
-const { load } = require('./store');
-
 const MESES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
   'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
@@ -13,11 +11,13 @@ function ultimosDosDigitos(documento) {
   return parseInt(soloDigitos.slice(-2), 10);
 }
 
-function vencimientoDe(documento) {
+// `calendario` es la lista [{digitos: [1,2], fecha: 'YYYY-MM-DD'}, ...]
+// que entrega datos.obtenerCalendario(); se pasa como argumento para no
+// consultar la base de datos por cada cliente.
+function vencimientoDe(documento, calendario) {
   const dd = ultimosDosDigitos(documento);
   if (dd === null) return null;
-  const calendario = load('calendario', []);
-  const entrada = calendario.find((e) => e.digitos.includes(dd));
+  const entrada = (calendario || []).find((e) => e.digitos.includes(dd));
   if (!entrada) return null;
   return {
     digitos: String(dd).padStart(2, '0'),

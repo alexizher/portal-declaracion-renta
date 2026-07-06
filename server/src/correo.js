@@ -1,5 +1,5 @@
 const nodemailer = require('nodemailer');
-const { load, save, nuevoId } = require('./store');
+const datos = require('./datos');
 const { vencimientoDe } = require('./vencimientos');
 
 let transporter = null;
@@ -19,8 +19,8 @@ function getTransporter() {
   return transporter;
 }
 
-function renderCorreo(cliente, plantillas, config) {
-  const venc = vencimientoDe(cliente.cedula);
+function renderCorreo(cliente, plantillas, config, calendario) {
+  const venc = vencimientoDe(cliente.cedula, calendario);
   const plantilla = plantillas.find((p) => p.id === cliente.plantillaId);
   const documentos = plantilla ? plantilla.documentos : [];
 
@@ -58,18 +58,20 @@ const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Envío secuencial con pausa entre correos para no disparar los límites
 // anti-spam de Gmail (~500 correos/día en cuentas personales).
-async function enviarLote(clienteIds, onProgreso) {
-  const clientes = load('clientes', []);
-  const plantillas = load('plantillas', []);
-  const config = load('config', {});
+async function enviarLote(clienteIds) {
+  const [plantillas, config, calendario] = await Promise.all([
+    datos.listarPlantillas(),
+    datos.obtenerConfig(),
+    datos.obtenerCalendario(),
+  ]);
   const resultados = [];
 
   for (const id of clienteIds) {
-    const cliente = clientes.find((c) => c.id === id);
+    const cliente = await datos.obtenerCliente(id);
     if (!cliente) continue;
 
     const registro = {
-      id: nuevoId(),
+      id: datos.nuevoId(),
       clienteId: cliente.id,
       nombre: cliente.nombre,
       email: cliente.email,
@@ -78,7 +80,7 @@ async function enviarLote(clienteIds, onProgreso) {
       error: null,
     };
 
-    const { asunto, html, advertencias } = renderCorreo(cliente, plantillas, config);
+    const { asunto, html, advertencias } = renderCorreo(cliente, plantillas, config, calendario);
     if (advertencias.length) {
       registro.estado = 'omitido';
       registro.error = advertencias.join(' ');
@@ -90,7 +92,7 @@ async function enviarLote(clienteIds, onProgreso) {
           subject: asunto,
           html,
         });
-        cliente.ultimoEnvio = registro.fecha;
+        await datos.marcarUltimoEnvio(cliente.id, registro.fecha);
       } catch (err) {
         registro.estado = 'error';
         registro.error = err.message;
@@ -98,14 +100,10 @@ async function enviarLote(clienteIds, onProgreso) {
       await pausa(1500);
     }
 
+    await datos.registrarEnvio(registro);
     resultados.push(registro);
-    if (onProgreso) onProgreso(registro);
   }
 
-  save('clientes', clientes);
-  const envios = load('envios', []);
-  envios.push(...resultados);
-  save('envios', envios);
   return resultados;
 }
 
