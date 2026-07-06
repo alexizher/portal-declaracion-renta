@@ -4,19 +4,47 @@ const { vencimientoDe } = require('./vencimientos');
 
 let transporter = null;
 
+// Con SMTP_HOST definido se usa un SMTP genérico (p. ej. el servidor de
+// correo del propio hosting, ya que los hostings compartidos bloquean la
+// salida hacia SMTP externos como Gmail). Sin SMTP_HOST, Gmail directo
+// (útil en desarrollo local).
 function getTransporter() {
   if (!transporter) {
-    const user = process.env.GMAIL_USER;
-    const pass = process.env.GMAIL_APP_PASSWORD;
-    if (!user || !pass) {
-      throw new Error('Configura GMAIL_USER y GMAIL_APP_PASSWORD en el archivo .env');
+    const host = process.env.SMTP_HOST;
+    if (host) {
+      const port = Number(process.env.SMTP_PORT || 587);
+      transporter = nodemailer.createTransport({
+        host,
+        port,
+        secure: process.env.SMTP_SECURE !== undefined
+          ? process.env.SMTP_SECURE === 'true'
+          : port === 465,
+        auth: process.env.SMTP_USER
+          ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+          : undefined,
+        // El certificado del servidor de correo del hosting puede no coincidir
+        // con "localhost".
+        tls: { rejectUnauthorized: false },
+      });
+    } else {
+      const user = process.env.GMAIL_USER;
+      const pass = process.env.GMAIL_APP_PASSWORD;
+      if (!user || !pass) {
+        throw new Error('Configura GMAIL_USER y GMAIL_APP_PASSWORD (o SMTP_HOST) en el archivo .env');
+      }
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: { user, pass },
+      });
     }
-    transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass },
-    });
   }
   return transporter;
+}
+
+// Dirección desde la que salen los correos (debe pertenecer al dominio del
+// SMTP usado para no caer en spam). Las respuestas del cliente van a REPLY_TO.
+function remitenteEmail() {
+  return process.env.FROM_EMAIL || process.env.SMTP_USER || process.env.GMAIL_USER;
 }
 
 function renderCorreo(cliente, plantillas, config, calendario) {
@@ -42,9 +70,11 @@ function renderCorreo(cliente, plantillas, config, calendario) {
       texto
     );
 
+  const html = aplicar(config.cuerpo);
   return {
     asunto: aplicar(config.asunto),
-    html: aplicar(config.cuerpo),
+    html,
+    texto: htmlAtexto(html),
     vencimiento: venc,
     advertencias: [
       !venc && 'No se pudo calcular el vencimiento (cédula vacía o inválida).',
@@ -52,6 +82,19 @@ function renderCorreo(cliente, plantillas, config, calendario) {
       !cliente.email && 'El cliente no tiene correo electrónico.',
     ].filter(Boolean),
   };
+}
+
+// Versión de texto plano a partir del HTML: incluirla reduce el puntaje de
+// spam (un correo solo-HTML es sospechoso) y sirve a clientes sin HTML.
+function htmlAtexto(html) {
+  return html
+    .replace(/<li>/gi, '\n • ')
+    .replace(/<\/(p|div|h[1-6]|ul|tr)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -80,16 +123,18 @@ async function enviarLote(clienteIds) {
       error: null,
     };
 
-    const { asunto, html, advertencias } = renderCorreo(cliente, plantillas, config, calendario);
+    const { asunto, html, texto, advertencias } = renderCorreo(cliente, plantillas, config, calendario);
     if (advertencias.length) {
       registro.estado = 'omitido';
       registro.error = advertencias.join(' ');
     } else {
       try {
         await getTransporter().sendMail({
-          from: `"${config.remitente || 'Declaración de Renta'}" <${process.env.GMAIL_USER}>`,
+          from: `"${config.remitente || 'Declaración de Renta'}" <${remitenteEmail()}>`,
           to: cliente.email,
+          replyTo: process.env.REPLY_TO || process.env.GMAIL_USER || undefined,
           subject: asunto,
+          text: texto,
           html,
         });
         await datos.marcarUltimoEnvio(cliente.id, registro.fecha);
@@ -107,4 +152,4 @@ async function enviarLote(clienteIds) {
   return resultados;
 }
 
-module.exports = { renderCorreo, enviarLote };
+module.exports = { renderCorreo, enviarLote, getTransporter };

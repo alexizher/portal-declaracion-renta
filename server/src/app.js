@@ -4,7 +4,7 @@ const express = require('express');
 const datos = require('./datos');
 const { login, requiereAuth } = require('./auth');
 const { vencimientoDe } = require('./vencimientos');
-const { renderCorreo, enviarLote } = require('./correo');
+const { renderCorreo, enviarLote, getTransporter } = require('./correo');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -147,6 +147,17 @@ api.get('/correos/previsualizar/:clienteId', ruta(async (req, res) => {
     html: preview.html,
     advertencias: preview.advertencias,
   });
+}));
+
+// Diagnóstico: prueba la conexión con el servidor SMTP configurado sin
+// enviar ningún correo.
+api.get('/correos/verificar', ruta(async (req, res) => {
+  try {
+    await getTransporter().verify();
+    res.json({ ok: true, detalle: 'Conexión SMTP correcta.' });
+  } catch (err) {
+    res.json({ ok: false, error: err.message });
+  }
 }));
 
 api.post('/correos/enviar', ruta(async (req, res) => {

@@ -1,8 +1,22 @@
 const crypto = require('crypto');
 
-// Sesiones en memoria: si Passenger reinicia la app, toca iniciar sesión de
-// nuevo. Suficiente para un único administrador.
-const sesiones = new Set();
+// Tokens sin estado: "expiracion.firmaHMAC". Passenger puede correr varios
+// procesos de la app (y reiniciarlos), así que las sesiones no pueden vivir
+// en memoria; la firma se deriva de ADMIN_PASSWORD y cualquier proceso puede
+// validarla.
+
+const DURACION_MS = 12 * 60 * 60 * 1000; // 12 horas
+
+function claveFirma() {
+  return crypto
+    .createHash('sha256')
+    .update(`renta-token:${process.env.ADMIN_PASSWORD}`)
+    .digest();
+}
+
+function firmar(expiracion) {
+  return crypto.createHmac('sha256', claveFirma()).update(String(expiracion)).digest('hex');
+}
 
 let intentosFallidos = 0;
 let bloqueadoHasta = 0;
@@ -28,15 +42,25 @@ function login(password) {
     return { error: 'Contraseña incorrecta.' };
   }
   intentosFallidos = 0;
-  const token = crypto.randomBytes(24).toString('hex');
-  sesiones.add(token);
-  return { token };
+  const expiracion = Date.now() + DURACION_MS;
+  return { token: `${expiracion}.${firmar(expiracion)}` };
+}
+
+function tokenValido(token) {
+  const [expStr, firma] = String(token || '').split('.');
+  const expiracion = Number(expStr);
+  if (!expiracion || Date.now() > expiracion || !firma) return false;
+  const esperada = firmar(expiracion);
+  return (
+    firma.length === esperada.length &&
+    crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada))
+  );
 }
 
 function requiereAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
-  if (!token || !sesiones.has(token)) {
+  if (!tokenValido(token)) {
     return res.status(401).json({ error: 'No autorizado' });
   }
   next();
