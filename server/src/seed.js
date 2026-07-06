@@ -1,0 +1,128 @@
+const { load, save } = require('./store');
+
+// Calendario tributario DIAN — declaración de renta personas naturales,
+// año gravable 2025 (vence en 2026). Decreto 2229 de 2023.
+// Editable desde la interfaz si la DIAN llega a modificar fechas.
+const CALENDARIO_2026 = [
+  { digitos: [1, 2], fecha: '2026-08-12' },
+  { digitos: [3, 4], fecha: '2026-08-13' },
+  { digitos: [5, 6], fecha: '2026-08-14' },
+  { digitos: [7, 8], fecha: '2026-08-18' },
+  { digitos: [9, 10], fecha: '2026-08-19' },
+  { digitos: [11, 12], fecha: '2026-08-20' },
+  { digitos: [13, 14], fecha: '2026-08-21' },
+  { digitos: [15, 16], fecha: '2026-08-24' },
+  { digitos: [17, 18], fecha: '2026-08-25' },
+  { digitos: [19, 20], fecha: '2026-08-26' },
+  { digitos: [21, 22], fecha: '2026-08-27' },
+  { digitos: [23, 24], fecha: '2026-08-28' },
+  { digitos: [25, 26], fecha: '2026-08-31' },
+  { digitos: [27, 28], fecha: '2026-09-01' },
+  { digitos: [29, 30], fecha: '2026-09-02' },
+  { digitos: [31, 32], fecha: '2026-09-03' },
+  { digitos: [33, 34], fecha: '2026-09-04' },
+  { digitos: [35, 36], fecha: '2026-09-07' },
+  { digitos: [37, 38], fecha: '2026-09-08' },
+  { digitos: [39, 40], fecha: '2026-09-09' },
+  { digitos: [41, 42], fecha: '2026-09-10' },
+  { digitos: [43, 44], fecha: '2026-09-11' },
+  { digitos: [45, 46], fecha: '2026-09-14' },
+  { digitos: [47, 48], fecha: '2026-09-15' },
+  { digitos: [49, 50], fecha: '2026-09-16' },
+  { digitos: [51, 52], fecha: '2026-09-17' },
+  { digitos: [53, 54], fecha: '2026-09-18' },
+  { digitos: [55, 56], fecha: '2026-09-21' },
+  { digitos: [57, 58], fecha: '2026-09-22' },
+  { digitos: [59, 60], fecha: '2026-09-23' },
+  { digitos: [61, 62], fecha: '2026-09-24' },
+  { digitos: [63, 64], fecha: '2026-09-25' },
+  { digitos: [65, 66], fecha: '2026-09-28' },
+  { digitos: [67, 68], fecha: '2026-10-01' },
+  { digitos: [69, 70], fecha: '2026-10-02' },
+  { digitos: [71, 72], fecha: '2026-10-05' },
+  { digitos: [73, 74], fecha: '2026-10-06' },
+  { digitos: [75, 76], fecha: '2026-10-07' },
+  { digitos: [77, 78], fecha: '2026-10-08' },
+  { digitos: [79, 80], fecha: '2026-10-09' },
+  { digitos: [81, 82], fecha: '2026-10-13' },
+  { digitos: [83, 84], fecha: '2026-10-14' },
+  { digitos: [85, 86], fecha: '2026-10-15' },
+  { digitos: [87, 88], fecha: '2026-10-16' },
+  { digitos: [89, 90], fecha: '2026-10-19' },
+  { digitos: [91, 92], fecha: '2026-10-20' },
+  { digitos: [93, 94], fecha: '2026-10-21' },
+  { digitos: [95, 96], fecha: '2026-10-22' },
+  { digitos: [97, 98], fecha: '2026-10-23' },
+  { digitos: [99, 0], fecha: '2026-10-26' },
+];
+
+const PLANTILLAS_INICIALES = [
+  {
+    id: 'empleado',
+    nombre: 'Empleado',
+    documentos: [
+      'Certificado de ingresos y retenciones (formulario 220) del empleador',
+      'Certificados de retención en la fuente de otras entidades',
+      'Extractos bancarios a 31 de diciembre de 2025',
+      'Certificado de aportes a salud y pensión',
+      'Certificados de pagos de medicina prepagada',
+      'Certificado de intereses de crédito hipotecario o leasing habitacional',
+      'Certificado de dependientes (si aplica)',
+      'Certificados de cuentas AFC y aportes voluntarios a pensión',
+    ],
+  },
+  {
+    id: 'independiente',
+    nombre: 'Independiente',
+    documentos: [
+      'Relación de ingresos facturados durante 2025 (facturas electrónicas)',
+      'Certificados de retención en la fuente de clientes',
+      'Planillas de pago de seguridad social (PILA) de 2025',
+      'Extractos bancarios a 31 de diciembre de 2025',
+      'Relación de costos y gastos con soportes',
+      'Certificado de intereses de crédito hipotecario (si aplica)',
+      'Certificados de cuentas AFC y aportes voluntarios a pensión',
+    ],
+  },
+  {
+    id: 'inversionista',
+    nombre: 'Con inversiones y patrimonio',
+    documentos: [
+      'Extractos bancarios y de inversiones a 31 de diciembre de 2025',
+      'Certificados de dividendos y participaciones recibidos',
+      'Certificados de rendimientos financieros (bancos, fiducias, fondos)',
+      'Certificado de tradición de inmuebles y avalúos catastrales 2025',
+      'Declaración de renta del año anterior (2024)',
+      'Relación de acciones y criptoactivos con su valor a 31 de diciembre',
+      'Contratos de arrendamiento e ingresos por arriendos',
+      'Certificados de deudas y créditos vigentes a 31 de diciembre',
+    ],
+  },
+];
+
+const CONFIG_INICIAL = {
+  asunto: 'Recordatorio: tu declaración de renta vence el {{vencimiento}}',
+  cuerpo: [
+    '<p>Hola <strong>{{nombre}}</strong>,</p>',
+    '<p>Te recordamos que la fecha límite para presentar tu declaración de renta ',
+    '(año gravable 2025) es el <strong>{{vencimiento}}</strong>, según los dos últimos ',
+    'dígitos de tu documento ({{digitos}}).</p>',
+    '<p>Para preparar tu declaración a tiempo, por favor ten listos los siguientes documentos:</p>',
+    '{{documentos}}',
+    '<p>Si tienes alguna duda o necesitas ayuda para conseguir alguno de estos documentos, ',
+    'responde a este correo y con gusto te orientamos.</p>',
+    '<p>Cordial saludo,</p>',
+    '<p><strong>{{remitente}}</strong></p>',
+  ].join('\n'),
+  remitente: '',
+};
+
+function seedSiFalta() {
+  if (!load('calendario', null)) save('calendario', CALENDARIO_2026);
+  if (!load('plantillas', null)) save('plantillas', PLANTILLAS_INICIALES);
+  if (!load('config', null)) save('config', CONFIG_INICIAL);
+  if (!load('clientes', null)) save('clientes', []);
+  if (!load('envios', null)) save('envios', []);
+}
+
+module.exports = { seedSiFalta };
