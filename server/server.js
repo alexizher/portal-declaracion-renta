@@ -1,4 +1,7 @@
-require('dotenv').config();
+// override: true → el archivo .env manda sobre las variables del panel
+// (cPanel las inyecta vía SetEnv en .htaccess y su editor a veces no las
+// guarda o LiteSpeed altera valores con caracteres especiales).
+require('dotenv').config({ override: true });
 
 const db = require('./src/db');
 
