@@ -32,6 +32,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="barra">
+        <img src="/logo_DM.svg" alt="DM" className="logo" />
         <h1>Declaración de Renta · Notificador</h1>
         <nav>
           {PESTANAS.map((p) => (

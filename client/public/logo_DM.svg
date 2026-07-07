@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400">
+  <!-- Background -->
+  <rect x="0" y="0" width="400" height="400" fill="#152A45"/>
+
+  <!-- Outer gold ring -->
+  <circle cx="200" cy="200" r="150" fill="none" stroke="#C39A3B" stroke-width="10"/>
+
+  <!-- Inner rose ring -->
+  <circle cx="200" cy="200" r="130" fill="none" stroke="#B97F7F" stroke-width="2.5"/>
+
+  <!-- Monogram -->
+  <text x="200" y="228"
+        font-family="Georgia, 'Times New Roman', serif"
+        font-size="92"
+        font-weight="bold"
+        fill="#C39A3B"
+        text-anchor="middle"
+        letter-spacing="2">DM</text>
+</svg>

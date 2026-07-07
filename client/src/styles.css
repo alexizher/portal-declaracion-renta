@@ -2,14 +2,16 @@
   box-sizing: border-box;
 }
 
+/* Paleta de la marca DM (documento y logo): azul marino, dorado y hueso. */
 :root {
-  --fondo: #f4f6f8;
+  --fondo: #fbf8f6;
   --tarjeta: #ffffff;
-  --borde: #dde3ea;
-  --texto: #1f2933;
+  --borde: #e3ddd4;
+  --texto: #2b3440;
   --tenue: #7b8794;
-  --primario: #0b6e4f;
-  --primario-osc: #095c42;
+  --primario: #152a45;
+  --primario-osc: #0e1e33;
+  --acento: #c39a3b;
   --peligro: #c0392b;
   --alerta-fondo: #fdf3d7;
   --alerta-texto: #8a6d1a;
@@ -37,13 +39,23 @@ h2 {
 .barra {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   padding: 0.6rem 1.25rem;
-  background: var(--tarjeta);
-  border-bottom: 1px solid var(--borde);
+  background: var(--primario);
+  border-bottom: 3px solid var(--acento);
   position: sticky;
   top: 0;
   z-index: 10;
+}
+
+.barra .logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+}
+
+.barra h1 {
+  color: #fff;
 }
 
 .barra nav {
@@ -59,21 +71,22 @@ h2 {
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.95rem;
-  color: var(--tenue);
+  color: rgba(255, 255, 255, 0.65);
 }
 
 .barra nav button.activo {
-  background: var(--primario);
-  color: #fff;
+  background: var(--acento);
+  color: var(--primario);
+  font-weight: 600;
 }
 
 .salir {
   background: none;
-  border: 1px solid var(--borde);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   border-radius: 6px;
   padding: 0.4rem 0.8rem;
   cursor: pointer;
-  color: var(--tenue);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 main {
@@ -313,11 +326,21 @@ td.acciones button {
   display: grid;
   place-items: center;
   min-height: 100vh;
+  background: var(--primario);
 }
 
 .login-form {
   width: 320px;
   text-align: center;
+  border-top: 4px solid var(--acento);
+}
+
+.login-form .logo-login {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  margin: 0.75rem auto 0.5rem;
+  display: block;
 }
 
 .login-form p {

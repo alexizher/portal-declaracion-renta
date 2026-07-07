@@ -24,6 +24,7 @@ export default function Login({ onLogin }) {
   return (
     <div className="login">
       <form onSubmit={entrar} className="tarjeta login-form">
+        <img src="/logo_DM.svg" alt="DM" className="logo-login" />
         <h1>Declaración de Renta</h1>
         <p>Panel de administración</p>
         <input
