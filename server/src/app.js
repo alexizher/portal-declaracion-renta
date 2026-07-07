@@ -4,7 +4,7 @@ const express = require('express');
 const datos = require('./datos');
 const { login, requiereAuth } = require('./auth');
 const { vencimientoDe } = require('./vencimientos');
-const { renderCorreo, enviarLote, getTransporter } = require('./correo');
+const { renderCorreo, enviarLote, verificarEnvio } = require('./correo');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
@@ -153,8 +153,7 @@ api.get('/correos/previsualizar/:clienteId', ruta(async (req, res) => {
 // enviar ningún correo.
 api.get('/correos/verificar', ruta(async (req, res) => {
   try {
-    await getTransporter().verify();
-    res.json({ ok: true, detalle: 'Conexión SMTP correcta.' });
+    res.json({ ok: true, detalle: await verificarEnvio() });
   } catch (err) {
     res.json({ ok: false, error: err.message });
   }

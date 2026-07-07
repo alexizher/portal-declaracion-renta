@@ -47,6 +47,56 @@ function remitenteEmail() {
   return process.env.FROM_EMAIL || process.env.SMTP_USER || process.env.GMAIL_USER;
 }
 
+// Con BREVO_API_KEY definida los correos salen por la API HTTPS de Brevo en
+// lugar de SMTP (el hosting bloquea SMTP externo y su filtro saliente rechaza
+// el SMTP local). El remitente (FROM_EMAIL) debe estar verificado en Brevo.
+async function enviarCorreo({ remitenteNombre, para, asunto, texto, html }) {
+  const replyTo = process.env.REPLY_TO || process.env.GMAIL_USER || undefined;
+  if (process.env.BREVO_API_KEY) {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'api-key': process.env.BREVO_API_KEY,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: { name: remitenteNombre, email: remitenteEmail() },
+        to: [{ email: para }],
+        replyTo: replyTo ? { email: replyTo } : undefined,
+        subject: asunto,
+        textContent: texto,
+        htmlContent: html,
+      }),
+    });
+    if (!res.ok) {
+      throw new Error(`Brevo ${res.status}: ${await res.text()}`);
+    }
+    return;
+  }
+  await getTransporter().sendMail({
+    from: `"${remitenteNombre}" <${remitenteEmail()}>`,
+    to: para,
+    replyTo,
+    subject: asunto,
+    text: texto,
+    html,
+  });
+}
+
+// Diagnóstico del canal de envío configurado, sin enviar ningún correo.
+async function verificarEnvio() {
+  if (process.env.BREVO_API_KEY) {
+    const res = await fetch('https://api.brevo.com/v3/account', {
+      headers: { 'api-key': process.env.BREVO_API_KEY },
+    });
+    if (!res.ok) throw new Error(`Brevo ${res.status}: ${await res.text()}`);
+    const cuenta = await res.json();
+    return `Conexión con Brevo correcta (${cuenta.email}).`;
+  }
+  await getTransporter().verify();
+  return 'Conexión SMTP correcta.';
+}
+
 function renderCorreo(cliente, plantillas, config, calendario) {
   const venc = vencimientoDe(cliente.cedula, calendario);
   const plantilla = plantillas.find((p) => p.id === cliente.plantillaId);
@@ -99,6 +149,13 @@ function htmlAtexto(html) {
 
 const pausa = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Fecha y hora de Colombia en "YYYY-MM-DD HH:mm:ss" (formato sv-SE). El
+// historial se guarda y se muestra en hora local del negocio; guardar UTC
+// hacía que el panel mostrara los envíos con 5 horas de diferencia.
+function ahoraBogota() {
+  return new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' });
+}
+
 // Envío secuencial con pausa entre correos para no disparar los límites
 // anti-spam de Gmail (~500 correos/día en cuentas personales).
 async function enviarLote(clienteIds) {
@@ -118,7 +175,7 @@ async function enviarLote(clienteIds) {
       clienteId: cliente.id,
       nombre: cliente.nombre,
       email: cliente.email,
-      fecha: new Date().toISOString(),
+      fecha: ahoraBogota(),
       estado: 'enviado',
       error: null,
     };
@@ -129,12 +186,11 @@ async function enviarLote(clienteIds) {
       registro.error = advertencias.join(' ');
     } else {
       try {
-        await getTransporter().sendMail({
-          from: `"${config.remitente || 'Declaración de Renta'}" <${remitenteEmail()}>`,
-          to: cliente.email,
-          replyTo: process.env.REPLY_TO || process.env.GMAIL_USER || undefined,
-          subject: asunto,
-          text: texto,
+        await enviarCorreo({
+          remitenteNombre: config.remitente || 'Declaración de Renta',
+          para: cliente.email,
+          asunto,
+          texto,
           html,
         });
         await datos.marcarUltimoEnvio(cliente.id, registro.fecha);
@@ -152,4 +208,4 @@ async function enviarLote(clienteIds) {
   return resultados;
 }
 
-module.exports = { renderCorreo, enviarLote, getTransporter };
+module.exports = { renderCorreo, enviarLote, getTransporter, verificarEnvio };

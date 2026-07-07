@@ -205,6 +205,14 @@ th {
   top: 0;
 }
 
+/* Los detalles de error (p. ej. respuestas largas del proveedor de correo)
+   sí se envuelven, para que no estiren la tabla horizontalmente. */
+td .tenue {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 480px;
+}
+
 tr:last-child td {
   border-bottom: none;
 }
