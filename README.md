@@ -31,7 +31,7 @@ cd server
 npm run db:local
 
 # 2. Backend
-cp .env.example .env   # editar: ADMIN_PASSWORD, GMAIL_USER, GMAIL_APP_PASSWORD
+cp .env.example .env   # editar: ADMIN_PASSWORD y el canal de correo
 npm install
 npm run dev            # http://localhost:3001
 
@@ -41,9 +41,24 @@ npm install
 npm run dev            # http://localhost:5173 (proxy /api -> 3001)
 ```
 
-El envío usa Gmail por SMTP con una **contraseña de aplicación**
-(https://myaccount.google.com/apppasswords, requiere verificación en 2 pasos).
-Límite de Gmail personal: ~500 correos/día.
+## Envío de correo
+
+Tres canales, en orden de prioridad (ver `.env.example`):
+
+1. **Brevo (API HTTPS)** — el canal de **producción**. Se activa con `BREVO_API_KEY`.
+   Necesario en el hosting porque su firewall bloquea SMTP externo y el filtro
+   saliente rechaza el SMTP local de la aplicación (`550 classified as SPAM`).
+   Requisitos en Brevo: remitente/dominio verificado (`FROM_EMAIL`) y la IP del
+   servidor agregada en Security → Authorised IPs. Plan gratis: 300 correos/día.
+2. **SMTP genérico** (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`) — para
+   cualquier proveedor SMTP accesible desde donde corra la app.
+3. **Gmail** (`GMAIL_USER` + contraseña de aplicación) — solo desarrollo local.
+
+`FROM_EMAIL` define el remitente visible y `REPLY_TO` la dirección que recibe
+las respuestas de los clientes. Diagnóstico sin enviar: `GET /api/correos/verificar`.
+
+La plantilla HTML del correo, el remitente (firma) y las listas de documentos por
+perfil se editan desde el panel y viven en la base de datos, no en el código.
 
 ## Despliegue en el hosting (cPanel + Node.js Selector)
 
@@ -54,11 +69,16 @@ Límite de Gmail personal: ~500 correos/día.
 3. En cPanel → **Setup Node.js App**: crear la app con Node **20.20.2**, application
    root apuntando a la carpeta del proyecto, startup file `server.js`.
 4. Subir por SFTP el contenido de `server/` (incluido `public/`, sin `node_modules`).
-5. Configurar las variables de entorno en el panel de la app: `ADMIN_PASSWORD`,
-   `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `DB_HOST=localhost`, `DB_PORT=3306`,
-   `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
+5. Subir por SFTP un archivo **`.env`** a la raíz de la app con: `ADMIN_PASSWORD`,
+   `DB_HOST=localhost`, `DB_PORT=3306`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` y el
+   canal de correo (ver sección anterior). **No** usar las "Environment variables"
+   del panel: su editor no siempre guarda y LiteSpeed altera valores con caracteres
+   especiales (`server.js` carga el `.env` con `override: true`). Por lo mismo,
+   usar contraseñas **solo alfanuméricas** para la DB. Cuidado al editar con el
+   File Manager: un salto de línea después del `=` deja la variable vacía.
 6. Botón **Run NPM Install** (dependencias livianas: express, mysql2, nodemailer,
    dotenv) y luego **Restart**. Las tablas se crean solas al arrancar.
+7. Reinicios posteriores sin panel: subir cualquier archivo a `tmp/restart.txt`.
 
 Si existían datos de la versión JSON (`server/data/*.json`), migrarlos con
 `npm run migrar-json`.
