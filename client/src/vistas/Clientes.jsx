@@ -65,11 +65,11 @@ export default function Clientes() {
           <thead>
             <tr>
               <th>Nombre</th>
-              <th>Cédula / NIT</th>
-              <th>Correo</th>
+              <th className="oculta-movil">Cédula / NIT</th>
+              <th className="oculta-movil">Correo</th>
               <th>Vence</th>
-              <th>Documentos</th>
-              <th>Último envío</th>
+              <th className="oculta-movil">Documentos</th>
+              <th className="oculta-movil">Último envío</th>
               <th></th>
             </tr>
           </thead>
@@ -77,8 +77,8 @@ export default function Clientes() {
             {filtrados.map((c) => (
               <tr key={c.id}>
                 <td>{c.nombre}</td>
-                <td>{c.cedula}</td>
-                <td>{c.email || <span className="tenue">sin correo</span>}</td>
+                <td className="oculta-movil">{c.cedula}</td>
+                <td className="oculta-movil">{c.email || <span className="tenue">sin correo</span>}</td>
                 <td>
                   {c.vencimiento ? (
                     <span className="pill fecha">{c.vencimiento.fecha}</span>
@@ -86,8 +86,8 @@ export default function Clientes() {
                     <span className="pill alerta">sin fecha</span>
                   )}
                 </td>
-                <td>{nombrePlantilla(c.plantillaId)}</td>
-                <td>
+                <td className="oculta-movil">{nombrePlantilla(c.plantillaId)}</td>
+                <td className="oculta-movil">
                   {c.ultimoEnvio ? (
                     new Date(c.ultimoEnvio).toLocaleDateString('es-CO')
                   ) : (

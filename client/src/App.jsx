@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { hayToken, setToken } from './api.js';
+import Guia, { GUIA_VISTA_KEY } from './Guia.jsx';
 import Login from './vistas/Login.jsx';
 import Clientes from './vistas/Clientes.jsx';
 import Plantillas from './vistas/Plantillas.jsx';
@@ -19,6 +20,8 @@ export default function App() {
   const [autenticado, setAutenticado] = useState(hayToken());
   const [pestana, setPestana] = useState('clientes');
   const [menuAbierto, setMenuAbierto] = useState(false); // drawer en móvil
+  // La guía se abre sola la primera vez; el botón "?" la reabre cuando sea.
+  const [guiaAbierta, setGuiaAbierta] = useState(() => !localStorage.getItem(GUIA_VISTA_KEY));
 
   useEffect(() => {
     const salir = () => setAutenticado(false);
@@ -63,6 +66,14 @@ export default function App() {
         </nav>
         {menuAbierto && <div className="nav-fondo" onClick={() => setMenuAbierto(false)} />}
         <button
+          className="ayuda"
+          aria-label="Ver guía de los módulos"
+          title="Ver la guía de los módulos"
+          onClick={() => setGuiaAbierta(true)}
+        >
+          ?
+        </button>
+        <button
           className="salir"
           onClick={() => {
             setToken(null);
@@ -75,6 +86,9 @@ export default function App() {
       <main>
         <Vista />
       </main>
+      {guiaAbierta && (
+        <Guia onIrPestana={setPestana} onCerrar={() => setGuiaAbierta(false)} />
+      )}
     </div>
   );
 }

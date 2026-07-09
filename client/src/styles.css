@@ -89,6 +89,25 @@ h2 {
   color: rgba(255, 255, 255, 0.75);
 }
 
+/* Botón "?" que reabre la guía de módulos */
+.ayuda {
+  background: none;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  flex-shrink: 0;
+  color: rgba(255, 255, 255, 0.75);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ayuda:hover {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
 /* Botón hamburguesa: solo existe en pantallas angostas */
 .hamburguesa {
   display: none;
@@ -421,6 +440,68 @@ td.acciones button {
   }
 }
 
+/* ---- Guía de módulos ---- */
+.guia {
+  position: fixed;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  width: min(440px, calc(100vw - 1.5rem));
+  background: var(--tarjeta);
+  border: 1px solid var(--borde);
+  border-top: 4px solid var(--acento);
+  border-radius: 12px;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 18px 48px rgba(14, 30, 51, 0.35);
+  z-index: 90;
+  animation: modal-entra 0.2s ease-out;
+}
+
+.guia h2 {
+  margin-bottom: 0.4rem;
+}
+
+.guia p {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+
+.guia-progreso {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.6rem;
+}
+
+.guia-progreso button {
+  width: 10px;
+  height: 10px;
+  padding: 0;
+  border-radius: 50%;
+  border: none;
+  background: var(--borde);
+}
+
+.guia-progreso button.activo {
+  background: var(--acento);
+}
+
+.guia-no-mostrar {
+  font-size: 0.8rem;
+  margin-bottom: 0.6rem;
+}
+
+.guia-botones {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.guia-botones > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
 /* ---- Login ---- */
 .login {
   display: grid;
@@ -465,6 +546,12 @@ td.acciones button {
   align-items: start;
 }
 
+/* Sin esto las columnas no pueden encogerse por debajo del ancho mínimo de
+   sus tablas (min-width:auto implícito en grid) y desbordan en móvil. */
+.dos-columnas > * {
+  min-width: 0;
+}
+
 .rejilla {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -489,6 +576,18 @@ td.acciones button {
   margin: 0.75rem 0;
   background: #fafbfc;
   font-size: 0.9rem;
+  /* El HTML del correo trae anchos y URLs largas: que nunca desborde el modal */
+  overflow-x: auto;
+  overflow-wrap: anywhere;
+}
+
+.preview-html img {
+  max-width: 100%;
+  height: auto;
+}
+
+.preview-html table {
+  max-width: 100%;
 }
 
 .lista-resultado {
@@ -730,6 +829,32 @@ td.acciones button {
 
   td .tenue {
     max-width: 240px;
+  }
+
+  /* Tablas más compactas y sin columnas secundarias */
+  th,
+  td {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.85rem;
+  }
+
+  .oculta-movil {
+    display: none;
+  }
+
+  /* La vista previa del correo ocupa todo el ancho útil del modal */
+  .preview-html {
+    padding: 0.4rem;
+    font-size: 0.85rem;
+  }
+
+  /* El cuerpo HTML es largo: en celular no debe comerse la pantalla */
+  .tarjeta textarea {
+    max-height: 190px;
+  }
+
+  .doc-revision .fila-botones {
+    flex-wrap: wrap;
   }
 
   /* Los modales se vuelven hoja inferior */

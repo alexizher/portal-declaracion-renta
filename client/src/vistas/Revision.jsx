@@ -146,7 +146,7 @@ export default function Revision() {
                   <th>Cliente</th>
                   <th>Aprobados</th>
                   <th>Por revisar</th>
-                  <th>Rechazados</th>
+                  <th className="oculta-movil">Rechazados</th>
                   <th></th>
                 </tr>
               </thead>
@@ -160,7 +160,7 @@ export default function Revision() {
                       </span>
                     </td>
                     <td>{f.subidos > 0 ? <span className="pill subido">{f.subidos}</span> : '—'}</td>
-                    <td>
+                    <td className="oculta-movil">
                       {f.rechazados > 0 ? <span className="pill rechazado">{f.rechazados}</span> : '—'}
                     </td>
                     <td>
@@ -239,7 +239,7 @@ export default function Revision() {
                       </div>
                     )}
 
-                    {rechazando === d.documentoId && (
+                    {d.documentoId && rechazando === d.documentoId && (
                       <div className="fila-acciones" style={{ marginTop: '0.5rem' }}>
                         <input
                           className="buscador"
