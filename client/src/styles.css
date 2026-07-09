@@ -49,8 +49,8 @@ h2 {
 }
 
 .barra .logo {
-  width: 38px;
-  height: 38px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
 }
 
@@ -342,6 +342,67 @@ td.acciones button {
   font-size: 0.85rem;
 }
 
+/* Selector segmentado (tipo de mensaje en Correos) */
+.selector-tipo {
+  display: inline-flex;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 0.6rem;
+}
+
+.selector-tipo button {
+  border: none;
+  border-radius: 0;
+  background: #fff;
+  color: var(--tenue);
+  padding: 0.4rem 1rem;
+}
+
+.selector-tipo button.activo {
+  background: var(--primario);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---- Modales ---- */
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 30, 51, 0.55);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  z-index: 100;
+  padding: 1rem;
+}
+
+.modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  margin: 0;
+  border-top: 4px solid var(--acento);
+  box-shadow: 0 24px 60px rgba(14, 30, 51, 0.35);
+  animation: modal-entra 0.18s ease-out;
+}
+
+.modal.ancho {
+  max-width: 760px;
+}
+
+@keyframes modal-entra {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ---- Login ---- */
 .login {
   display: grid;
@@ -357,8 +418,8 @@ td.acciones button {
 }
 
 .login-form .logo-login {
-  width: 84px;
-  height: 84px;
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
   margin: 0.75rem auto 0.5rem;
   display: block;
@@ -443,8 +504,8 @@ td.acciones button {
 }
 
 .portal-cabecera .logo {
-  width: 64px;
-  height: 64px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
   margin-bottom: 0.5rem;
 }
@@ -524,6 +585,7 @@ td.acciones button {
   font-size: 0.8rem;
 }
 
+/* ---- Pantallas medianas (tablet) ---- */
 @media (max-width: 900px) {
   .dos-columnas {
     grid-template-columns: 1fr;
@@ -534,8 +596,100 @@ td.acciones button {
     gap: 0.5rem;
   }
 
+  /* La navegación pasa a su propia fila, deslizable si no cabe */
+  .barra nav {
+    order: 3;
+    flex-basis: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.15rem;
+  }
+
+  .barra nav button {
+    white-space: nowrap;
+  }
+}
+
+/* ---- Pantallas pequeñas (celular) ---- */
+@media (max-width: 600px) {
+  main {
+    padding: 0.8rem;
+  }
+
+  .barra {
+    padding: 0.5rem 0.8rem;
+  }
+
+  .barra .logo {
+    width: 42px;
+    height: 42px;
+  }
+
+  .barra h1 {
+    font-size: 0.95rem;
+    flex: 1;
+  }
+
+  .salir {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+  }
+
+  .fila-acciones {
+    gap: 0.5rem;
+  }
+
+  .fila-acciones .buscador {
+    min-width: 100%;
+  }
+
+  .fila-acciones button {
+    flex: 1;
+  }
+
+  .tarjeta {
+    padding: 0.8rem;
+  }
+
+  /* Botones cómodos para el dedo */
+  button {
+    padding: 0.55rem 0.9rem;
+  }
+
+  td.acciones {
+    flex-direction: column;
+  }
+
+  td .tenue {
+    max-width: 240px;
+  }
+
+  /* Los modales se vuelven hoja inferior */
+  .modal-fondo {
+    padding: 0;
+    place-items: end stretch;
+  }
+
+  .modal,
+  .modal.ancho {
+    max-width: none;
+    max-height: 94vh;
+    border-radius: 16px 16px 0 0;
+    animation: modal-sube 0.22s ease-out;
+  }
+
   .portal-doc {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@keyframes modal-sube {
+  from {
+    transform: translateY(40px);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
   }
 }

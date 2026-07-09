@@ -11,6 +11,11 @@ export default function Correos() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
   const [soloSinEnviar, setSoloSinEnviar] = useState(false);
+  // recordatorio: mensaje clásico de vencimiento; portal: invitación con el
+  // enlace personal para subir documentos. Cada uno con su plantilla.
+  const [tipoMensaje, setTipoMensaje] = useState('recordatorio');
+  const claveAsunto = tipoMensaje === 'portal' ? 'asunto_portal' : 'asunto';
+  const claveCuerpo = tipoMensaje === 'portal' ? 'cuerpo_portal' : 'cuerpo';
 
   async function cargar() {
     const [cli, cfg, his] = await Promise.all([
@@ -54,12 +59,13 @@ export default function Correos() {
   }
 
   async function verPreview(clienteId) {
-    setPreview(await api(`/correos/previsualizar/${clienteId}`));
+    setPreview(await api(`/correos/previsualizar/${clienteId}?tipo=${tipoMensaje}`));
   }
 
   async function enviar() {
     const n = seleccion.size;
-    if (!window.confirm(`Se enviarán ${n} correo(s) desde tu Gmail. ¿Continuar?`)) return;
+    const que = tipoMensaje === 'portal' ? 'la invitación al portal' : 'el recordatorio';
+    if (!window.confirm(`Se enviará ${que} a ${n} cliente(s). ¿Continuar?`)) return;
     setEnviando(true);
     setError(null);
     setResultado(null);
@@ -67,7 +73,7 @@ export default function Correos() {
       await guardarConfig();
       const { resultados } = await api('/correos/enviar', {
         method: 'POST',
-        body: { clienteIds: [...seleccion] },
+        body: { clienteIds: [...seleccion], tipo: tipoMensaje },
       });
       setResultado(resultados);
       setSeleccion(new Set());
@@ -86,9 +92,26 @@ export default function Correos() {
       <div>
         <div className="tarjeta">
           <h2>Mensaje</h2>
+          <div className="selector-tipo">
+            <button
+              className={tipoMensaje === 'recordatorio' ? 'activo' : ''}
+              onClick={() => setTipoMensaje('recordatorio')}
+            >
+              Recordatorio
+            </button>
+            <button
+              className={tipoMensaje === 'portal' ? 'activo' : ''}
+              onClick={() => setTipoMensaje('portal')}
+            >
+              Invitación al portal
+            </button>
+          </div>
           <p className="tenue">
-            Variables disponibles: {'{{nombre}}'}, {'{{vencimiento}}'}, {'{{digitos}}'},{' '}
-            {'{{documentos}}'}, {'{{remitente}}'}, {'{{portal}}'} (enlace para subir documentos)
+            {tipoMensaje === 'portal'
+              ? 'Invita al cliente a subir sus documentos con su enlace personal {{portal}}.'
+              : 'Recordatorio del vencimiento con la lista de documentos.'}{' '}
+            Variables: {'{{nombre}}'}, {'{{vencimiento}}'}, {'{{digitos}}'}, {'{{documentos}}'},{' '}
+            {'{{remitente}}'}, {'{{portal}}'}
           </p>
           <label>
             Nombre del remitente (firma)
@@ -102,8 +125,8 @@ export default function Correos() {
           <label>
             Asunto
             <input
-              value={config.asunto}
-              onChange={(e) => setConfig({ ...config, asunto: e.target.value })}
+              value={config[claveAsunto] || ''}
+              onChange={(e) => setConfig({ ...config, [claveAsunto]: e.target.value })}
               onBlur={guardarConfig}
             />
           </label>
@@ -111,8 +134,8 @@ export default function Correos() {
             Cuerpo (HTML)
             <textarea
               rows={12}
-              value={config.cuerpo}
-              onChange={(e) => setConfig({ ...config, cuerpo: e.target.value })}
+              value={config[claveCuerpo] || ''}
+              onChange={(e) => setConfig({ ...config, [claveCuerpo]: e.target.value })}
               onBlur={guardarConfig}
             />
           </label>
@@ -194,7 +217,7 @@ export default function Correos() {
           >
             {enviando
               ? 'Enviando… (esto puede tardar, ~2 s por correo)'
-              : `Enviar a ${seleccion.size} cliente(s)`}
+              : `Enviar ${tipoMensaje === 'portal' ? 'invitación' : 'recordatorio'} a ${seleccion.size} cliente(s)`}
           </button>
         </div>
 
@@ -232,7 +255,11 @@ export default function Correos() {
                       <span className={`pill ${h.estado === 'enviado' ? 'ok' : 'alerta'}`}>
                         {h.estado}
                       </span>
-                      {h.tipo === 'revision' && <span className="pill">revisión</span>}
+                      {h.tipo && h.tipo !== 'recordatorio' && (
+                        <span className="pill">
+                          {h.tipo === 'portal' ? 'invitación' : h.tipo === 'revision' ? 'revisión' : h.tipo}
+                        </span>
+                      )}
                       {h.error && <div className="tenue">{h.error}</div>}
                     </td>
                   </tr>

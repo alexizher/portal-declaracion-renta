@@ -115,6 +115,24 @@ const CONFIG_INICIAL = {
     '<p>Cordial saludo,</p>',
     '<p><strong>{{remitente}}</strong></p>',
   ].join('\n'),
+  // Invitación al portal de documentos (Fase 2): correo aparte del
+  // recordatorio, con el enlace personal {{portal}} de cada cliente.
+  asunto_portal: 'Sube los documentos de tu declaración de renta en tu portal personal',
+  cuerpo_portal: [
+    '<p>Hola <strong>{{nombre}}</strong>,</p>',
+    '<p>Ya está disponible tu portal personal para la declaración de renta ',
+    '(año gravable 2025). Allí puedes subir, antes del <strong>{{vencimiento}}</strong>, ',
+    'cada uno de los documentos de tu lista:</p>',
+    '{{documentos}}',
+    '<p style="text-align:center;margin:24px 0;"><a href="{{portal}}" ',
+    'style="background:#152a45;color:#ffffff;text-decoration:none;padding:12px 28px;',
+    'border-radius:6px;display:inline-block;">Subir mis documentos</a></p>',
+    '<p>El enlace es personal, no lo compartas. Revisaremos cada documento y te ',
+    'avisaremos por este medio si alguno necesita corrección.</p>',
+    '<p>Si tienes alguna duda, responde a este correo y con gusto te orientamos.</p>',
+    '<p>Cordial saludo,</p>',
+    '<p><strong>{{remitente}}</strong></p>',
+  ].join('\n'),
   remitente: '',
 };
 

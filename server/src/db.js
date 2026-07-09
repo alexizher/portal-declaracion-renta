@@ -128,11 +128,11 @@ async function init() {
     }
   }
 
-  const [{ n: nConfig }] = await q('SELECT COUNT(*) AS n FROM config');
-  if (nConfig === 0) {
-    for (const [clave, valor] of Object.entries(CONFIG_INICIAL)) {
-      await q('INSERT INTO config (clave, valor) VALUES (?, ?)', [clave, valor]);
-    }
+  // Config: agrega solo las claves que falten, sin tocar las que el usuario
+  // ya editó desde el panel (así las claves nuevas llegan a instalaciones
+  // existentes).
+  for (const [clave, valor] of Object.entries(CONFIG_INICIAL)) {
+    await q('INSERT IGNORE INTO config (clave, valor) VALUES (?, ?)', [clave, valor]);
   }
 }
 

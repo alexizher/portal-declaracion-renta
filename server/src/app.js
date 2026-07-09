@@ -212,8 +212,8 @@ api.get('/config', ruta(async (req, res) => {
 }));
 
 api.put('/config', ruta(async (req, res) => {
-  const { asunto, cuerpo, remitente } = req.body;
-  res.json(await datos.guardarConfig({ asunto, cuerpo, remitente }));
+  const { asunto, cuerpo, asunto_portal, cuerpo_portal, remitente } = req.body;
+  res.json(await datos.guardarConfig({ asunto, cuerpo, asunto_portal, cuerpo_portal, remitente }));
 }));
 
 // ---------- Revisión de documentos (Fase 2) ----------
@@ -278,6 +278,7 @@ api.post('/clientes/:id/notificar-revision', ruta(async (req, res) => {
 // ---------- Correos ----------
 
 api.get('/correos/previsualizar/:clienteId', ruta(async (req, res) => {
+  const tipo = req.query.tipo === 'portal' ? 'portal' : 'recordatorio';
   const cliente = await datos.obtenerCliente(req.params.clienteId);
   if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
   const [plantillas, config, calendario] = await Promise.all([
@@ -285,7 +286,7 @@ api.get('/correos/previsualizar/:clienteId', ruta(async (req, res) => {
     datos.obtenerConfig(),
     datos.obtenerCalendario(),
   ]);
-  const preview = renderCorreo(cliente, plantillas, config, calendario);
+  const preview = renderCorreo(cliente, plantillas, config, calendario, tipo);
   res.json({
     para: cliente.email,
     asunto: preview.asunto,
@@ -305,11 +306,13 @@ api.get('/correos/verificar', ruta(async (req, res) => {
 }));
 
 api.post('/correos/enviar', ruta(async (req, res) => {
-  const { clienteIds } = req.body;
+  const { clienteIds, tipo } = req.body;
   if (!Array.isArray(clienteIds) || clienteIds.length === 0) {
     return res.status(400).json({ error: 'Selecciona al menos un cliente.' });
   }
-  res.json({ resultados: await enviarLote(clienteIds) });
+  res.json({
+    resultados: await enviarLote(clienteIds, tipo === 'portal' ? 'portal' : 'recordatorio'),
+  });
 }));
 
 api.get('/correos/historial', ruta(async (req, res) => {

@@ -106,7 +106,12 @@ function urlPortal(clienteId) {
   return `${base}/portal/${tokenPortal(clienteId)}`;
 }
 
-function renderCorreo(cliente, plantillas, config, calendario) {
+// tipo: 'recordatorio' (mensaje clásico de vencimiento) o 'portal'
+// (invitación con el enlace personal para subir documentos). Cada uno tiene
+// su plantilla editable en la config.
+function renderCorreo(cliente, plantillas, config, calendario, tipo = 'recordatorio') {
+  const asuntoBase = tipo === 'portal' ? config.asunto_portal : config.asunto;
+  const cuerpoBase = tipo === 'portal' ? config.cuerpo_portal : config.cuerpo;
   const venc = vencimientoDe(cliente.cedula, calendario);
   const plantilla = plantillas.find((p) => p.id === cliente.plantillaId);
   const documentos = plantilla ? plantilla.documentos : [];
@@ -130,9 +135,9 @@ function renderCorreo(cliente, plantillas, config, calendario) {
       texto
     );
 
-  const html = aplicar(config.cuerpo);
+  const html = aplicar(cuerpoBase || '');
   return {
-    asunto: aplicar(config.asunto),
+    asunto: aplicar(asuntoBase || ''),
     html,
     texto: htmlAtexto(html),
     vencimiento: venc,
@@ -140,7 +145,7 @@ function renderCorreo(cliente, plantillas, config, calendario) {
       !venc && 'No se pudo calcular el vencimiento (cédula vacía o inválida).',
       !plantilla && 'El cliente no tiene plantilla de documentos asignada.',
       !cliente.email && 'El cliente no tiene correo electrónico.',
-      (config.cuerpo + config.asunto).includes('{{portal}}') &&
+      ((cuerpoBase || '') + (asuntoBase || '')).includes('{{portal}}') &&
         !process.env.BASE_URL &&
         'El mensaje usa {{portal}} pero falta BASE_URL en el .env del servidor.',
     ].filter(Boolean),
@@ -165,7 +170,7 @@ const { ahoraBogota } = datos;
 
 // Envío secuencial con pausa entre correos para no disparar los límites
 // anti-spam de Gmail (~500 correos/día en cuentas personales).
-async function enviarLote(clienteIds) {
+async function enviarLote(clienteIds, tipo = 'recordatorio') {
   const [plantillas, config, calendario] = await Promise.all([
     datos.listarPlantillas(),
     datos.obtenerConfig(),
@@ -185,9 +190,10 @@ async function enviarLote(clienteIds) {
       fecha: ahoraBogota(),
       estado: 'enviado',
       error: null,
+      tipo,
     };
 
-    const { asunto, html, texto, advertencias } = renderCorreo(cliente, plantillas, config, calendario);
+    const { asunto, html, texto, advertencias } = renderCorreo(cliente, plantillas, config, calendario, tipo);
     if (advertencias.length) {
       registro.estado = 'omitido';
       registro.error = advertencias.join(' ');
