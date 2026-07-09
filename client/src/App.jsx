@@ -4,11 +4,13 @@ import Login from './vistas/Login.jsx';
 import Clientes from './vistas/Clientes.jsx';
 import Plantillas from './vistas/Plantillas.jsx';
 import Correos from './vistas/Correos.jsx';
+import Revision from './vistas/Revision.jsx';
 import Calendario from './vistas/Calendario.jsx';
 
 const PESTANAS = [
   { id: 'clientes', titulo: 'Clientes', Vista: Clientes },
   { id: 'correos', titulo: 'Correos', Vista: Correos },
+  { id: 'revision', titulo: 'Revisión', Vista: Revision },
   { id: 'plantillas', titulo: 'Documentos', Vista: Plantillas },
   { id: 'calendario', titulo: 'Calendario DIAN', Vista: Calendario },
 ];

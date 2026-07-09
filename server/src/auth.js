@@ -57,6 +57,33 @@ function tokenValido(token) {
   );
 }
 
+// ---------- Portal de documentos (Fase 2) ----------
+// Cada cliente recibe por correo un enlace con un token propio, también sin
+// estado: "clienteId.firmaHMAC". No expira (el cliente lo usa durante toda la
+// temporada); cambiar ADMIN_PASSWORD invalida todos los enlaces.
+
+function firmaPortal(clienteId) {
+  return crypto
+    .createHmac('sha256', claveFirma())
+    .update(`portal:${clienteId}`)
+    .digest('hex')
+    .slice(0, 32);
+}
+
+function tokenPortal(clienteId) {
+  return `${clienteId}.${firmaPortal(clienteId)}`;
+}
+
+function clienteIdDelPortal(token) {
+  const [clienteId, firma] = String(token || '').split('.');
+  if (!clienteId || !firma) return null;
+  const esperada = firmaPortal(clienteId);
+  const ok =
+    firma.length === esperada.length &&
+    crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada));
+  return ok ? clienteId : null;
+}
+
 function requiereAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -66,4 +93,4 @@ function requiereAuth(req, res, next) {
   next();
 }
 
-module.exports = { login, requiereAuth };
+module.exports = { login, requiereAuth, tokenPortal, clienteIdDelPortal };

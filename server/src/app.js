@@ -2,12 +2,25 @@ const path = require('path');
 const express = require('express');
 
 const datos = require('./datos');
-const { login, requiereAuth } = require('./auth');
+const { login, requiereAuth, clienteIdDelPortal } = require('./auth');
 const { vencimientoDe } = require('./vencimientos');
-const { renderCorreo, enviarLote, verificarEnvio } = require('./correo');
+const { renderCorreo, enviarLote, enviarRevision, urlPortal, verificarEnvio } = require('./correo');
+const {
+  rutaDe,
+  borrarArchivo,
+  borrarCarpetaCliente,
+  subirArchivo,
+  nombreOriginal,
+} = require('./archivos');
 
 const app = express();
 app.use(express.json({ limit: '2mb' }));
+
+// El portal de clientes va registrado ANTES que /api: usa el token del enlace
+// en lugar del login del panel. Lo que no coincida con sus rutas cae al
+// router /api y termina en el 401 de requiereAuth.
+const portal = express.Router();
+app.use('/api/portal', portal);
 
 const api = express.Router();
 app.use('/api', api);
@@ -19,6 +32,78 @@ const ruta = (fn) => (req, res) =>
     console.error(err);
     res.status(500).json({ error: err.message });
   });
+
+// ---------- Portal de clientes (Fase 2, sin login) ----------
+
+// Resuelve el token del enlace a un cliente y lo deja en req.cliente.
+function cargarClientePortal(req, res, next) {
+  (async () => {
+    const clienteId = clienteIdDelPortal(req.params.token);
+    const cliente = clienteId && (await datos.obtenerCliente(clienteId));
+    if (!cliente) return res.status(404).json({ error: 'Este enlace no es válido.' });
+    req.cliente = cliente;
+    req.clienteId = cliente.id; // lo usa multer para elegir la carpeta
+    next();
+  })().catch((err) => {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  });
+}
+
+// Estado del checklist del cliente (solo lo que él necesita ver).
+portal.get('/:token', cargarClientePortal, ruta(async (req, res) => {
+  const [plantillas, calendario, documentos] = await Promise.all([
+    datos.listarPlantillas(),
+    datos.obtenerCalendario(),
+    datos.listarDocumentosDe(req.cliente.id),
+  ]);
+  const plantilla = plantillas.find((p) => p.id === req.cliente.plantillaId);
+  res.json({
+    nombre: req.cliente.nombre,
+    vencimiento: vencimientoDe(req.cliente.cedula, calendario),
+    documentos: datos.armarChecklist(plantilla, documentos).map((d) => ({
+      nombre: d.nombre,
+      estado: d.estado,
+      motivo: d.motivo,
+      original: d.original,
+      subidoEn: d.subidoEn,
+    })),
+  });
+}));
+
+// Subida (o reemplazo) de un documento del checklist.
+portal.post('/:token/documentos', cargarClientePortal, subirArchivo, ruta(async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
+  const nombre = String(req.body.nombre || '');
+
+  const plantillas = await datos.listarPlantillas();
+  const plantilla = plantillas.find((p) => p.id === req.cliente.plantillaId);
+  if (!plantilla || !plantilla.documentos.includes(nombre)) {
+    borrarArchivo(req.cliente.id, req.file.filename);
+    return res.status(400).json({ error: 'Ese documento no está en tu lista.' });
+  }
+
+  const existentes = await datos.listarDocumentosDe(req.cliente.id);
+  const previo = existentes.find((d) => d.nombre === nombre);
+  if (previo && previo.estado === 'aprobado') {
+    borrarArchivo(req.cliente.id, req.file.filename);
+    return res
+      .status(409)
+      .json({ error: 'Este documento ya fue aprobado; no es necesario volver a subirlo.' });
+  }
+
+  const { archivoAnterior } = await datos.guardarDocumento({
+    clienteId: req.cliente.id,
+    nombre,
+    archivo: req.file.filename,
+    original: nombreOriginal(req.file),
+    mime: req.file.mimetype,
+    tamano: req.file.size,
+    fecha: datos.ahoraBogota(),
+  });
+  if (archivoAnterior) borrarArchivo(req.cliente.id, archivoAnterior);
+  res.status(201).json({ ok: true });
+}));
 
 api.post('/login', (req, res) => {
   const resultado = login(req.body.password);
@@ -76,6 +161,7 @@ api.put('/clientes/:id', ruta(async (req, res) => {
 api.delete('/clientes/:id', ruta(async (req, res) => {
   const ok = await datos.eliminarCliente(req.params.id);
   if (!ok) return res.status(404).json({ error: 'Cliente no encontrado.' });
+  borrarCarpetaCliente(req.params.id);
   res.json({ ok: true });
 }));
 
@@ -128,6 +214,65 @@ api.get('/config', ruta(async (req, res) => {
 api.put('/config', ruta(async (req, res) => {
   const { asunto, cuerpo, remitente } = req.body;
   res.json(await datos.guardarConfig({ asunto, cuerpo, remitente }));
+}));
+
+// ---------- Revisión de documentos (Fase 2) ----------
+
+// Conteos por cliente; el frontend los cruza con la lista de clientes.
+api.get('/documentos/resumen', ruta(async (req, res) => {
+  res.json(await datos.resumenDocumentos());
+}));
+
+// Checklist completo de un cliente + su enlace del portal.
+api.get('/clientes/:id/documentos', ruta(async (req, res) => {
+  const cliente = await datos.obtenerCliente(req.params.id);
+  if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
+  const [plantillas, documentos] = await Promise.all([
+    datos.listarPlantillas(),
+    datos.listarDocumentosDe(cliente.id),
+  ]);
+  const plantilla = plantillas.find((p) => p.id === cliente.plantillaId);
+  res.json({
+    checklist: datos.armarChecklist(plantilla, documentos),
+    enlacePortal: process.env.BASE_URL
+      ? urlPortal(cliente.id)
+      : `${req.protocol}://${req.get('host')}${urlPortal(cliente.id)}`,
+    sinPlantilla: !plantilla,
+  });
+}));
+
+// Descarga del archivo (el panel lo pide con fetch + Authorization).
+api.get('/documentos/:id/archivo', ruta(async (req, res) => {
+  const doc = await datos.obtenerDocumento(req.params.id);
+  if (!doc) return res.status(404).json({ error: 'Documento no encontrado.' });
+  res.download(rutaDe(doc.clienteId, doc.archivo), doc.original, (err) => {
+    if (err && !res.headersSent) {
+      res.status(404).json({ error: 'El archivo no está en el disco del servidor.' });
+    }
+  });
+}));
+
+// Aprobar / rechazar (o volver a "subido" para deshacer una revisión).
+api.put('/documentos/:id/revision', ruta(async (req, res) => {
+  const { estado, motivo } = req.body;
+  if (!['aprobado', 'rechazado', 'subido'].includes(estado)) {
+    return res.status(400).json({ error: 'Estado inválido.' });
+  }
+  if (estado === 'rechazado' && !String(motivo || '').trim()) {
+    return res.status(400).json({ error: 'Indica el motivo del rechazo.' });
+  }
+  const doc = await datos.revisarDocumento(req.params.id, {
+    estado,
+    motivo: estado === 'rechazado' ? String(motivo).trim() : null,
+    fecha: datos.ahoraBogota(),
+  });
+  if (!doc) return res.status(404).json({ error: 'Documento no encontrado.' });
+  res.json(doc);
+}));
+
+// Envía al cliente el resumen de la revisión.
+api.post('/clientes/:id/notificar-revision', ruta(async (req, res) => {
+  res.json(await enviarRevision(req.params.id));
 }));
 
 // ---------- Correos ----------

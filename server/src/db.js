@@ -66,12 +66,44 @@ const TABLAS = [
     fecha DATETIME NOT NULL,
     estado VARCHAR(20) NOT NULL,
     error TEXT NULL,
+    tipo VARCHAR(20) NOT NULL DEFAULT 'recordatorio',
     KEY idx_fecha (fecha)
+  ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+
+  // Fase 2: archivos que los clientes suben desde el portal. El checklist se
+  // arma cruzando la plantilla del cliente con estas filas; la clave es el
+  // nombre del documento (hasheado, porque los nombres son frases largas y
+  // no caben en un índice único utf8mb4).
+  `CREATE TABLE IF NOT EXISTS documentos (
+    id VARCHAR(20) PRIMARY KEY,
+    cliente_id VARCHAR(20) NOT NULL,
+    nombre TEXT NOT NULL,
+    nombre_hash CHAR(40) NOT NULL,
+    archivo VARCHAR(100) NOT NULL,
+    original VARCHAR(255) NOT NULL,
+    mime VARCHAR(100) NOT NULL,
+    tamano INT NOT NULL,
+    estado VARCHAR(20) NOT NULL DEFAULT 'subido',
+    motivo TEXT NULL,
+    subido_en DATETIME NOT NULL,
+    revisado_en DATETIME NULL,
+    UNIQUE KEY uq_cliente_doc (cliente_id, nombre_hash),
+    KEY idx_cliente (cliente_id)
   ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
 ];
 
 async function init() {
   for (const ddl of TABLAS) await q(ddl);
+
+  // Migración: la tabla envios de la Fase 1 no tenía la columna tipo
+  // (recordatorio | revision). ALTER solo si falta.
+  const [{ n: tieneTipo }] = await q(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = 'envios' AND column_name = 'tipo'`
+  );
+  if (tieneTipo === 0) {
+    await q(`ALTER TABLE envios ADD COLUMN tipo VARCHAR(20) NOT NULL DEFAULT 'recordatorio'`);
+  }
 
   const [{ n: nCalendario }] = await q('SELECT COUNT(*) AS n FROM calendario');
   if (nCalendario === 0) {

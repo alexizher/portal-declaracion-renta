@@ -88,7 +88,7 @@ export default function Correos() {
           <h2>Mensaje</h2>
           <p className="tenue">
             Variables disponibles: {'{{nombre}}'}, {'{{vencimiento}}'}, {'{{digitos}}'},{' '}
-            {'{{documentos}}'}, {'{{remitente}}'}
+            {'{{documentos}}'}, {'{{remitente}}'}, {'{{portal}}'} (enlace para subir documentos)
           </p>
           <label>
             Nombre del remitente (firma)
@@ -232,6 +232,7 @@ export default function Correos() {
                       <span className={`pill ${h.estado === 'enviado' ? 'ok' : 'alerta'}`}>
                         {h.estado}
                       </span>
+                      {h.tipo === 'revision' && <span className="pill">revisión</span>}
                       {h.error && <div className="tenue">{h.error}</div>}
                     </td>
                   </tr>

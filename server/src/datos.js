@@ -9,6 +9,13 @@ function nuevoId() {
   return crypto.randomBytes(8).toString('hex');
 }
 
+// Fecha y hora de Colombia en "YYYY-MM-DD HH:mm:ss" (formato sv-SE). Todo el
+// historial se guarda y se muestra en hora local del negocio; guardar UTC
+// hacía que el panel mostrara los registros con 5 horas de diferencia.
+function ahoraBogota() {
+  return new Date().toLocaleString('sv-SE', { timeZone: 'America/Bogota' });
+}
+
 function normalizarCedula(cedula) {
   return String(cedula || '').replace(/\D/g, '');
 }
@@ -120,6 +127,7 @@ async function actualizarCliente(id, campos) {
 
 async function eliminarCliente(id) {
   const r = await q('DELETE FROM clientes WHERE id = ?', [id]);
+  await q('DELETE FROM documentos WHERE cliente_id = ?', [id]);
   return r.affectedRows > 0;
 }
 
@@ -204,11 +212,132 @@ async function guardarConfig(parcial) {
   return obtenerConfig();
 }
 
+// ---------- Documentos del portal (Fase 2) ----------
+
+// Los nombres de documento son frases largas; el índice único por cliente usa
+// su hash porque un TEXT utf8mb4 no cabe completo en la clave.
+function hashNombreDoc(nombre) {
+  return crypto.createHash('sha1').update(String(nombre)).digest('hex');
+}
+
+function mapDocumento(r) {
+  return {
+    id: r.id,
+    clienteId: r.cliente_id,
+    nombre: r.nombre,
+    archivo: r.archivo,
+    original: r.original,
+    mime: r.mime,
+    tamano: r.tamano,
+    estado: r.estado,
+    motivo: r.motivo || '',
+    subidoEn: r.subido_en,
+    revisadoEn: r.revisado_en,
+  };
+}
+
+async function listarDocumentosDe(clienteId) {
+  const filas = await q('SELECT * FROM documentos WHERE cliente_id = ? ORDER BY subido_en', [
+    clienteId,
+  ]);
+  return filas.map(mapDocumento);
+}
+
+async function obtenerDocumento(id) {
+  const filas = await q('SELECT * FROM documentos WHERE id = ?', [id]);
+  return filas.length ? mapDocumento(filas[0]) : null;
+}
+
+// Inserta o reemplaza el archivo de un documento del checklist. Reemplazar
+// vuelve el estado a "subido" (queda otra vez en revisión) y devuelve el
+// nombre del archivo anterior para borrarlo del disco.
+async function guardarDocumento({ clienteId, nombre, archivo, original, mime, tamano, fecha }) {
+  const hash = hashNombreDoc(nombre);
+  const previas = await q('SELECT * FROM documentos WHERE cliente_id = ? AND nombre_hash = ?', [
+    clienteId,
+    hash,
+  ]);
+  if (previas.length) {
+    const anterior = mapDocumento(previas[0]);
+    await q(
+      `UPDATE documentos SET archivo = ?, original = ?, mime = ?, tamano = ?,
+         estado = 'subido', motivo = NULL, subido_en = ?, revisado_en = NULL
+       WHERE id = ?`,
+      [archivo, original, mime, tamano, fecha, anterior.id]
+    );
+    return { documento: await obtenerDocumento(anterior.id), archivoAnterior: anterior.archivo };
+  }
+  const id = nuevoId();
+  await q(
+    `INSERT INTO documentos (id, cliente_id, nombre, nombre_hash, archivo, original, mime, tamano, subido_en)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, clienteId, nombre, hash, archivo, original, mime, tamano, fecha]
+  );
+  return { documento: await obtenerDocumento(id), archivoAnterior: null };
+}
+
+async function revisarDocumento(id, { estado, motivo, fecha }) {
+  const doc = await obtenerDocumento(id);
+  if (!doc) return null;
+  await q('UPDATE documentos SET estado = ?, motivo = ?, revisado_en = ? WHERE id = ?', [
+    estado,
+    motivo || null,
+    fecha,
+    id,
+  ]);
+  return obtenerDocumento(id);
+}
+
+// Conteos por cliente para la vista de revisión del panel.
+async function resumenDocumentos() {
+  const filas = await q(
+    `SELECT cliente_id,
+       SUM(estado = 'subido') AS subidos,
+       SUM(estado = 'aprobado') AS aprobados,
+       SUM(estado = 'rechazado') AS rechazados,
+       MAX(subido_en) AS ultimo
+     FROM documentos GROUP BY cliente_id`
+  );
+  return filas.map((r) => ({
+    clienteId: r.cliente_id,
+    subidos: Number(r.subidos),
+    aprobados: Number(r.aprobados),
+    rechazados: Number(r.rechazados),
+    ultimo: r.ultimo,
+  }));
+}
+
+// Une la lista de la plantilla del cliente con lo que ha subido: cada ítem
+// queda pendiente | subido | aprobado | rechazado. Los archivos cuyo nombre ya
+// no está en la plantilla (porque se editó) se agregan al final para que nada
+// subido quede invisible.
+function armarChecklist(plantilla, documentos) {
+  const porNombre = new Map(documentos.map((d) => [d.nombre, d]));
+  const deDoc = (nombre, d) => ({
+    nombre,
+    estado: d ? d.estado : 'pendiente',
+    motivo: d ? d.motivo : '',
+    documentoId: d ? d.id : null,
+    original: d ? d.original : null,
+    mime: d ? d.mime : null,
+    tamano: d ? d.tamano : null,
+    subidoEn: d ? d.subidoEn : null,
+    revisadoEn: d ? d.revisadoEn : null,
+  });
+  const nombresPlantilla = plantilla ? plantilla.documentos : [];
+  const items = nombresPlantilla.map((nombre) => deDoc(nombre, porNombre.get(nombre)));
+  const enPlantilla = new Set(nombresPlantilla);
+  const extras = documentos
+    .filter((d) => !enPlantilla.has(d.nombre))
+    .map((d) => deDoc(d.nombre, d));
+  return [...items, ...extras];
+}
+
 // ---------- Envíos ----------
 
 async function registrarEnvio(registro) {
   await q(
-    'INSERT INTO envios (id, cliente_id, nombre, email, fecha, estado, error) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    'INSERT INTO envios (id, cliente_id, nombre, email, fecha, estado, error, tipo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     [
       registro.id,
       registro.clienteId,
@@ -217,6 +346,7 @@ async function registrarEnvio(registro) {
       registro.fecha.slice(0, 19).replace('T', ' '),
       registro.estado,
       registro.error,
+      registro.tipo || 'recordatorio',
     ]
   );
 }
@@ -231,11 +361,13 @@ async function listarEnvios(limite = 500) {
     fecha: r.fecha,
     estado: r.estado,
     error: r.error,
+    tipo: r.tipo,
   }));
 }
 
 module.exports = {
   nuevoId,
+  ahoraBogota,
   listarClientes,
   obtenerCliente,
   crearCliente,
@@ -251,6 +383,12 @@ module.exports = {
   guardarCalendario,
   obtenerConfig,
   guardarConfig,
+  listarDocumentosDe,
+  obtenerDocumento,
+  guardarDocumento,
+  revisarDocumento,
+  resumenDocumentos,
+  armarChecklist,
   registrarEnvio,
   listarEnvios,
 };

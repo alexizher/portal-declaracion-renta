@@ -29,3 +29,16 @@ export async function api(ruta, opciones = {}) {
   if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
   return data;
 }
+
+// Descarga binaria autenticada (los archivos del portal no se sirven como
+// estáticos: solo salen por la API con el token del panel).
+export async function apiArchivo(ruta) {
+  const res = await fetch(`/api${ruta}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || `Error ${res.status}`);
+  }
+  return res.blob();
+}

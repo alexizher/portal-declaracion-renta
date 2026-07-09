@@ -2,24 +2,47 @@
 
 Sistema para gestión de clientes de declaración de renta (Colombia).
 
-**Fase 1 (actual) — Notificador:** panel de administración para importar la lista de
+**Fase 1 — Notificador:** panel de administración para importar la lista de
 clientes (Excel/CSV), calcular la fecha de vencimiento DIAN según los dos últimos
 dígitos de la cédula/NIT, y enviarles por correo el recordatorio con la lista de
 documentos que deben preparar.
 
-**Fase 2 (próxima) — Portal de documentos:** los clientes suben cada documento
-solicitado, el administrador los valida (correcto / rechazado) y al final el sistema
-notifica qué quedó aprobado y qué deben volver a subir.
+**Fase 2 — Portal de documentos:** cada cliente recibe un enlace personal
+(`/portal/{token}`, sin contraseña) donde sube los documentos de su lista. El
+administrador los revisa desde la pestaña **Revisión** (aprobar / rechazar con
+motivo) y, al terminar, envía con un botón el resumen por correo: qué quedó
+aprobado y qué debe volver a subir.
 
 ## Estructura
 
 ```
 server/   API Express (Node 20) + sirve el frontend compilado desde server/public
-client/   Panel de administración en React + Vite
+client/   Panel de administración y portal de clientes en React + Vite
 ```
 
 Los datos viven en **MySQL/MariaDB** (tablas: clientes, plantillas, calendario,
-config, envios). Las tablas se crean y se precargan solas al primer arranque.
+config, envios, documentos). Las tablas se crean y se precargan solas al primer
+arranque (incluidas las migraciones de columnas nuevas sobre tablas existentes).
+
+## Portal de documentos (Fase 2)
+
+- **Enlace del cliente:** cada cliente tiene un token HMAC sin estado
+  (`clienteId.firma`, derivado de `ADMIN_PASSWORD`); no expira y cambiar
+  `ADMIN_PASSWORD` invalida todos los enlaces. En el correo recordatorio se
+  inserta con la variable `{{portal}}` (requiere `BASE_URL` en el `.env`); el
+  panel también permite copiarlo desde la pestaña Revisión.
+- **Archivos:** se guardan en `server/uploads/{clienteId}/` (configurable con
+  `UPLOADS_DIR`), fuera de `public/`; solo salen por la API autenticada del
+  panel. Tipos permitidos: PDF, imágenes (JPG/PNG/WebP/HEIC) y Office
+  (doc/xls); máximo 15 MB. Reemplazar un archivo borra el anterior del disco y
+  vuelve el documento al estado "en revisión".
+- **Estados:** pendiente → subido (en revisión) → aprobado / rechazado (con
+  motivo visible para el cliente). Un documento aprobado ya no se puede
+  reemplazar desde el portal.
+- **Notificación:** el correo de resultado (aprobados, por corregir, sin subir)
+  se genera en el código con la paleta de la marca y se envía manualmente con
+  el botón "Enviar resultado por correo"; queda en el historial con tipo
+  `revision`.
 
 ## Desarrollo local
 
@@ -70,14 +93,15 @@ perfil se editan desde el panel y viven en la base de datos, no en el código.
    root apuntando a la carpeta del proyecto, startup file `server.js`.
 4. Subir por SFTP el contenido de `server/` (incluido `public/`, sin `node_modules`).
 5. Subir por SFTP un archivo **`.env`** a la raíz de la app con: `ADMIN_PASSWORD`,
-   `DB_HOST=localhost`, `DB_PORT=3306`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` y el
+   `DB_HOST=localhost`, `DB_PORT=3306`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`,
+   `BASE_URL` (URL pública, para los enlaces `{{portal}}`) y el
    canal de correo (ver sección anterior). **No** usar las "Environment variables"
    del panel: su editor no siempre guarda y LiteSpeed altera valores con caracteres
    especiales (`server.js` carga el `.env` con `override: true`). Por lo mismo,
    usar contraseñas **solo alfanuméricas** para la DB. Cuidado al editar con el
    File Manager: un salto de línea después del `=` deja la variable vacía.
 6. Botón **Run NPM Install** (dependencias livianas: express, mysql2, nodemailer,
-   dotenv) y luego **Restart**. Las tablas se crean solas al arrancar.
+   multer, dotenv) y luego **Restart**. Las tablas se crean solas al arrancar.
 7. Reinicios posteriores sin panel: subir cualquier archivo a `tmp/restart.txt`.
 
 Si existían datos de la versión JSON (`server/data/*.json`), migrarlos con

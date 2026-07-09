@@ -295,6 +295,27 @@ td.acciones button {
   margin-left: 0.4rem;
 }
 
+/* Estados de los documentos del portal */
+.pill.pendiente {
+  background: #eef2f5;
+  color: var(--tenue);
+}
+
+.pill.subido {
+  background: #e8eef7;
+  color: var(--primario);
+}
+
+.pill.aprobado {
+  background: #e3f2ec;
+  color: #1e7d51;
+}
+
+.pill.rechazado {
+  background: #fdecea;
+  color: var(--peligro);
+}
+
 .tenue {
   color: var(--tenue);
 }
@@ -406,6 +427,103 @@ td.acciones button {
   color: var(--primario);
 }
 
+/* ---- Portal de documentos (página de los clientes, móvil primero) ---- */
+.portal {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 0.9rem 2rem;
+}
+
+.portal-cabecera {
+  background: var(--primario);
+  border-bottom: 3px solid var(--acento);
+  text-align: center;
+  padding: 1.4rem 1rem 1.1rem;
+  margin: 0 -0.9rem 1.25rem;
+}
+
+.portal-cabecera .logo {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  margin-bottom: 0.5rem;
+}
+
+.portal-cabecera h1 {
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.portal-cabecera p {
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+}
+
+.portal-doc {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.portal-doc.rechazado {
+  border-left: 4px solid var(--peligro);
+}
+
+.portal-doc.aprobado {
+  border-left: 4px solid #1e7d51;
+}
+
+.portal-doc button {
+  flex-shrink: 0;
+}
+
+.portal-doc-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.portal-doc-nombre {
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+.portal-doc-archivo {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  overflow-wrap: anywhere;
+}
+
+.portal-doc .aviso,
+.doc-revision .aviso {
+  margin: 0.45rem 0 0;
+}
+
+.portal-pie {
+  margin-top: 1.5rem;
+  font-size: 0.85rem;
+}
+
+/* Fichas de la vista Revisión del panel */
+.doc-revision {
+  border-top: 1px solid var(--borde);
+  padding: 0.75rem 0;
+}
+
+.doc-revision:first-of-type {
+  border-top: none;
+}
+
+.doc-revision .fila-botones {
+  justify-content: flex-start;
+  margin-top: 0.5rem;
+}
+
+.doc-revision .fila-botones button {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+
 @media (max-width: 900px) {
   .dos-columnas {
     grid-template-columns: 1fr;
@@ -414,5 +532,10 @@ td.acciones button {
   .barra {
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+
+  .portal-doc {
+    flex-direction: column;
+    align-items: stretch;
   }
 }
