@@ -142,18 +142,22 @@ export default function Correos() {
         </div>
 
         {preview && (
-          <div className="tarjeta">
-            <h2>Vista previa</h2>
-            <p>
-              <strong>Para:</strong> {preview.para}
-              <br />
-              <strong>Asunto:</strong> {preview.asunto}
-            </p>
-            {preview.advertencias.length > 0 && (
-              <div className="aviso">{preview.advertencias.join(' ')}</div>
-            )}
-            <div className="preview-html" dangerouslySetInnerHTML={{ __html: preview.html }} />
-            <button onClick={() => setPreview(null)}>Cerrar vista previa</button>
+          <div className="modal-fondo" onClick={() => setPreview(null)}>
+            <div className="tarjeta modal ancho" onClick={(e) => e.stopPropagation()}>
+              <h2>Vista previa</h2>
+              <p>
+                <strong>Para:</strong> {preview.para}
+                <br />
+                <strong>Asunto:</strong> {preview.asunto}
+              </p>
+              {preview.advertencias.length > 0 && (
+                <div className="aviso">{preview.advertencias.join(' ')}</div>
+              )}
+              <div className="preview-html" dangerouslySetInnerHTML={{ __html: preview.html }} />
+              <div className="fila-botones">
+                <button onClick={() => setPreview(null)}>Cerrar</button>
+              </div>
+            </div>
           </div>
         )}
       </div>

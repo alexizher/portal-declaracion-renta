@@ -18,6 +18,7 @@ const PESTANAS = [
 export default function App() {
   const [autenticado, setAutenticado] = useState(hayToken());
   const [pestana, setPestana] = useState('clientes');
+  const [menuAbierto, setMenuAbierto] = useState(false); // drawer en móvil
 
   useEffect(() => {
     const salir = () => setAutenticado(false);
@@ -29,24 +30,38 @@ export default function App() {
     return <Login onLogin={() => setAutenticado(true)} />;
   }
 
-  const { Vista } = PESTANAS.find((p) => p.id === pestana);
+  const { Vista, titulo } = PESTANAS.find((p) => p.id === pestana);
 
   return (
     <div className="app">
       <header className="barra">
+        <button
+          className="hamburguesa"
+          aria-label="Abrir menú"
+          onClick={() => setMenuAbierto(!menuAbierto)}
+        >
+          {menuAbierto ? '✕' : '☰'}
+        </button>
         <img src="/logo_DM.svg" alt="DM" className="logo" />
-        <h1>Declaración de Renta · Notificador</h1>
-        <nav>
+        <h1>
+          <span className="marca">Declaración de Renta</span>
+          <span className="pestana-actual">{titulo}</span>
+        </h1>
+        <nav className={menuAbierto ? 'abierto' : ''}>
           {PESTANAS.map((p) => (
             <button
               key={p.id}
               className={pestana === p.id ? 'activo' : ''}
-              onClick={() => setPestana(p.id)}
+              onClick={() => {
+                setPestana(p.id);
+                setMenuAbierto(false);
+              }}
             >
               {p.titulo}
             </button>
           ))}
         </nav>
+        {menuAbierto && <div className="nav-fondo" onClick={() => setMenuAbierto(false)} />}
         <button
           className="salir"
           onClick={() => {

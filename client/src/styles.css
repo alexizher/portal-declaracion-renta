@@ -89,6 +89,24 @@ h2 {
   color: rgba(255, 255, 255, 0.75);
 }
 
+/* Botón hamburguesa: solo existe en pantallas angostas */
+.hamburguesa {
+  display: none;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 1.45rem;
+  line-height: 1;
+  padding: 0.25rem 0.4rem;
+  cursor: pointer;
+  z-index: 70;
+}
+
+/* En escritorio la pestaña activa ya se ve en la navegación */
+.pestana-actual {
+  display: none;
+}
+
 main {
   padding: 1.25rem;
   max-width: 1200px;
@@ -585,27 +603,69 @@ td.acciones button {
   font-size: 0.8rem;
 }
 
-/* ---- Pantallas medianas (tablet) ---- */
+/* ---- Pantallas medianas y angostas: menú hamburguesa con drawer ---- */
 @media (max-width: 900px) {
   .dos-columnas {
     grid-template-columns: 1fr;
   }
 
-  .barra {
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  .hamburguesa {
+    display: block;
   }
 
-  /* La navegación pasa a su propia fila, deslizable si no cabe */
+  .barra h1 {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .barra h1 .pestana-actual {
+    display: inline;
+    color: var(--acento);
+  }
+
+  .barra h1 .pestana-actual::before {
+    content: ' · ';
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  /* La navegación se vuelve un panel lateral */
   .barra nav {
-    order: 3;
-    flex-basis: 100%;
-    overflow-x: auto;
-    padding-bottom: 0.15rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(78vw, 300px);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.35rem;
+    background: var(--primario-osc);
+    border-right: 3px solid var(--acento);
+    padding: 4.6rem 0.9rem 1rem;
+    transform: translateX(-105%);
+    transition: transform 0.22s ease;
+    z-index: 60;
+    flex: none;
+  }
+
+  .barra nav.abierto {
+    transform: translateX(0);
   }
 
   .barra nav button {
-    white-space: nowrap;
+    text-align: left;
+    font-size: 1.05rem;
+    padding: 0.75rem 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .nav-fondo {
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 30, 51, 0.5);
+    z-index: 55;
   }
 }
 
@@ -625,8 +685,17 @@ td.acciones button {
   }
 
   .barra h1 {
-    font-size: 0.95rem;
+    font-size: 1rem;
     flex: 1;
+  }
+
+  /* En celular el logo representa la marca; el título es la pestaña actual */
+  .barra h1 .marca {
+    display: none;
+  }
+
+  .barra h1 .pestana-actual::before {
+    content: '';
   }
 
   .salir {
