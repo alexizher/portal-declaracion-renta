@@ -336,11 +336,68 @@ async function enviarRevision(clienteId) {
   return registro;
 }
 
+// ---------- Reenvío del enlace del portal ("¿perdiste tu enlace?") ----------
+
+// El cliente escribe su cédula en /portal y le reenviamos SU enlace al correo
+// registrado (nunca a uno que escriba él). El freno anti-abuso lo aplica la
+// ruta antes de llamar aquí.
+async function enviarEnlacePortal(cliente) {
+  const config = await datos.obtenerConfig();
+
+  const logo = process.env.BASE_URL
+    ? `<img src="${process.env.BASE_URL.replace(/\/+$/, '')}/logo_DM_120.png" width="60" height="60" alt="DM" style="border-radius:50%;display:block;margin:0 auto 8px;">`
+    : '';
+  const html = `
+  <div style="background:#fbf8f6;padding:24px 12px;font-family:'Segoe UI',system-ui,-apple-system,sans-serif;font-size:15px;line-height:1.5;">
+    <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e3ddd4;border-top:4px solid #c39a3b;border-radius:10px;padding:28px 32px;">
+      ${logo}
+      <h2 style="color:#152a45;font-size:18px;margin:0 0 12px;text-align:center;">Tu enlace del portal de documentos</h2>
+      <p style="color:#2b3440;">Hola <strong>${cliente.nombre}</strong>,</p>
+      <p style="color:#2b3440;">Nos pediste reenviarte el acceso a tu portal personal para la
+      declaración de renta. Entra con este botón:</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="${urlPortal(cliente.id)}" style="background:#152a45;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;display:inline-block;">Abrir mi portal</a>
+      </p>
+      <p style="color:#2b3440;">El enlace es personal, no lo compartas. Si no fuiste tú quien lo
+      pidió, puedes ignorar este correo: nadie más puede entrar sin él.</p>
+      <p style="color:#2b3440;margin-bottom:0;">Cordial saludo,<br><strong style="color:#152a45;">${
+        config.remitente || 'Declaración de Renta'
+      }</strong></p>
+    </div>
+  </div>`;
+
+  const registro = {
+    id: datos.nuevoId(),
+    clienteId: cliente.id,
+    nombre: cliente.nombre,
+    email: cliente.email,
+    fecha: ahoraBogota(),
+    estado: 'enviado',
+    error: null,
+    tipo: 'recuperacion',
+  };
+  try {
+    await enviarCorreo({
+      remitenteNombre: config.remitente || 'Declaración de Renta',
+      para: cliente.email,
+      asunto: 'Tu enlace del portal de documentos — declaración de renta',
+      texto: htmlAtexto(html),
+      html,
+    });
+  } catch (err) {
+    registro.estado = 'error';
+    registro.error = err.message;
+  }
+  await datos.registrarEnvio(registro);
+  return registro;
+}
+
 module.exports = {
   renderCorreo,
   renderCorreoRevision,
   enviarLote,
   enviarRevision,
+  enviarEnlacePortal,
   enviarCorreo,
   htmlAtexto,
   urlPortal,

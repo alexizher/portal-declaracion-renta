@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import Turnstile, { configPublica } from '../Turnstile.jsx';
 
 // Página de los clientes: llega por el enlace del correo, sin login.
 // El checklist se agrupa por estado (corregir → por subir → en revisión →
@@ -169,6 +170,97 @@ function Seccion({ titulo, docs, subiendo, onElegir }) {
   );
 }
 
+// /portal sin token: el cliente pide que le reenvíen su enlace personal
+// escribiendo su cédula. La respuesta del servidor es genérica (no confirma
+// si la cédula existe) y el enlace solo va al correo registrado.
+function Recuperar() {
+  const [cedula, setCedula] = useState('');
+  const [enviado, setEnviado] = useState(null);
+  const [error, setError] = useState(null);
+  const [cargando, setCargando] = useState(false);
+  const [siteKey, setSiteKey] = useState(null);
+  const [tsToken, setTsToken] = useState(null);
+
+  useEffect(() => {
+    configPublica().then((c) => setSiteKey(c.turnstile));
+  }, []);
+
+  async function pedir(e) {
+    e.preventDefault();
+    setCargando(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/portal/recuperar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cedula, turnstile: tsToken }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      setEnviado(data.mensaje);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  return (
+    <Cascaron>
+      <div className="tarjeta portal-recuperar">
+        <span className="portal-doc-icono subido portal-recuperar-icono">
+          <Icono tipo="subir" tam={22} />
+        </span>
+        <h2>Recupera tu enlace</h2>
+        <p className="tenue">
+          Escribe tu número de cédula y te reenviamos el enlace personal de tu portal de
+          documentos al correo que tenemos registrado.
+        </p>
+
+        {enviado ? (
+          <div className="aviso portal-recuperar-ok" role="status">
+            {enviado}
+          </div>
+        ) : (
+          <form onSubmit={pedir}>
+            <label>
+              Número de cédula (solo números, sin puntos)
+              <input
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                maxLength={15}
+                placeholder="Ej: 1030567890"
+                value={cedula}
+                autoFocus
+                onChange={(e) => setCedula(e.target.value.replace(/\D/g, ''))}
+              />
+            </label>
+            <Turnstile siteKey={siteKey} onToken={setTsToken} />
+            {error && (
+              <div className="error" role="alert">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              className="primario portal-boton-doc"
+              disabled={cargando || cedula.length < 5 || Boolean(siteKey && !tsToken)}
+            >
+              {cargando && <span className="spinner" aria-hidden />}
+              {cargando ? 'Enviando…' : 'Enviarme mi enlace'}
+            </button>
+          </form>
+        )}
+
+        <p className="tenue centrado portal-pie">
+          ¿No te llega el correo? Escríbenos al 311 780 9709 y te ayudamos.
+        </p>
+      </div>
+    </Cascaron>
+  );
+}
+
 export default function Portal({ token }) {
   const [info, setInfo] = useState(null);
   const [error, setError] = useState(null);
@@ -189,7 +281,7 @@ export default function Portal({ token }) {
   }
 
   useEffect(() => {
-    cargar().catch((e) => setError(e.message));
+    if (token) cargar().catch((e) => setError(e.message));
     return () => clearTimeout(toastTimer.current);
   }, []);
 
@@ -234,6 +326,8 @@ export default function Portal({ token }) {
     }
   }
 
+  if (!token) return <Recuperar />;
+
   if (error) {
     return (
       <Cascaron>
@@ -241,6 +335,11 @@ export default function Portal({ token }) {
           <p className="error">{error}</p>
           <p className="tenue">
             Verifica que abriste el enlace completo que te llegó por correo.
+          </p>
+          <p>
+            <a className="portal-enlace" href="/portal">
+              ¿Perdiste tu enlace? Pídelo aquí con tu cédula
+            </a>
           </p>
         </div>
       </Cascaron>

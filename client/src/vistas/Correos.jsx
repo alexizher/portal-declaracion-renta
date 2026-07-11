@@ -7,6 +7,7 @@ const TIPO_TEXTO = {
   revision: 'revisión',
   'aviso-subida': 'aviso subida',
   'alerta-vencimiento': 'alerta vencimientos',
+  recuperacion: 'reenvío enlace',
 };
 
 export default function Correos() {

@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api, setToken } from '../api.js';
+import Turnstile, { configPublica } from '../Turnstile.jsx';
 
 export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
+  const [siteKey, setSiteKey] = useState(null);
+  const [tsToken, setTsToken] = useState(null);
+
+  useEffect(() => {
+    configPublica().then((c) => setSiteKey(c.turnstile));
+  }, []);
 
   async function entrar(e) {
     e.preventDefault();
     setCargando(true);
     setError(null);
     try {
-      const { token } = await api('/login', { method: 'POST', body: { password } });
+      const { token } = await api('/login', {
+        method: 'POST',
+        body: { password, turnstile: tsToken },
+      });
       setToken(token);
       onLogin();
     } catch (err) {
@@ -34,8 +44,9 @@ export default function Login({ onLogin }) {
           onChange={(e) => setPassword(e.target.value)}
           autoFocus
         />
+        <Turnstile siteKey={siteKey} onToken={setTsToken} />
         {error && <div className="error">{error}</div>}
-        <button type="submit" disabled={cargando || !password}>
+        <button type="submit" disabled={cargando || !password || Boolean(siteKey && !tsToken)}>
           {cargando ? 'Entrando…' : 'Entrar'}
         </button>
       </form>

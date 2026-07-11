@@ -882,6 +882,57 @@ td.acciones button {
   padding: 0.55rem 1.3rem;
 }
 
+/* Recuperar enlace (/portal sin token) */
+.portal-recuperar {
+  max-width: 440px;
+  margin: 2rem auto 1rem;
+  text-align: center;
+  padding: 1.5rem 1.4rem;
+}
+
+.portal-recuperar-icono {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 0.6rem;
+}
+
+.portal-recuperar h2 {
+  font-size: 1.15rem;
+  margin-bottom: 0.5rem;
+}
+
+.portal-recuperar label {
+  text-align: left;
+  margin-top: 0.75rem;
+}
+
+.portal-recuperar input {
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-align: center;
+  min-height: 44px;
+}
+
+.portal-recuperar-ok {
+  margin-top: 1rem;
+}
+
+.turnstile {
+  display: flex;
+  justify-content: center;
+  margin: 0.75rem 0 0.25rem;
+  min-height: 0;
+}
+
+.turnstile:empty {
+  margin: 0;
+}
+
+.portal-enlace {
+  color: var(--primario);
+  font-weight: 500;
+}
+
 /* Confirmación breve tras subir (accesible con aria-live) */
 .toast {
   position: fixed;

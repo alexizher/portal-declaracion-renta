@@ -49,6 +49,20 @@ arranque (incluidas las migraciones de columnas nuevas sobre tablas existentes).
   panel y en el portal se distinguen con la etiqueta "Adicional"; máximo 60
   documentos por cliente.
 
+## Recuperar enlace y Turnstile
+
+- **"¿Perdiste tu enlace?"**: en `/portal` (sin token) el cliente escribe su
+  cédula y se le reenvía su enlace personal **al correo registrado** (nunca a
+  uno que escriba él). La respuesta es genérica — no confirma si la cédula
+  existe — y hay freno de 15 minutos por cliente (historial tipo
+  `recuperacion`). La página de "enlace no válido" enlaza a este formulario.
+- **Cloudflare Turnstile** (opcional): con `TURNSTILE_SITE_KEY` y
+  `TURNSTILE_SECRET` en el `.env`, el login del panel y el formulario de
+  recuperación exigen pasar la verificación anti-robots (widget en español,
+  verificación server-side contra `siteverify`). Sin las variables, los
+  formularios funcionan sin captcha. El frontend consulta el site key en
+  `GET /api/portal/publico/config`.
+
 ## Avisos internos (Fase 3)
 
 El correo destino se configura en el panel (pestaña Correos → "Avisos

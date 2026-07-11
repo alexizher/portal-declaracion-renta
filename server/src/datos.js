@@ -47,6 +47,14 @@ async function obtenerCliente(id) {
   return filas.length ? mapCliente(filas[0]) : null;
 }
 
+// Búsqueda por cédula normalizada (solo dígitos) para "recuperar mi enlace".
+async function obtenerClientePorCedula(cedula) {
+  const norm = normalizarCedula(cedula);
+  if (!norm) return null;
+  const filas = await q('SELECT * FROM clientes WHERE cedula_norm = ?', [norm]);
+  return filas.length ? mapCliente(filas[0]) : null;
+}
+
 async function crearCliente({ nombre, email, cedula, telefono, plantillaId, notas }) {
   const id = nuevoId();
   await q(
@@ -386,6 +394,7 @@ module.exports = {
   ahoraBogota,
   listarClientes,
   obtenerCliente,
+  obtenerClientePorCedula,
   crearCliente,
   importarClientes,
   actualizarCliente,

@@ -4,8 +4,9 @@ const express = require('express');
 const datos = require('./datos');
 const { login, requiereAuth, clienteIdDelPortal } = require('./auth');
 const { vencimientoDe } = require('./vencimientos');
-const { renderCorreo, enviarLote, enviarRevision, urlPortal, verificarEnvio } = require('./correo');
+const { renderCorreo, enviarLote, enviarRevision, enviarEnlacePortal, urlPortal, verificarEnvio } = require('./correo');
 const { avisarSubida, revisarVencimientos } = require('./avisos');
+const { turnstileSiteKey, verificarTurnstile } = require('./turnstile');
 const {
   rutaDe,
   borrarArchivo,
@@ -35,6 +36,42 @@ const ruta = (fn) => (req, res) =>
   });
 
 // ---------- Portal de clientes (Fase 2, sin login) ----------
+
+// Config pública para los formularios sin login (login del panel y
+// recuperación del enlace): solo el site key de Turnstile, que es público.
+portal.get('/publico/config', (req, res) => {
+  res.json({ turnstile: turnstileSiteKey() });
+});
+
+// Reenvía al correo registrado el enlace personal del portal a partir de la
+// cédula. La respuesta es siempre la misma exista o no el cliente (para no
+// permitir adivinar cédulas), y hay freno de 15 minutos por cliente.
+const RESPUESTA_RECUPERAR = {
+  ok: true,
+  mensaje:
+    'Si tu cédula está registrada, en unos minutos te llegará el enlace al correo que tenemos guardado. Revisa también la carpeta de spam.',
+};
+
+portal.post('/recuperar', ruta(async (req, res) => {
+  if (!(await verificarTurnstile(req.body.turnstile, req.ip))) {
+    return res.status(400).json({ error: 'No pasaste la verificación anti-robots. Recarga la página e intenta de nuevo.' });
+  }
+  const cedula = String(req.body.cedula || '').replace(/\D/g, '');
+  if (cedula.length < 5 || cedula.length > 15) {
+    return res.status(400).json({ error: 'Escribe tu número de cédula (solo números, sin puntos).' });
+  }
+
+  const cliente = await datos.obtenerClientePorCedula(cedula);
+  if (cliente && cliente.email) {
+    const hace15min = new Date(Date.now() - 15 * 60000).toLocaleString('sv-SE', {
+      timeZone: 'America/Bogota',
+    });
+    if (!(await datos.hayEnvioDesde('recuperacion', hace15min, cliente.id))) {
+      await enviarEnlacePortal(cliente);
+    }
+  }
+  res.json(RESPUESTA_RECUPERAR);
+}));
 
 // Resuelve el token del enlace a un cliente y lo deja en req.cliente.
 function cargarClientePortal(req, res, next) {
@@ -146,11 +183,14 @@ api.get('/cron/alertas', ruta(async (req, res) => {
   res.json(await revisarVencimientos({ ignorarHorario: true }));
 }));
 
-api.post('/login', (req, res) => {
+api.post('/login', ruta(async (req, res) => {
+  if (!(await verificarTurnstile(req.body.turnstile, req.ip))) {
+    return res.status(400).json({ error: 'No pasaste la verificación anti-robots. Recarga la página e intenta de nuevo.' });
+  }
   const resultado = login(req.body.password);
   if (resultado.error) return res.status(401).json(resultado);
   res.json(resultado);
-});
+}));
 
 api.use(requiereAuth);
 
