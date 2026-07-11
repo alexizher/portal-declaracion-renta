@@ -13,6 +13,16 @@ db.init()
     app.listen(PORT, () => {
       console.log(`Notificador de renta escuchando en puerto ${PORT}`);
     });
+
+    // Alerta diaria de vencimientos: se revisa cada 30 minutos (la
+    // deduplicación por día vive en la base de datos, así que da igual que
+    // Passenger corra varios procesos o reinicie). Complemento del endpoint
+    // /api/cron/alertas, que además despierta la app si estaba dormida.
+    const { revisarVencimientos } = require('./src/avisos');
+    const revisar = () =>
+      revisarVencimientos().catch((err) => console.error('Alerta de vencimientos:', err.message));
+    setTimeout(revisar, 30_000);
+    setInterval(revisar, 30 * 60 * 1000);
   })
   .catch((err) => {
     console.error('No se pudo conectar a la base de datos:', err.message);

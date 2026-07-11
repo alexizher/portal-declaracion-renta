@@ -43,6 +43,33 @@ arranque (incluidas las migraciones de columnas nuevas sobre tablas existentes).
   se genera en el código con la paleta de la marca y se envía manualmente con
   el botón "Enviar resultado por correo"; queda en el historial con tipo
   `revision`.
+- **Documentos adicionales:** el cliente puede subir archivos que no están en
+  su lista con el botón "Agregar otro documento" del portal (nombre libre de
+  3–120 caracteres, p. ej. varios certificados de deudas o cuentas). En el
+  panel y en el portal se distinguen con la etiqueta "Adicional"; máximo 60
+  documentos por cliente.
+
+## Avisos internos (Fase 3)
+
+El correo destino se configura en el panel (pestaña Correos → "Avisos
+internos"); vacío = deshabilitados. Quedan en el historial de envíos.
+
+- **Aviso de subida** (`aviso-subida`): al subir un cliente documentos al
+  portal se avisa por correo, con un freno de 30 minutos por cliente para no
+  recibir un correo por cada archivo.
+- **Alerta de vencimientos** (`alerta-vencimiento`): una vez al día se avisa
+  qué clientes llegan a un hito de su plazo — faltan 15, 8 o 3 días, o vencen
+  hoy — con colores por urgencia (rojo el último día). Los clientes marcados
+  como **"ya declaró"** (checkbox al editar el cliente) no aparecen en la
+  alerta ni reciben recordatorios/invitaciones masivas.
+- **Disparadores de la alerta:** un timer interno cada 30 min (7 am–9 pm
+  Bogotá, deduplicado por día contra la tabla `envios`) y el endpoint
+  `GET /api/cron/alertas?clave=CRON_SECRET`, pensado para un Cron Job de
+  cPanel a las 7 am con `curl` — además despierta la app si Passenger la
+  durmió. Sin `CRON_SECRET` en el `.env`, el endpoint queda deshabilitado.
+- En la pestaña **Clientes**, la fecha de vencimiento se colorea por
+  cercanía: amarillo (≤15 días), naranja (≤8), rojo (≤3), rojo pleno el
+  último día; los que ya declararon muestran "Declaró ✓".
 
 ## Desarrollo local
 

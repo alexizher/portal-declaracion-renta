@@ -31,6 +31,7 @@ function mapCliente(r) {
     telefono: r.telefono,
     plantillaId: r.plantilla_id,
     notas: r.notas || '',
+    declarado: Boolean(r.declarado),
     ultimoEnvio: r.ultimo_envio,
     creado: r.creado,
   };
@@ -105,11 +106,11 @@ async function importarClientes(filas, plantillaIdPorDefecto) {
 async function actualizarCliente(id, campos) {
   const cliente = await obtenerCliente(id);
   if (!cliente) return null;
-  const { nombre, email, cedula, telefono, plantillaId, notas } = campos;
+  const { nombre, email, cedula, telefono, plantillaId, notas, declarado } = campos;
   const nuevaCedula = cedula !== undefined ? String(cedula).trim() : cliente.cedula;
   await q(
     `UPDATE clientes SET nombre = ?, email = ?, cedula = ?, cedula_norm = ?,
-       telefono = ?, plantilla_id = ?, notas = ?
+       telefono = ?, plantilla_id = ?, notas = ?, declarado = ?
      WHERE id = ?`,
     [
       nombre !== undefined ? String(nombre).trim() : cliente.nombre,
@@ -119,6 +120,7 @@ async function actualizarCliente(id, campos) {
       telefono !== undefined ? String(telefono).trim() : cliente.telefono,
       plantillaId !== undefined ? plantillaId || null : cliente.plantillaId,
       notas !== undefined ? notas : cliente.notas,
+      declarado !== undefined ? (declarado ? 1 : 0) : cliente.declarado ? 1 : 0,
       id,
     ]
   );
@@ -313,7 +315,7 @@ async function resumenDocumentos() {
 // subido quede invisible.
 function armarChecklist(plantilla, documentos) {
   const porNombre = new Map(documentos.map((d) => [d.nombre, d]));
-  const deDoc = (nombre, d) => ({
+  const deDoc = (nombre, d, extra) => ({
     nombre,
     estado: d ? d.estado : 'pendiente',
     motivo: d ? d.motivo : '',
@@ -323,13 +325,14 @@ function armarChecklist(plantilla, documentos) {
     tamano: d ? d.tamano : null,
     subidoEn: d ? d.subidoEn : null,
     revisadoEn: d ? d.revisadoEn : null,
+    extra,
   });
   const nombresPlantilla = plantilla ? plantilla.documentos : [];
-  const items = nombresPlantilla.map((nombre) => deDoc(nombre, porNombre.get(nombre)));
+  const items = nombresPlantilla.map((nombre) => deDoc(nombre, porNombre.get(nombre), false));
   const enPlantilla = new Set(nombresPlantilla);
   const extras = documentos
     .filter((d) => !enPlantilla.has(d.nombre))
-    .map((d) => deDoc(d.nombre, d));
+    .map((d) => deDoc(d.nombre, d, true));
   return [...items, ...extras];
 }
 
@@ -349,6 +352,19 @@ async function registrarEnvio(registro) {
       registro.tipo || 'recordatorio',
     ]
   );
+}
+
+// ¿Ya hubo un envío exitoso de este tipo desde la fecha dada? Se usa para no
+// repetir avisos internos (subidas al portal, alerta diaria de vencimientos).
+async function hayEnvioDesde(tipo, desde, clienteId = null) {
+  let sql = `SELECT COUNT(*) AS n FROM envios WHERE tipo = ? AND estado = 'enviado' AND fecha >= ?`;
+  const params = [tipo, desde];
+  if (clienteId) {
+    sql += ' AND cliente_id = ?';
+    params.push(clienteId);
+  }
+  const [{ n }] = await q(sql, params);
+  return n > 0;
 }
 
 async function listarEnvios(limite = 500) {
@@ -390,5 +406,6 @@ module.exports = {
   resumenDocumentos,
   armarChecklist,
   registrarEnvio,
+  hayEnvioDesde,
   listarEnvios,
 };

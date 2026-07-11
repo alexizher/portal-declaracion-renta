@@ -142,6 +142,9 @@ function renderCorreo(cliente, plantillas, config, calendario, tipo = 'recordato
     texto: htmlAtexto(html),
     vencimiento: venc,
     advertencias: [
+      // La advertencia hace que enviarLote lo omita: un cliente que ya
+      // declaró no debe recibir más recordatorios ni invitaciones.
+      cliente.declarado && 'El cliente está marcado como "ya declaró"; no se le envían notificaciones.',
       !venc && 'No se pudo calcular el vencimiento (cédula vacía o inválida).',
       !plantilla && 'El cliente no tiene plantilla de documentos asignada.',
       !cliente.email && 'El cliente no tiene correo electrónico.',
@@ -338,6 +341,8 @@ module.exports = {
   renderCorreoRevision,
   enviarLote,
   enviarRevision,
+  enviarCorreo,
+  htmlAtexto,
   urlPortal,
   getTransporter,
   verificarEnvio,

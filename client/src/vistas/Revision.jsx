@@ -211,6 +211,7 @@ export default function Revision() {
                     <div className="portal-doc-info">
                       <p className="portal-doc-nombre">{d.nombre}</p>
                       <span className={`pill ${d.estado}`}>{TEXTO_ESTADO[d.estado]}</span>
+                      {d.extra && <span className="pill extra">Adicional</span>}
                       {d.original && (
                         <p className="tenue portal-doc-archivo">
                           {d.original} — {(d.tamano / 1024 / 1024).toFixed(1)} MB —{' '}

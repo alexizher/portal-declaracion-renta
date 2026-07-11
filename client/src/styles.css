@@ -353,6 +353,42 @@ td.acciones button {
   color: var(--peligro);
 }
 
+/* Documento adicional (subido por el cliente fuera de su lista) */
+.pill.extra {
+  background: #f1ecdf;
+  color: #8a6d1a;
+  margin-left: 0.35rem;
+}
+
+/* Urgencia del vencimiento: amarillo (≤15 días) → naranja (≤8) → rojo (≤3)
+   → rojo pleno (último día) → gris oscuro (ya venció). */
+.pill.f15 {
+  background: var(--alerta-fondo);
+  color: var(--alerta-texto);
+}
+
+.pill.f8 {
+  background: #fce8d5;
+  color: #a35a1a;
+}
+
+.pill.f3 {
+  background: #fdecea;
+  color: var(--peligro);
+  font-weight: 600;
+}
+
+.pill.f0 {
+  background: var(--peligro);
+  color: #fff;
+  font-weight: 600;
+}
+
+.pill.vencido {
+  background: var(--texto);
+  color: #fff;
+}
+
 .tenue {
   color: var(--tenue);
 }
@@ -605,36 +641,59 @@ td.acciones button {
   color: var(--primario);
 }
 
-/* ---- Portal de documentos (página de los clientes, móvil primero) ---- */
+/* ---- Portal de documentos (página de los clientes, móvil primero) ----
+   Comparte la barra superior del panel (.barra) y agrega un pie de marca. */
 .portal {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-barra h1 {
+  flex: 1;
+  min-width: 0;
+}
+
+.portal-sub {
+  display: block;
+  color: var(--acento);
+  font-size: 0.8rem;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+.portal-cuerpo {
+  flex: 1;
+  width: 100%;
   max-width: 640px;
   margin: 0 auto;
-  padding: 0 0.9rem 2rem;
+  padding: 1.25rem 0.9rem 2rem;
 }
 
-.portal-cabecera {
+.portal-pie-marca {
   background: var(--primario);
-  border-bottom: 3px solid var(--acento);
+  border-top: 3px solid var(--acento);
+  color: rgba(255, 255, 255, 0.75);
   text-align: center;
-  padding: 1.4rem 1rem 1.1rem;
-  margin: 0 -0.9rem 1.25rem;
+  padding: 1.1rem 1rem 1.3rem;
+  font-size: 0.85rem;
 }
 
-.portal-cabecera .logo {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  margin-bottom: 0.5rem;
+.portal-pie-marca p {
+  margin: 0.2rem 0;
 }
 
-.portal-cabecera h1 {
+.portal-pie-marca strong {
   color: #fff;
-  font-size: 1.25rem;
 }
 
-.portal-cabecera p {
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0.25rem 0 0;
+/* Tarjeta para agregar un documento fuera de la lista */
+.portal-extra {
+  border-style: dashed;
+  text-align: center;
+}
+
+.portal-extra .tenue {
   font-size: 0.85rem;
 }
 

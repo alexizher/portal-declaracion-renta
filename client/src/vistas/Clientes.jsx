@@ -2,7 +2,31 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import ImportarExcel from './ImportarExcel.jsx';
 
-const CLIENTE_VACIO = { nombre: '', email: '', cedula: '', telefono: '', plantillaId: '', notas: '' };
+const CLIENTE_VACIO = {
+  nombre: '',
+  email: '',
+  cedula: '',
+  telefono: '',
+  plantillaId: '',
+  notas: '',
+  declarado: false,
+};
+
+// Clase de color de la fecha de vencimiento según los días que faltan:
+// verde normal → amarillo (≤15) → naranja (≤8) → rojo (≤3) → rojo fuerte (hoy).
+export function claseVencimiento(fechaIso) {
+  const [y, m, d] = fechaIso.split('-').map(Number);
+  const hoy = new Date();
+  const dias = Math.round(
+    (Date.UTC(y, m - 1, d) - Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / 86400000
+  );
+  if (dias < 0) return 'pill vencido';
+  if (dias === 0) return 'pill f0';
+  if (dias <= 3) return 'pill f3';
+  if (dias <= 8) return 'pill f8';
+  if (dias <= 15) return 'pill f15';
+  return 'pill fecha';
+}
 
 export default function Clientes() {
   const [clientes, setClientes] = useState([]);
@@ -80,8 +104,12 @@ export default function Clientes() {
                 <td className="oculta-movil">{c.cedula}</td>
                 <td className="oculta-movil">{c.email || <span className="tenue">sin correo</span>}</td>
                 <td>
-                  {c.vencimiento ? (
-                    <span className="pill fecha">{c.vencimiento.fecha}</span>
+                  {c.declarado ? (
+                    <span className="pill aprobado">Declaró ✓</span>
+                  ) : c.vencimiento ? (
+                    <span className={claseVencimiento(c.vencimiento.fecha)}>
+                      {c.vencimiento.fecha}
+                    </span>
                   ) : (
                     <span className="pill alerta">sin fecha</span>
                   )}
@@ -206,6 +234,14 @@ function FormularioCliente({ inicial, esNuevo, plantillas, onCerrar, onGuardado 
         <label>
           Notas
           <textarea rows={2} {...campo('notas')} />
+        </label>
+        <label className="inline">
+          <input
+            type="checkbox"
+            checked={Boolean(datos.declarado)}
+            onChange={(e) => setDatos({ ...datos, declarado: e.target.checked })}
+          />
+          Ya declaró (no recibirá más correos ni contará en las alertas)
         </label>
         {error && <div className="error">{error}</div>}
         <div className="fila-botones">

@@ -36,6 +36,7 @@ const TABLAS = [
     telefono VARCHAR(50) NOT NULL DEFAULT '',
     plantilla_id VARCHAR(40) NULL,
     notas TEXT,
+    declarado TINYINT(1) NOT NULL DEFAULT 0,
     ultimo_envio DATETIME NULL,
     creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_cedula_norm (cedula_norm)
@@ -103,6 +104,16 @@ async function init() {
   );
   if (tieneTipo === 0) {
     await q(`ALTER TABLE envios ADD COLUMN tipo VARCHAR(20) NOT NULL DEFAULT 'recordatorio'`);
+  }
+
+  // Migración: clientes.declarado (marca "ya declaró": sale de las alertas y
+  // de los envíos masivos). ALTER solo si falta.
+  const [{ n: tieneDeclarado }] = await q(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = 'clientes' AND column_name = 'declarado'`
+  );
+  if (tieneDeclarado === 0) {
+    await q(`ALTER TABLE clientes ADD COLUMN declarado TINYINT(1) NOT NULL DEFAULT 0`);
   }
 
   const [{ n: nCalendario }] = await q('SELECT COUNT(*) AS n FROM calendario');

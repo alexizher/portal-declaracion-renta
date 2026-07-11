@@ -134,6 +134,9 @@ const CONFIG_INICIAL = {
     '<p><strong>{{remitente}}</strong></p>',
   ].join('\n'),
   remitente: '',
+  // Correo interno (el de Daniela) al que llegan los avisos de subidas al
+  // portal y la alerta diaria de vencimientos próximos. Vacío = sin avisos.
+  correo_avisos: '',
 };
 
 module.exports = { CALENDARIO_2026, PLANTILLAS_INICIALES, CONFIG_INICIAL };

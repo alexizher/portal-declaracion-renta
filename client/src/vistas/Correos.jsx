@@ -1,6 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 
+// Etiqueta corta de cada tipo de envío en el historial.
+const TIPO_TEXTO = {
+  portal: 'invitación',
+  revision: 'revisión',
+  'aviso-subida': 'aviso subida',
+  'alerta-vencimiento': 'alerta vencimientos',
+};
+
 export default function Correos() {
   const [clientes, setClientes] = useState([]);
   const [config, setConfig] = useState(null);
@@ -38,7 +46,7 @@ export default function Correos() {
   );
 
   const listosParaEnvio = useMemo(
-    () => visibles.filter((c) => c.email && c.vencimiento && c.plantillaId),
+    () => visibles.filter((c) => c.email && c.vencimiento && c.plantillaId && !c.declarado),
     [visibles]
   );
 
@@ -141,6 +149,25 @@ export default function Correos() {
           </label>
         </div>
 
+        <div className="tarjeta">
+          <h2>Avisos internos</h2>
+          <p className="tenue">
+            A este correo llegan los avisos automáticos: cuando un cliente sube documentos al
+            portal y la alerta diaria de clientes próximos a declarar (15, 8, 3 días y el último
+            día). Déjalo vacío para no recibirlos.
+          </p>
+          <label>
+            Correo para avisos (el de Daniela)
+            <input
+              type="email"
+              value={config.correo_avisos || ''}
+              onChange={(e) => setConfig({ ...config, correo_avisos: e.target.value })}
+              onBlur={guardarConfig}
+              placeholder="daniforo1@gmail.com"
+            />
+          </label>
+        </div>
+
         {preview && (
           <div className="modal-fondo" onClick={() => setPreview(null)}>
             <div className="tarjeta modal ancho" onClick={(e) => e.stopPropagation()}>
@@ -184,7 +211,7 @@ export default function Correos() {
             <table>
               <tbody>
                 {visibles.map((c) => {
-                  const listo = c.email && c.vencimiento && c.plantillaId;
+                  const listo = c.email && c.vencimiento && c.plantillaId && !c.declarado;
                   return (
                     <tr key={c.id} className={listo ? '' : 'fila-tenue'}>
                       <td>
@@ -197,10 +224,14 @@ export default function Correos() {
                       </td>
                       <td>
                         {c.nombre}
-                        {!listo && (
-                          <span className="pill alerta">
-                            {!c.email ? 'sin correo' : !c.vencimiento ? 'sin fecha' : 'sin docs'}
-                          </span>
+                        {c.declarado ? (
+                          <span className="pill aprobado">ya declaró</span>
+                        ) : (
+                          !listo && (
+                            <span className="pill alerta">
+                              {!c.email ? 'sin correo' : !c.vencimiento ? 'sin fecha' : 'sin docs'}
+                            </span>
+                          )
                         )}
                       </td>
                       <td>{c.vencimiento?.fecha || '—'}</td>
@@ -260,9 +291,7 @@ export default function Correos() {
                         {h.estado}
                       </span>
                       {h.tipo && h.tipo !== 'recordatorio' && (
-                        <span className="pill">
-                          {h.tipo === 'portal' ? 'invitación' : h.tipo === 'revision' ? 'revisión' : h.tipo}
-                        </span>
+                        <span className="pill">{TIPO_TEXTO[h.tipo] || h.tipo}</span>
                       )}
                       {h.error && <div className="tenue">{h.error}</div>}
                     </td>

@@ -5,6 +5,7 @@ const datos = require('./datos');
 const { login, requiereAuth, clienteIdDelPortal } = require('./auth');
 const { vencimientoDe } = require('./vencimientos');
 const { renderCorreo, enviarLote, enviarRevision, urlPortal, verificarEnvio } = require('./correo');
+const { avisarSubida, revisarVencimientos } = require('./avisos');
 const {
   rutaDe,
   borrarArchivo,
@@ -67,23 +68,47 @@ portal.get('/:token', cargarClientePortal, ruta(async (req, res) => {
       motivo: d.motivo,
       original: d.original,
       subidoEn: d.subidoEn,
+      extra: d.extra,
     })),
   });
 }));
 
-// Subida (o reemplazo) de un documento del checklist.
+// Subida (o reemplazo) de un documento del checklist. Con extra=1 el cliente
+// puede subir un documento que no está en su lista, con el nombre que él
+// mismo escribe (varios certificados de deudas, cuentas, vehículos, etc.).
+const MAX_DOCS_POR_CLIENTE = 60;
+
 portal.post('/:token/documentos', cargarClientePortal, subirArchivo, ruta(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
-  const nombre = String(req.body.nombre || '');
+  const nombre = String(req.body.nombre || '').trim();
+  const esExtra = req.body.extra === '1';
 
   const plantillas = await datos.listarPlantillas();
   const plantilla = plantillas.find((p) => p.id === req.cliente.plantillaId);
-  if (!plantilla || !plantilla.documentos.includes(nombre)) {
+  if (!plantilla) {
+    borrarArchivo(req.cliente.id, req.file.filename);
+    return res.status(400).json({ error: 'Aún no tienes una lista de documentos asignada.' });
+  }
+  const enPlantilla = plantilla.documentos.includes(nombre);
+  if (!enPlantilla && !esExtra) {
     borrarArchivo(req.cliente.id, req.file.filename);
     return res.status(400).json({ error: 'Ese documento no está en tu lista.' });
   }
+  if (!enPlantilla && (nombre.length < 3 || nombre.length > 120)) {
+    borrarArchivo(req.cliente.id, req.file.filename);
+    return res
+      .status(400)
+      .json({ error: 'Dale al documento un nombre descriptivo (entre 3 y 120 caracteres).' });
+  }
 
   const existentes = await datos.listarDocumentosDe(req.cliente.id);
+  if (
+    !existentes.some((d) => d.nombre === nombre) &&
+    existentes.length >= MAX_DOCS_POR_CLIENTE
+  ) {
+    borrarArchivo(req.cliente.id, req.file.filename);
+    return res.status(400).json({ error: 'Alcanzaste el máximo de documentos permitidos.' });
+  }
   const previo = existentes.find((d) => d.nombre === nombre);
   if (previo && previo.estado === 'aprobado') {
     borrarArchivo(req.cliente.id, req.file.filename);
@@ -102,7 +127,23 @@ portal.post('/:token/documentos', cargarClientePortal, subirArchivo, ruta(async 
     fecha: datos.ahoraBogota(),
   });
   if (archivoAnterior) borrarArchivo(req.cliente.id, archivoAnterior);
+  // Aviso interno a Daniela sin demorar la respuesta al cliente.
+  avisarSubida(req.cliente).catch((err) => console.error('Aviso de subida:', err.message));
   res.status(201).json({ ok: true });
+}));
+
+// ---------- Cron (sin login del panel) ----------
+
+// Pensado para un cron de cPanel que haga curl una vez al día: dispara la
+// alerta de vencimientos y de paso despierta la app si Passenger la durmió.
+// Protegido con CRON_SECRET del .env; sin esa variable queda deshabilitado.
+// Va en el router api pero registrado ANTES de requiereAuth.
+api.get('/cron/alertas', ruta(async (req, res) => {
+  const clave = process.env.CRON_SECRET;
+  if (!clave || req.query.clave !== clave) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+  res.json(await revisarVencimientos({ ignorarHorario: true }));
 }));
 
 api.post('/login', (req, res) => {
@@ -212,8 +253,10 @@ api.get('/config', ruta(async (req, res) => {
 }));
 
 api.put('/config', ruta(async (req, res) => {
-  const { asunto, cuerpo, asunto_portal, cuerpo_portal, remitente } = req.body;
-  res.json(await datos.guardarConfig({ asunto, cuerpo, asunto_portal, cuerpo_portal, remitente }));
+  const { asunto, cuerpo, asunto_portal, cuerpo_portal, remitente, correo_avisos } = req.body;
+  res.json(
+    await datos.guardarConfig({ asunto, cuerpo, asunto_portal, cuerpo_portal, remitente, correo_avisos })
+  );
 }));
 
 // ---------- Revisión de documentos (Fase 2) ----------
