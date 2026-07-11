@@ -156,6 +156,13 @@ button {
   border: 1px solid var(--borde);
   background: #fff;
   cursor: pointer;
+  touch-action: manipulation;
+}
+
+/* Foco visible para navegación con teclado, en el color de la marca */
+:focus-visible {
+  outline: 2px solid var(--acento);
+  outline-offset: 2px;
 }
 
 button:disabled {
@@ -642,7 +649,8 @@ td.acciones button {
 }
 
 /* ---- Portal de documentos (página de los clientes, móvil primero) ----
-   Comparte la barra superior del panel (.barra) y agrega un pie de marca. */
+   Comparte la barra superior del panel (.barra) y agrega un pie de marca.
+   Los documentos van en lista en celular y en cuadrícula en escritorio. */
 .portal {
   min-height: 100vh;
   display: flex;
@@ -665,42 +673,93 @@ td.acciones button {
 .portal-cuerpo {
   flex: 1;
   width: 100%;
-  max-width: 640px;
+  max-width: 980px;
   margin: 0 auto;
   padding: 1.25rem 0.9rem 2rem;
 }
 
-.portal-pie-marca {
-  background: var(--primario);
-  border-top: 3px solid var(--acento);
-  color: rgba(255, 255, 255, 0.75);
-  text-align: center;
-  padding: 1.1rem 1rem 1.3rem;
-  font-size: 0.85rem;
+/* Resumen: saludo, vencimiento y barra de progreso */
+.portal-hola {
+  font-size: 1.05rem;
+  margin-top: 0;
 }
 
-.portal-pie-marca p {
-  margin: 0.2rem 0;
+.progreso {
+  height: 10px;
+  border-radius: 99px;
+  background: #ece5da;
+  overflow: hidden;
+  margin: 0.9rem 0 0.55rem;
 }
 
-.portal-pie-marca strong {
-  color: #fff;
+.progreso-relleno {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--acento), #d9b968);
+  transition: width 0.4s ease;
 }
 
-/* Tarjeta para agregar un documento fuera de la lista */
-.portal-extra {
-  border-style: dashed;
-  text-align: center;
+.portal-conteos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
 }
 
-.portal-extra .tenue {
-  font-size: 0.85rem;
+.portal-conteo {
+  font-size: 0.9rem;
+  color: var(--tenue);
+  margin-right: 0.25rem;
 }
 
-.portal-doc {
+.portal-listo {
+  display: inline-block;
+  margin-top: 0.75rem;
+}
+
+/* Encabezados de sección (Necesitan corrección / Por subir / …) */
+.portal-seccion-titulo {
+  font-size: 0.78rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--tenue);
+  margin: 1.5rem 0 0.6rem;
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.45rem;
+}
+
+.portal-seccion-n {
+  background: #eef2f5;
+  color: var(--tenue);
+  border-radius: 99px;
+  min-width: 1.4rem;
+  text-align: center;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.75rem;
+}
+
+/* Lista en celular, cuadrícula de dos columnas en pantallas anchas */
+.portal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 760px) {
+  .portal-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.9rem;
+  }
+}
+
+/* Tarjeta de documento */
+.portal-doc {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  margin-bottom: 0;
 }
 
 .portal-doc.rechazado {
@@ -711,10 +770,172 @@ td.acciones button {
   border-left: 4px solid #1e7d51;
 }
 
-.portal-doc button {
+.portal-doc-cab {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.portal-doc-icono {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
 }
 
+.portal-doc-icono.pendiente {
+  background: #eef2f5;
+  color: var(--tenue);
+}
+
+.portal-doc-icono.subido {
+  background: #e8eef7;
+  color: var(--primario);
+}
+
+.portal-doc-icono.aprobado {
+  background: #e3f2ec;
+  color: #1e7d51;
+}
+
+.portal-doc-icono.rechazado {
+  background: #fdecea;
+  color: var(--peligro);
+}
+
+.portal-doc .portal-doc-nombre {
+  margin: 0;
+}
+
+/* Botón de subir: cómodo para el dedo y anclado abajo en la cuadrícula */
+.portal-boton-doc {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  width: 100%;
+  margin-top: auto;
+  font-weight: 500;
+  color: var(--primario);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.portal-boton-doc:not(:disabled):hover {
+  border-color: var(--primario);
+  background: #f4f6f9;
+}
+
+.portal-boton-doc.primario {
+  color: #fff;
+}
+
+/* Aprobados: lista compacta (ya no necesitan tarjeta grande) */
+.portal-aprobados {
+  padding: 0.35rem 0.9rem;
+}
+
+.portal-aprobado-fila {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--borde);
+}
+
+.portal-aprobado-fila:first-child {
+  border-top: none;
+}
+
+.portal-aprobado-fila > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.portal-aprobado-fila .portal-doc-nombre {
+  margin: 0;
+  font-weight: 500;
+  font-size: 0.92rem;
+}
+
+.portal-aprobado-fila .portal-doc-archivo {
+  margin: 0.1rem 0 0;
+}
+
+/* Tarjeta para agregar un documento fuera de la lista */
+.portal-extra {
+  border-style: dashed;
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.portal-extra .tenue {
+  font-size: 0.85rem;
+}
+
+.portal-extra .portal-boton-doc {
+  width: auto;
+  margin: 0 auto;
+  padding: 0.55rem 1.3rem;
+}
+
+/* Confirmación breve tras subir (accesible con aria-live) */
+.toast {
+  position: fixed;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1.25rem;
+  margin: 0 auto;
+  width: fit-content;
+  max-width: calc(100vw - 2rem);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--primario);
+  color: #fff;
+  padding: 0.7rem 1.1rem;
+  border-radius: 10px;
+  border-bottom: 3px solid var(--acento);
+  box-shadow: 0 12px 32px rgba(14, 30, 51, 0.35);
+  z-index: 110;
+  font-size: 0.9rem;
+  animation: toast-entra 0.25s ease-out;
+}
+
+@keyframes toast-entra {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.toast svg {
+  color: var(--acento);
+  flex-shrink: 0;
+}
+
+.spinner {
+  width: 15px;
+  height: 15px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: girar 0.7s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Fichas de la vista Revisión del panel (comparten clases portal-doc-*) */
 .portal-doc-info {
   flex: 1;
   min-width: 0;
@@ -739,6 +960,23 @@ td.acciones button {
 .portal-pie {
   margin-top: 1.5rem;
   font-size: 0.85rem;
+}
+
+.portal-pie-marca {
+  background: var(--primario);
+  border-top: 3px solid var(--acento);
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+  padding: 1.1rem 1rem 1.3rem;
+  font-size: 0.85rem;
+}
+
+.portal-pie-marca p {
+  margin: 0.2rem 0;
+}
+
+.portal-pie-marca strong {
+  color: #fff;
 }
 
 /* Fichas de la vista Revisión del panel */
@@ -929,11 +1167,6 @@ td.acciones button {
     border-radius: 16px 16px 0 0;
     animation: modal-sube 0.22s ease-out;
   }
-
-  .portal-doc {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
 
 @keyframes modal-sube {
@@ -944,5 +1177,16 @@ td.acciones button {
   to {
     transform: none;
     opacity: 1;
+  }
+}
+
+/* Respeta la preferencia del sistema de reducir movimiento */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
