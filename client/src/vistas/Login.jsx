@@ -6,11 +6,12 @@ export default function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
-  const [siteKey, setSiteKey] = useState(null);
+  const [cfg, setCfg] = useState(null); // null = aún no sabemos si hay Turnstile
   const [tsToken, setTsToken] = useState(null);
+  const siteKey = cfg ? cfg.turnstile : null;
 
   useEffect(() => {
-    configPublica().then((c) => setSiteKey(c.turnstile));
+    configPublica().then(setCfg);
   }, []);
 
   async function entrar(e) {
@@ -46,7 +47,7 @@ export default function Login({ onLogin }) {
         />
         <Turnstile siteKey={siteKey} onToken={setTsToken} />
         {error && <div className="error">{error}</div>}
-        <button type="submit" disabled={cargando || !password || Boolean(siteKey && !tsToken)}>
+        <button type="submit" disabled={cargando || !password || !cfg || Boolean(siteKey && !tsToken)}>
           {cargando ? 'Entrando…' : 'Entrar'}
         </button>
       </form>

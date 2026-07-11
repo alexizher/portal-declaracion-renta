@@ -178,11 +178,12 @@ function Recuperar() {
   const [enviado, setEnviado] = useState(null);
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState(false);
-  const [siteKey, setSiteKey] = useState(null);
+  const [cfg, setCfg] = useState(null); // null = aún no sabemos si hay Turnstile
   const [tsToken, setTsToken] = useState(null);
+  const siteKey = cfg ? cfg.turnstile : null;
 
   useEffect(() => {
-    configPublica().then((c) => setSiteKey(c.turnstile));
+    configPublica().then(setCfg);
   }, []);
 
   async function pedir(e) {
@@ -245,7 +246,7 @@ function Recuperar() {
             <button
               type="submit"
               className="primario portal-boton-doc"
-              disabled={cargando || cedula.length < 5 || Boolean(siteKey && !tsToken)}
+              disabled={cargando || cedula.length < 5 || !cfg || Boolean(siteKey && !tsToken)}
             >
               {cargando && <span className="spinner" aria-hidden />}
               {cargando ? 'Enviando…' : 'Enviarme mi enlace'}
