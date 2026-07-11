@@ -69,6 +69,37 @@ function Icono({ tipo, tam = 20 }) {
       </svg>
     );
   }
+  if (tipo === 'candado') {
+    return (
+      <svg {...comunes}>
+        <rect x="3" y="11" width="18" height="11" rx="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </svg>
+    );
+  }
+  if (tipo === 'lapiz') {
+    return (
+      <svg {...comunes}>
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      </svg>
+    );
+  }
+  if (tipo === 'ojo') {
+    return (
+      <svg {...comunes}>
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    );
+  }
+  if (tipo === 'ojo-no') {
+    return (
+      <svg {...comunes}>
+        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+        <line x1="4" y1="4" x2="20" y2="20" />
+      </svg>
+    );
+  }
   return null;
 }
 
@@ -112,6 +143,179 @@ function Cascaron({ children }) {
         </p>
         <p>Tel. 311 780 9709 · Año gravable 2025</p>
       </footer>
+    </div>
+  );
+}
+
+// Tarjeta donde el cliente deja su clave de la DIAN: se envía una sola vez,
+// viaja por HTTPS, se guarda cifrada y el portal nunca la vuelve a mostrar.
+function TarjetaDian({ dian, token, avisarExito, onGuardada }) {
+  const [editando, setEditando] = useState(false);
+  const [clave, setClave] = useState('');
+  const [ver, setVer] = useState(false);
+  const [error, setError] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+
+  async function guardar(e) {
+    e.preventDefault();
+    setGuardando(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/portal/${token}/dian`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clave }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      setClave('');
+      setVer(false);
+      setEditando(false);
+      avisarExito('Clave guardada de forma segura. Solo tu contadora puede verla.');
+      await onGuardada();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  const formulario = (
+    <form onSubmit={guardar}>
+      <label>
+        Clave de ingreso a www.dian.gov.co
+        <span className="campo-clave">
+          <input
+            type={ver ? 'text' : 'password'}
+            value={clave}
+            maxLength={100}
+            autoComplete="off"
+            placeholder="La misma con la que entras a la DIAN"
+            onChange={(e) => setClave(e.target.value)}
+          />
+          <button
+            type="button"
+            className="boton-icono"
+            aria-label={ver ? 'Ocultar clave' : 'Mostrar clave'}
+            onClick={() => setVer(!ver)}
+          >
+            <Icono tipo={ver ? 'ojo-no' : 'ojo'} tam={18} />
+          </button>
+        </span>
+      </label>
+      {error && (
+        <div className="error" role="alert">
+          {error}
+        </div>
+      )}
+      <div className="fila-botones">
+        {dian.guardada && (
+          <button type="button" onClick={() => setEditando(false)} disabled={guardando}>
+            Cancelar
+          </button>
+        )}
+        <button type="submit" className="primario" disabled={guardando || clave.length < 4}>
+          {guardando && <span className="spinner" aria-hidden />}
+          {guardando ? 'Guardando…' : 'Guardar clave'}
+        </button>
+      </div>
+    </form>
+  );
+
+  return (
+    <div className="tarjeta tarjeta-dian">
+      <div className="portal-doc-cab">
+        <span className="portal-doc-icono subido">
+          <Icono tipo="candado" tam={18} />
+        </span>
+        <p className="portal-doc-nombre">Clave de acceso a la DIAN</p>
+      </div>
+      <p className="tenue">
+        Tu contadora la necesita para presentar la declaración a tu nombre. Se guarda cifrada,
+        nunca se muestra en este portal y solo ella puede consultarla.
+      </p>
+      {dian.guardada && !editando ? (
+        <div className="dian-guardada">
+          <span className="pill aprobado">
+            Guardada{dian.fecha ? ` el ${new Date(dian.fecha).toLocaleDateString('es-CO')}` : ''}
+          </span>
+          <button onClick={() => setEditando(true)}>Actualizar clave</button>
+        </div>
+      ) : (
+        formulario
+      )}
+    </div>
+  );
+}
+
+// Modal para que el cliente corrija su correo y celular (icono de lápiz).
+function ModalPerfil({ token, actual, onCerrar, onGuardado }) {
+  const [email, setEmail] = useState(actual.email || '');
+  const [telefono, setTelefono] = useState(actual.telefono || '');
+  const [error, setError] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+
+  async function guardar(e) {
+    e.preventDefault();
+    setGuardando(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/portal/${token}/perfil`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, telefono }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+      onGuardado();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <div className="modal-fondo" onClick={() => !guardando && onCerrar()}>
+      <form className="tarjeta modal" onClick={(e) => e.stopPropagation()} onSubmit={guardar}>
+        <h2>Mis datos de contacto</h2>
+        <p className="tenue">
+          A este correo te llegan los avisos de la revisión y tu enlace del portal.
+        </p>
+        <label>
+          Correo electrónico *
+          <input
+            type="email"
+            required
+            value={email}
+            autoFocus
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <label>
+          Celular
+          <input
+            type="tel"
+            inputMode="tel"
+            placeholder="Ej: 311 780 9709"
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+          />
+        </label>
+        {error && (
+          <div className="error" role="alert">
+            {error}
+          </div>
+        )}
+        <div className="fila-botones">
+          <button type="button" onClick={onCerrar} disabled={guardando}>
+            Cancelar
+          </button>
+          <button type="submit" className="primario" disabled={guardando || !email.trim()}>
+            {guardando ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -269,6 +473,7 @@ export default function Portal({ token }) {
   const [toast, setToast] = useState(null);
   const [subiendo, setSubiendo] = useState(null);
   const [modalExtra, setModalExtra] = useState(false);
+  const [modalPerfil, setModalPerfil] = useState(false);
   const [nombreExtra, setNombreExtra] = useState('');
   const inputRef = useRef(null);
   const docPendiente = useRef(null); // { nombre, extra }
@@ -370,6 +575,14 @@ export default function Portal({ token }) {
       <div className="tarjeta portal-resumen">
         <p className="portal-hola">
           Hola, <strong>{info.nombre}</strong>.
+          <button
+            className="boton-icono"
+            aria-label="Editar mi correo y celular"
+            title="Editar mi correo y celular"
+            onClick={() => setModalPerfil(true)}
+          >
+            <Icono tipo="lapiz" tam={16} />
+          </button>
         </p>
         {info.vencimiento && (
           <p>
@@ -423,6 +636,15 @@ export default function Portal({ token }) {
       </div>
 
       {aviso && <div className="error" role="alert">{aviso}</div>}
+
+      {info.dian && total > 0 && (
+        <TarjetaDian
+          dian={info.dian}
+          token={token}
+          avisarExito={avisarExito}
+          onGuardada={cargar}
+        />
+      )}
 
       <Seccion
         titulo="Necesitan corrección"
@@ -525,6 +747,19 @@ export default function Portal({ token }) {
             </div>
           </form>
         </div>
+      )}
+
+      {modalPerfil && (
+        <ModalPerfil
+          token={token}
+          actual={{ email: info.email, telefono: info.telefono }}
+          onCerrar={() => setModalPerfil(false)}
+          onGuardado={async () => {
+            setModalPerfil(false);
+            await cargar();
+            avisarExito('Datos actualizados. Gracias por mantenerlos al día.');
+          }}
+        />
       )}
 
       <input

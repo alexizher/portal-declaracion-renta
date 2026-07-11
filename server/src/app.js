@@ -7,6 +7,7 @@ const { vencimientoDe } = require('./vencimientos');
 const { renderCorreo, enviarLote, enviarRevision, enviarEnlacePortal, urlPortal, verificarEnvio } = require('./correo');
 const { avisarSubida, revisarVencimientos } = require('./avisos');
 const { turnstileSiteKey, verificarTurnstile } = require('./turnstile');
+const { cifradoActivo, cifrar, descifrar } = require('./cifrado');
 const {
   rutaDe,
   borrarArchivo,
@@ -98,7 +99,13 @@ portal.get('/:token', cargarClientePortal, ruta(async (req, res) => {
   const plantilla = plantillas.find((p) => p.id === req.cliente.plantillaId);
   res.json({
     nombre: req.cliente.nombre,
+    email: req.cliente.email,
+    telefono: req.cliente.telefono,
     vencimiento: vencimientoDe(req.cliente.cedula, calendario),
+    // La clave DIAN nunca viaja al portal: solo si ya está guardada y cuándo.
+    dian: cifradoActivo()
+      ? { guardada: Boolean(req.cliente.dianActualizado), fecha: req.cliente.dianActualizado }
+      : null,
     documentos: datos.armarChecklist(plantilla, documentos).map((d) => ({
       nombre: d.nombre,
       estado: d.estado,
@@ -167,6 +174,34 @@ portal.post('/:token/documentos', cargarClientePortal, subirArchivo, ruta(async 
   // Aviso interno a Daniela sin demorar la respuesta al cliente.
   avisarSubida(req.cliente).catch((err) => console.error('Aviso de subida:', err.message));
   res.status(201).json({ ok: true });
+}));
+
+// El cliente actualiza su propio correo y teléfono (icono de lápiz).
+portal.put('/:token/perfil', cargarClientePortal, ruta(async (req, res) => {
+  const email = String(req.body.email || '').trim().toLowerCase();
+  const telefono = String(req.body.telefono || '').trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+    return res.status(400).json({ error: 'Escribe un correo electrónico válido.' });
+  }
+  if (telefono && !/^[\d\s+()-]{7,20}$/.test(telefono)) {
+    return res.status(400).json({ error: 'Escribe un número de celular válido.' });
+  }
+  const cliente = await datos.actualizarPerfilPortal(req.cliente.id, { email, telefono });
+  res.json({ ok: true, email: cliente.email, telefono: cliente.telefono });
+}));
+
+// El cliente deja su clave DIAN: se cifra al llegar y el portal jamás la
+// devuelve (solo el panel autenticado puede leerla). Requiere DATA_SECRET.
+portal.post('/:token/dian', cargarClientePortal, ruta(async (req, res) => {
+  if (!cifradoActivo()) {
+    return res.status(503).json({ error: 'Esta opción no está disponible por ahora.' });
+  }
+  const clave = String(req.body.clave || '');
+  if (clave.length < 4 || clave.length > 100) {
+    return res.status(400).json({ error: 'La clave debe tener entre 4 y 100 caracteres.' });
+  }
+  await datos.guardarClaveDian(req.cliente.id, cifrar(clave), datos.ahoraBogota());
+  res.json({ ok: true });
 }));
 
 // ---------- Cron (sin login del panel) ----------
@@ -321,6 +356,7 @@ api.get('/clientes/:id/documentos', ruta(async (req, res) => {
       ? urlPortal(cliente.id)
       : `${req.protocol}://${req.get('host')}${urlPortal(cliente.id)}`,
     sinPlantilla: !plantilla,
+    dian: { guardada: Boolean(cliente.dianActualizado), fecha: cliente.dianActualizado },
   });
 }));
 
@@ -356,6 +392,26 @@ api.put('/documentos/:id/revision', ruta(async (req, res) => {
 // Envía al cliente el resumen de la revisión.
 api.post('/clientes/:id/notificar-revision', ruta(async (req, res) => {
   res.json(await enviarRevision(req.params.id));
+}));
+
+// Clave DIAN del cliente: solo el panel autenticado puede descifrarla, y se
+// puede borrar cuando ya no haga falta (minimizar datos sensibles).
+api.get('/clientes/:id/dian', ruta(async (req, res) => {
+  const cifrada = await datos.obtenerClaveDianCifrada(req.params.id);
+  if (!cifrada) return res.status(404).json({ error: 'El cliente aún no ha registrado su clave.' });
+  if (!cifradoActivo()) {
+    return res.status(503).json({ error: 'Falta DATA_SECRET en el servidor.' });
+  }
+  try {
+    res.json({ clave: descifrar(cifrada) });
+  } catch {
+    res.status(500).json({ error: 'No se pudo descifrar (¿cambió DATA_SECRET?). Pide al cliente registrarla de nuevo.' });
+  }
+}));
+
+api.delete('/clientes/:id/dian', ruta(async (req, res) => {
+  await datos.borrarClaveDian(req.params.id);
+  res.json({ ok: true });
 }));
 
 // ---------- Correos ----------

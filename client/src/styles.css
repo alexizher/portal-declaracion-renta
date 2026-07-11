@@ -882,6 +882,86 @@ td.acciones button {
   padding: 0.55rem 1.3rem;
 }
 
+/* Botón redondo de solo icono (lápiz del perfil, ojo de la clave) */
+.boton-icono {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border-radius: 50%;
+  color: var(--tenue);
+  vertical-align: middle;
+  margin-left: 0.35rem;
+  flex-shrink: 0;
+}
+
+.boton-icono:not(:disabled):hover {
+  color: var(--primario);
+  border-color: var(--primario);
+}
+
+/* Tarjeta de la clave DIAN en el portal */
+.tarjeta-dian {
+  border-left: 4px solid var(--acento);
+  margin-top: 1rem;
+}
+
+.tarjeta-dian .portal-doc-cab {
+  margin-bottom: 0.35rem;
+}
+
+.tarjeta-dian .tenue {
+  font-size: 0.85rem;
+  margin-top: 0;
+}
+
+.campo-clave {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.campo-clave input {
+  margin-top: 0;
+}
+
+.dian-guardada {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+/* Fila de la clave DIAN en la vista Revisión del panel */
+.dian-panel {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  border: 1px dashed var(--borde);
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.9rem;
+}
+
+.dian-panel button {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.dian-clave {
+  background: #f4f1ea;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  padding: 0.15rem 0.5rem;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
 /* Recuperar enlace (/portal sin token) */
 .portal-recuperar {
   max-width: 440px;

@@ -63,6 +63,19 @@ arranque (incluidas las migraciones de columnas nuevas sobre tablas existentes).
   formularios funcionan sin captcha. El frontend consulta el site key en
   `GET /api/portal/publico/config`.
 
+## Clave DIAN y perfil del cliente
+
+- **Clave DIAN:** el cliente la deja en una tarjeta de su portal. Se cifra al
+  llegar (AES-256-GCM con llave derivada de `DATA_SECRET` del `.env`) y el
+  portal **nunca la devuelve** — aunque un enlace se filtre, no se puede leer.
+  Solo el panel autenticado la descifra (pestaña Revisión → "Clave DIAN:
+  Ver / Copiar / Borrar"); borrar la clave cuando ya se presentó la
+  declaración minimiza el dato sensible. Sin `DATA_SECRET` la tarjeta no
+  aparece. Ojo: cambiar `DATA_SECRET` invalida lo ya cifrado.
+- **Perfil editable:** el lápiz junto al saludo del portal deja al cliente
+  corregir su correo y celular (nombre, cédula y plantilla siguen siendo del
+  panel), con validación en el servidor.
+
 ## Avisos internos (Fase 3)
 
 El correo destino se configura en el panel (pestaña Correos → "Avisos

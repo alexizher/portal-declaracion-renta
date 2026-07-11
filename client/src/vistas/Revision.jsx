@@ -23,6 +23,8 @@ export default function Revision() {
   const [avisoEnvio, setAvisoEnvio] = useState(null);
   const [error, setError] = useState(null);
   const [copiado, setCopiado] = useState(false);
+  const [claveDian, setClaveDian] = useState(null); // texto plano solo mientras se muestra
+  const [claveCopiada, setClaveCopiada] = useState(false);
 
   async function cargar() {
     const [cli, pla, res] = await Promise.all([
@@ -56,6 +58,7 @@ export default function Revision() {
     setRechazando(null);
     setCliente(c);
     setDetalle(null);
+    setClaveDian(null);
     try {
       setDetalle(await api(`/clientes/${c.id}/documentos`));
     } catch (e) {
@@ -108,6 +111,36 @@ export default function Revision() {
     await navigator.clipboard.writeText(detalle.enlacePortal);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);
+  }
+
+  async function verClaveDian() {
+    setError(null);
+    try {
+      const r = await api(`/clientes/${cliente.id}/dian`);
+      setClaveDian(r.clave);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function copiarClaveDian() {
+    await navigator.clipboard.writeText(claveDian);
+    setClaveCopiada(true);
+    setTimeout(() => setClaveCopiada(false), 2000);
+  }
+
+  async function borrarClaveDian() {
+    if (!window.confirm('¿Borrar la clave DIAN guardada de este cliente? Tendría que registrarla de nuevo.')) {
+      return;
+    }
+    setError(null);
+    try {
+      await api(`/clientes/${cliente.id}/dian`, { method: 'DELETE' });
+      setClaveDian(null);
+      setDetalle(await api(`/clientes/${cliente.id}/documentos`));
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   async function notificar() {
@@ -204,6 +237,36 @@ export default function Revision() {
                   <button className="primario" disabled={notificando} onClick={notificar}>
                     {notificando ? 'Enviando…' : 'Enviar resultado por correo'}
                   </button>
+                </div>
+
+                <div className="dian-panel">
+                  <strong>Clave DIAN:</strong>{' '}
+                  {!detalle.dian?.guardada ? (
+                    <span className="tenue">el cliente aún no la registra en su portal</span>
+                  ) : (
+                    <>
+                      <span className="pill aprobado">
+                        guardada
+                        {detalle.dian.fecha
+                          ? ` el ${new Date(detalle.dian.fecha).toLocaleDateString('es-CO')}`
+                          : ''}
+                      </span>{' '}
+                      {claveDian === null ? (
+                        <button onClick={verClaveDian}>Ver</button>
+                      ) : (
+                        <>
+                          <code className="dian-clave">{claveDian}</code>
+                          <button onClick={copiarClaveDian}>
+                            {claveCopiada ? '¡Copiada!' : 'Copiar'}
+                          </button>
+                          <button onClick={() => setClaveDian(null)}>Ocultar</button>
+                        </>
+                      )}
+                      <button className="peligro" onClick={borrarClaveDian}>
+                        Borrar
+                      </button>
+                    </>
+                  )}
                 </div>
 
                 {detalle.checklist.map((d) => (

@@ -32,6 +32,8 @@ function mapCliente(r) {
     plantillaId: r.plantilla_id,
     notas: r.notas || '',
     declarado: Boolean(r.declarado),
+    // La clave DIAN cifrada nunca sale en el objeto normal; solo la fecha.
+    dianActualizado: r.dian_actualizado || null,
     ultimoEnvio: r.ultimo_envio,
     creado: r.creado,
   };
@@ -139,6 +141,36 @@ async function eliminarCliente(id) {
   const r = await q('DELETE FROM clientes WHERE id = ?', [id]);
   await q('DELETE FROM documentos WHERE cliente_id = ?', [id]);
   return r.affectedRows > 0;
+}
+
+// Perfil editable por el propio cliente desde su portal: solo correo y
+// teléfono; el resto (nombre, cédula, plantilla) es del panel.
+async function actualizarPerfilPortal(id, { email, telefono }) {
+  await q('UPDATE clientes SET email = ?, telefono = ? WHERE id = ?', [
+    String(email || '').trim().toLowerCase(),
+    String(telefono || '').trim(),
+    id,
+  ]);
+  return obtenerCliente(id);
+}
+
+// ---------- Clave DIAN (cifrada; el blob solo se lee desde el panel) ----------
+
+async function guardarClaveDian(id, cifrado, fecha) {
+  await q('UPDATE clientes SET dian_clave = ?, dian_actualizado = ? WHERE id = ?', [
+    cifrado,
+    fecha,
+    id,
+  ]);
+}
+
+async function obtenerClaveDianCifrada(id) {
+  const filas = await q('SELECT dian_clave FROM clientes WHERE id = ?', [id]);
+  return filas.length ? filas[0].dian_clave : null;
+}
+
+async function borrarClaveDian(id) {
+  await q('UPDATE clientes SET dian_clave = NULL, dian_actualizado = NULL WHERE id = ?', [id]);
 }
 
 async function marcarUltimoEnvio(id, fechaIso) {
@@ -398,6 +430,10 @@ module.exports = {
   crearCliente,
   importarClientes,
   actualizarCliente,
+  actualizarPerfilPortal,
+  guardarClaveDian,
+  obtenerClaveDianCifrada,
+  borrarClaveDian,
   eliminarCliente,
   marcarUltimoEnvio,
   listarPlantillas,

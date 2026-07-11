@@ -37,6 +37,8 @@ const TABLAS = [
     plantilla_id VARCHAR(40) NULL,
     notas TEXT,
     declarado TINYINT(1) NOT NULL DEFAULT 0,
+    dian_clave TEXT NULL,
+    dian_actualizado DATETIME NULL,
     ultimo_envio DATETIME NULL,
     creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_cedula_norm (cedula_norm)
@@ -114,6 +116,16 @@ async function init() {
   );
   if (tieneDeclarado === 0) {
     await q(`ALTER TABLE clientes ADD COLUMN declarado TINYINT(1) NOT NULL DEFAULT 0`);
+  }
+
+  // Migración: clave DIAN cifrada que el cliente deja en su portal.
+  const [{ n: tieneDian }] = await q(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = 'clientes' AND column_name = 'dian_clave'`
+  );
+  if (tieneDian === 0) {
+    await q(`ALTER TABLE clientes ADD COLUMN dian_clave TEXT NULL`);
+    await q(`ALTER TABLE clientes ADD COLUMN dian_actualizado DATETIME NULL`);
   }
 
   const [{ n: nCalendario }] = await q('SELECT COUNT(*) AS n FROM calendario');
