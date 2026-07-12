@@ -106,12 +106,19 @@ function urlPortal(clienteId) {
   return `${base}/portal/${tokenPortal(clienteId)}`;
 }
 
-// tipo: 'recordatorio' (mensaje clásico de vencimiento) o 'portal'
-// (invitación con el enlace personal para subir documentos). Cada uno tiene
-// su plantilla editable en la config.
+// tipo: 'recordatorio' (mensaje clásico de vencimiento), 'portal'
+// (invitación con el enlace personal) o 'novedades' (qué puede hacer el
+// cliente en su portal). Cada uno tiene su plantilla editable en la config.
+const CLAVES_TIPO = {
+  recordatorio: { asunto: 'asunto', cuerpo: 'cuerpo' },
+  portal: { asunto: 'asunto_portal', cuerpo: 'cuerpo_portal' },
+  novedades: { asunto: 'asunto_novedades', cuerpo: 'cuerpo_novedades' },
+};
+
 function renderCorreo(cliente, plantillas, config, calendario, tipo = 'recordatorio') {
-  const asuntoBase = tipo === 'portal' ? config.asunto_portal : config.asunto;
-  const cuerpoBase = tipo === 'portal' ? config.cuerpo_portal : config.cuerpo;
+  const claves = CLAVES_TIPO[tipo] || CLAVES_TIPO.recordatorio;
+  const asuntoBase = config[claves.asunto];
+  const cuerpoBase = config[claves.cuerpo];
   const venc = vencimientoDe(cliente.cedula, calendario);
   const plantilla = plantillas.find((p) => p.id === cliente.plantillaId);
   const documentos = plantilla ? plantilla.documentos : [];
@@ -127,6 +134,8 @@ function renderCorreo(cliente, plantillas, config, calendario, tipo = 'recordato
     '{{documentos}}': listaHtml,
     '{{remitente}}': config.remitente || process.env.GMAIL_USER || '',
     '{{portal}}': urlPortal(cliente.id),
+    // Página pública "recuperar mi enlace" (cédula → reenvío del enlace).
+    '{{recuperar}}': `${(process.env.BASE_URL || '').replace(/\/+$/, '')}/portal`,
   };
 
   const aplicar = (texto) =>

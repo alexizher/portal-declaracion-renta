@@ -2,6 +2,9 @@
 
 Sistema para gestión de clientes de declaración de renta (Colombia).
 
+> 📗 [Manual técnico](docs/MANUAL-TECNICO.md) (arquitectura, seguridad,
+> endpoints y cómo extender) · 📜 [Changelog](CHANGELOG.md)
+
 **Fase 1 — Notificador:** panel de administración para importar la lista de
 clientes (Excel/CSV), calcular la fecha de vencimiento DIAN según los dos últimos
 dígitos de la cédula/NIT, y enviarles por correo el recordatorio con la lista de
@@ -48,6 +51,19 @@ arranque (incluidas las migraciones de columnas nuevas sobre tablas existentes).
   3–120 caracteres, p. ej. varios certificados de deudas o cuentas). En el
   panel y en el portal se distinguen con la etiqueta "Adicional"; máximo 60
   documentos por cliente.
+
+## Correos al cliente
+
+Tres mensajes masivos, cada uno con plantilla editable en la pestaña
+**Correos** (selector Recordatorio | Invitación al portal | Novedades del
+portal): el recordatorio del vencimiento, la invitación con el enlace personal
+y las **novedades del portal** (explica al cliente cómo subir documentos,
+agregar otros, dejar su clave DIAN, editar sus datos, descargar sus soportes y
+recuperar su enlace). Variables disponibles: `{{nombre}}`, `{{vencimiento}}`,
+`{{digitos}}`, `{{documentos}}`, `{{remitente}}`, `{{portal}}` y
+`{{recuperar}}` (URL de la página de recuperación). Aparte van los correos
+generados en código: resultado de revisión, reenvío de enlace y los avisos
+internos a la contadora.
 
 ## Recuperar enlace y Turnstile
 

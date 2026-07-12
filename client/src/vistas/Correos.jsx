@@ -4,11 +4,38 @@ import { api } from '../api.js';
 // Etiqueta corta de cada tipo de envío en el historial.
 const TIPO_TEXTO = {
   portal: 'invitación',
+  novedades: 'novedades',
   revision: 'revisión',
   'aviso-subida': 'aviso subida',
   'alerta-vencimiento': 'alerta vencimientos',
   recuperacion: 'reenvío enlace',
 };
+
+// Los tres mensajes masivos, cada uno con su plantilla editable.
+const MENSAJES = [
+  {
+    tipo: 'recordatorio',
+    titulo: 'Recordatorio',
+    claves: { asunto: 'asunto', cuerpo: 'cuerpo' },
+    ayuda: 'Recordatorio del vencimiento con la lista de documentos.',
+    accion: 'recordatorio',
+  },
+  {
+    tipo: 'portal',
+    titulo: 'Invitación al portal',
+    claves: { asunto: 'asunto_portal', cuerpo: 'cuerpo_portal' },
+    ayuda: 'Invita al cliente a subir sus documentos con su enlace personal {{portal}}.',
+    accion: 'invitación',
+  },
+  {
+    tipo: 'novedades',
+    titulo: 'Novedades del portal',
+    claves: { asunto: 'asunto_novedades', cuerpo: 'cuerpo_novedades' },
+    ayuda:
+      'Explica al cliente todo lo que puede hacer en su portal: subir documentos, agregar otros, dejar su clave DIAN, editar sus datos, descargar sus soportes y recuperar el enlace con su cédula en {{recuperar}}.',
+    accion: 'novedades',
+  },
+];
 
 export default function Correos() {
   const [clientes, setClientes] = useState([]);
@@ -20,11 +47,10 @@ export default function Correos() {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState(null);
   const [soloSinEnviar, setSoloSinEnviar] = useState(false);
-  // recordatorio: mensaje clásico de vencimiento; portal: invitación con el
-  // enlace personal para subir documentos. Cada uno con su plantilla.
   const [tipoMensaje, setTipoMensaje] = useState('recordatorio');
-  const claveAsunto = tipoMensaje === 'portal' ? 'asunto_portal' : 'asunto';
-  const claveCuerpo = tipoMensaje === 'portal' ? 'cuerpo_portal' : 'cuerpo';
+  const mensaje = MENSAJES.find((m) => m.tipo === tipoMensaje);
+  const claveAsunto = mensaje.claves.asunto;
+  const claveCuerpo = mensaje.claves.cuerpo;
 
   async function cargar() {
     const [cli, cfg, his] = await Promise.all([
@@ -73,8 +99,7 @@ export default function Correos() {
 
   async function enviar() {
     const n = seleccion.size;
-    const que = tipoMensaje === 'portal' ? 'la invitación al portal' : 'el recordatorio';
-    if (!window.confirm(`Se enviará ${que} a ${n} cliente(s). ¿Continuar?`)) return;
+    if (!window.confirm(`Se enviará "${mensaje.titulo}" a ${n} cliente(s). ¿Continuar?`)) return;
     setEnviando(true);
     setError(null);
     setResultado(null);
@@ -102,25 +127,19 @@ export default function Correos() {
         <div className="tarjeta">
           <h2>Mensaje</h2>
           <div className="selector-tipo">
-            <button
-              className={tipoMensaje === 'recordatorio' ? 'activo' : ''}
-              onClick={() => setTipoMensaje('recordatorio')}
-            >
-              Recordatorio
-            </button>
-            <button
-              className={tipoMensaje === 'portal' ? 'activo' : ''}
-              onClick={() => setTipoMensaje('portal')}
-            >
-              Invitación al portal
-            </button>
+            {MENSAJES.map((m) => (
+              <button
+                key={m.tipo}
+                className={tipoMensaje === m.tipo ? 'activo' : ''}
+                onClick={() => setTipoMensaje(m.tipo)}
+              >
+                {m.titulo}
+              </button>
+            ))}
           </div>
           <p className="tenue">
-            {tipoMensaje === 'portal'
-              ? 'Invita al cliente a subir sus documentos con su enlace personal {{portal}}.'
-              : 'Recordatorio del vencimiento con la lista de documentos.'}{' '}
-            Variables: {'{{nombre}}'}, {'{{vencimiento}}'}, {'{{digitos}}'}, {'{{documentos}}'},{' '}
-            {'{{remitente}}'}, {'{{portal}}'}
+            {mensaje.ayuda} Variables: {'{{nombre}}'}, {'{{vencimiento}}'}, {'{{digitos}}'},{' '}
+            {'{{documentos}}'}, {'{{remitente}}'}, {'{{portal}}'}, {'{{recuperar}}'}
           </p>
           <label>
             Nombre del remitente (firma)
@@ -253,7 +272,7 @@ export default function Correos() {
           >
             {enviando
               ? 'Enviando… (esto puede tardar, ~2 s por correo)'
-              : `Enviar ${tipoMensaje === 'portal' ? 'invitación' : 'recordatorio'} a ${seleccion.size} cliente(s)`}
+              : `Enviar ${mensaje.accion} a ${seleccion.size} cliente(s)`}
           </button>
         </div>
 

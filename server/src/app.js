@@ -347,9 +347,27 @@ api.get('/config', ruta(async (req, res) => {
 }));
 
 api.put('/config', ruta(async (req, res) => {
-  const { asunto, cuerpo, asunto_portal, cuerpo_portal, remitente, correo_avisos } = req.body;
+  const {
+    asunto,
+    cuerpo,
+    asunto_portal,
+    cuerpo_portal,
+    asunto_novedades,
+    cuerpo_novedades,
+    remitente,
+    correo_avisos,
+  } = req.body;
   res.json(
-    await datos.guardarConfig({ asunto, cuerpo, asunto_portal, cuerpo_portal, remitente, correo_avisos })
+    await datos.guardarConfig({
+      asunto,
+      cuerpo,
+      asunto_portal,
+      cuerpo_portal,
+      asunto_novedades,
+      cuerpo_novedades,
+      remitente,
+      correo_avisos,
+    })
   );
 }));
 
@@ -495,8 +513,10 @@ api.delete('/clientes/:id/entrega/:tipo', validarTipoEntrega, ruta(async (req, r
 
 // ---------- Correos ----------
 
+const TIPOS_MENSAJE = ['recordatorio', 'portal', 'novedades'];
+
 api.get('/correos/previsualizar/:clienteId', ruta(async (req, res) => {
-  const tipo = req.query.tipo === 'portal' ? 'portal' : 'recordatorio';
+  const tipo = TIPOS_MENSAJE.includes(req.query.tipo) ? req.query.tipo : 'recordatorio';
   const cliente = await datos.obtenerCliente(req.params.clienteId);
   if (!cliente) return res.status(404).json({ error: 'Cliente no encontrado.' });
   const [plantillas, config, calendario] = await Promise.all([
@@ -529,7 +549,7 @@ api.post('/correos/enviar', ruta(async (req, res) => {
     return res.status(400).json({ error: 'Selecciona al menos un cliente.' });
   }
   res.json({
-    resultados: await enviarLote(clienteIds, tipo === 'portal' ? 'portal' : 'recordatorio'),
+    resultados: await enviarLote(clienteIds, TIPOS_MENSAJE.includes(tipo) ? tipo : 'recordatorio'),
   });
 }));
 
