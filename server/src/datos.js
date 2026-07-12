@@ -140,6 +140,7 @@ async function actualizarCliente(id, campos) {
 async function eliminarCliente(id) {
   const r = await q('DELETE FROM clientes WHERE id = ?', [id]);
   await q('DELETE FROM documentos WHERE cliente_id = ?', [id]);
+  await q('DELETE FROM entregas WHERE cliente_id = ?', [id]);
   return r.affectedRows > 0;
 }
 
@@ -152,6 +153,48 @@ async function actualizarPerfilPortal(id, { email, telefono }) {
     id,
   ]);
   return obtenerCliente(id);
+}
+
+// ---------- Entregas (documentos finales que el panel sube al cliente) ----------
+
+// Tipos válidos: declaración presentada, anexo de renta y recibo de pago DIAN.
+const TIPOS_ENTREGA = ['declaracion', 'anexo', 'recibo'];
+
+function mapEntrega(r) {
+  return { tipo: r.tipo, archivo: r.archivo, original: r.original, fecha: r.fecha };
+}
+
+async function listarEntregas(clienteId) {
+  const filas = await q('SELECT * FROM entregas WHERE cliente_id = ?', [clienteId]);
+  return filas.map(mapEntrega);
+}
+
+// Inserta o reemplaza el archivo de un tipo. Subir la declaración marca al
+// cliente como "ya declaró". Devuelve el archivo anterior para borrarlo.
+async function guardarEntrega(clienteId, tipo, { archivo, original, fecha }) {
+  const previas = await q('SELECT * FROM entregas WHERE cliente_id = ? AND tipo = ?', [
+    clienteId,
+    tipo,
+  ]);
+  await q(
+    `INSERT INTO entregas (cliente_id, tipo, archivo, original, fecha) VALUES (?, ?, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE archivo = VALUES(archivo), original = VALUES(original), fecha = VALUES(fecha)`,
+    [clienteId, tipo, archivo, original, fecha]
+  );
+  if (tipo === 'declaracion') {
+    await q('UPDATE clientes SET declarado = 1 WHERE id = ?', [clienteId]);
+  }
+  return { anterior: previas.length ? previas[0].archivo : null };
+}
+
+async function borrarEntrega(clienteId, tipo) {
+  const previas = await q('SELECT * FROM entregas WHERE cliente_id = ? AND tipo = ?', [
+    clienteId,
+    tipo,
+  ]);
+  if (!previas.length) return null;
+  await q('DELETE FROM entregas WHERE cliente_id = ? AND tipo = ?', [clienteId, tipo]);
+  return { anterior: previas[0].archivo };
 }
 
 // ---------- Clave DIAN (cifrada; el blob solo se lee desde el panel) ----------
@@ -434,6 +477,10 @@ module.exports = {
   guardarClaveDian,
   obtenerClaveDianCifrada,
   borrarClaveDian,
+  TIPOS_ENTREGA,
+  listarEntregas,
+  guardarEntrega,
+  borrarEntrega,
   eliminarCliente,
   marcarUltimoEnvio,
   listarPlantillas,

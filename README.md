@@ -75,6 +75,11 @@ arranque (incluidas las migraciones de columnas nuevas sobre tablas existentes).
 - **Perfil editable:** el lápiz junto al saludo del portal deja al cliente
   corregir su correo y celular (nombre, cédula y plantilla siguen siendo del
   panel), con validación en el servidor.
+- **Declaración presentada:** desde Revisión se sube el documento final del
+  cliente (un archivo por cliente; reemplazar borra el anterior). Al subirlo
+  el cliente queda marcado "ya declaró" automáticamente y su portal muestra
+  una tarjeta verde con el botón "Descargar mi declaración"
+  (`GET /api/portal/:token/entrega`, protegido por su token).
 
 ## Avisos internos (Fase 3)
 

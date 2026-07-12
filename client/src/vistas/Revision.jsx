@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { api, apiArchivo } from '../api.js';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { api, apiArchivo, apiFormulario } from '../api.js';
 
 // Revisión de los documentos subidos por los clientes: ver cada archivo,
 // aprobar o rechazar (con motivo) y enviar el resumen por correo.
@@ -10,6 +10,14 @@ const TEXTO_ESTADO = {
   aprobado: 'Aprobado',
   rechazado: 'Rechazado',
 };
+
+// Documentos finales que Daniela sube para el cliente (descargables en su
+// portal). Subir la declaración marca al cliente como "ya declaró".
+const ENTREGAS_DEF = [
+  { tipo: 'declaracion', titulo: 'Declaración presentada' },
+  { tipo: 'anexo', titulo: 'Anexo de renta' },
+  { tipo: 'recibo', titulo: 'Recibo de pago DIAN' },
+];
 
 export default function Revision() {
   const [clientes, setClientes] = useState([]);
@@ -25,6 +33,9 @@ export default function Revision() {
   const [copiado, setCopiado] = useState(false);
   const [claveDian, setClaveDian] = useState(null); // texto plano solo mientras se muestra
   const [claveCopiada, setClaveCopiada] = useState(false);
+  const [subiendoEntrega, setSubiendoEntrega] = useState(null); // tipo en curso
+  const entregaRef = useRef(null);
+  const tipoEntrega = useRef(null);
 
   async function cargar() {
     const [cli, pla, res] = await Promise.all([
@@ -127,6 +138,59 @@ export default function Revision() {
     await navigator.clipboard.writeText(claveDian);
     setClaveCopiada(true);
     setTimeout(() => setClaveCopiada(false), 2000);
+  }
+
+  function elegirEntrega(tipo) {
+    tipoEntrega.current = tipo;
+    entregaRef.current.value = '';
+    entregaRef.current.click();
+  }
+
+  async function subirEntrega(e) {
+    const archivo = e.target.files[0];
+    const tipo = tipoEntrega.current;
+    if (!archivo || !tipo) return;
+    setSubiendoEntrega(tipo);
+    setError(null);
+    try {
+      const fd = new FormData();
+      fd.append('archivo', archivo);
+      await apiFormulario(`/clientes/${cliente.id}/entrega/${tipo}`, fd);
+      setAvisoEnvio(
+        tipo === 'declaracion'
+          ? 'Declaración subida: el cliente ya puede descargarla y quedó marcado "ya declaró".'
+          : 'Documento subido: el cliente ya puede descargarlo desde su portal.'
+      );
+      await refrescar();
+      await cargar(); // el pill "Declaró" cambia en las tablas
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubiendoEntrega(null);
+    }
+  }
+
+  async function verEntrega(tipo) {
+    setError(null);
+    try {
+      const blob = await apiArchivo(`/clientes/${cliente.id}/entrega/${tipo}`);
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  async function eliminarEntrega(tipo, titulo) {
+    if (!window.confirm(`¿Eliminar "${titulo}"? El cliente ya no podrá descargarlo.`)) return;
+    setError(null);
+    try {
+      await api(`/clientes/${cliente.id}/entrega/${tipo}`, { method: 'DELETE' });
+      await refrescar();
+    } catch (e) {
+      setError(e.message);
+    }
   }
 
   async function borrarClaveDian() {
@@ -237,6 +301,59 @@ export default function Revision() {
                   <button className="primario" disabled={notificando} onClick={notificar}>
                     {notificando ? 'Enviando…' : 'Enviar resultado por correo'}
                   </button>
+                </div>
+
+                <div className="dian-panel entregas-panel">
+                  <strong>Documentos para el cliente</strong>
+                  {ENTREGAS_DEF.map((def) => {
+                    const e = (detalle.entregas || []).find((x) => x.tipo === def.tipo);
+                    return (
+                      <div key={def.tipo} className="entrega-fila">
+                        <span className="entrega-titulo">{def.titulo}</span>
+                        {e ? (
+                          <>
+                            <span className="pill aprobado">
+                              subido
+                              {e.fecha
+                                ? ` el ${new Date(e.fecha).toLocaleDateString('es-CO')}`
+                                : ''}
+                            </span>
+                            <button onClick={() => verEntrega(def.tipo)}>Ver</button>
+                            <button
+                              disabled={subiendoEntrega !== null}
+                              onClick={() => elegirEntrega(def.tipo)}
+                            >
+                              {subiendoEntrega === def.tipo ? 'Subiendo…' : 'Reemplazar'}
+                            </button>
+                            <button
+                              className="peligro"
+                              onClick={() => eliminarEntrega(def.tipo, def.titulo)}
+                            >
+                              Eliminar
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            disabled={subiendoEntrega !== null}
+                            onClick={() => elegirEntrega(def.tipo)}
+                          >
+                            {subiendoEntrega === def.tipo ? 'Subiendo…' : 'Subir'}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                  <p className="tenue entregas-nota">
+                    El cliente los descarga desde su portal. Subir la declaración lo marca como
+                    "ya declaró".
+                  </p>
+                  <input
+                    ref={entregaRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.heic,.doc,.docx,.xls,.xlsx"
+                    style={{ display: 'none' }}
+                    onChange={subirEntrega}
+                  />
                 </div>
 
                 <div className="dian-panel">

@@ -106,6 +106,12 @@ portal.get('/:token', cargarClientePortal, ruta(async (req, res) => {
     dian: cifradoActivo()
       ? { guardada: Boolean(req.cliente.dianActualizado), fecha: req.cliente.dianActualizado }
       : null,
+    // Documentos finales ya subidos por la contadora (el cliente los descarga).
+    entregas: (await datos.listarEntregas(req.cliente.id)).map((e) => ({
+      tipo: e.tipo,
+      original: e.original,
+      fecha: e.fecha,
+    })),
     documentos: datos.armarChecklist(plantilla, documentos).map((d) => ({
       nombre: d.nombre,
       estado: d.estado,
@@ -174,6 +180,19 @@ portal.post('/:token/documentos', cargarClientePortal, subirArchivo, ruta(async 
   // Aviso interno a Daniela sin demorar la respuesta al cliente.
   avisarSubida(req.cliente).catch((err) => console.error('Aviso de subida:', err.message));
   res.status(201).json({ ok: true });
+}));
+
+// Descarga de los documentos finales (declaración presentada, anexo, recibo);
+// lo único que el portal entrega al cliente, protegido por su token.
+portal.get('/:token/entrega/:tipo', cargarClientePortal, ruta(async (req, res) => {
+  const entregas = await datos.listarEntregas(req.cliente.id);
+  const entrega = entregas.find((e) => e.tipo === req.params.tipo);
+  if (!entrega) return res.status(404).json({ error: 'Ese documento aún no está disponible.' });
+  res.download(rutaDe(req.cliente.id, entrega.archivo), entrega.original, (err) => {
+    if (err && !res.headersSent) {
+      res.status(404).json({ error: 'El archivo no está en el disco del servidor.' });
+    }
+  });
 }));
 
 // El cliente actualiza su propio correo y teléfono (icono de lápiz).
@@ -357,6 +376,12 @@ api.get('/clientes/:id/documentos', ruta(async (req, res) => {
       : `${req.protocol}://${req.get('host')}${urlPortal(cliente.id)}`,
     sinPlantilla: !plantilla,
     dian: { guardada: Boolean(cliente.dianActualizado), fecha: cliente.dianActualizado },
+    entregas: (await datos.listarEntregas(cliente.id)).map((e) => ({
+      tipo: e.tipo,
+      original: e.original,
+      fecha: e.fecha,
+    })),
+    declarado: cliente.declarado,
   });
 }));
 
@@ -412,6 +437,60 @@ api.get('/clientes/:id/dian', ruta(async (req, res) => {
 api.delete('/clientes/:id/dian', ruta(async (req, res) => {
   await datos.borrarClaveDian(req.params.id);
   res.json({ ok: true });
+}));
+
+// ---------- Entregas (documentos finales que sube Daniela) ----------
+
+// tipos: declaracion | anexo | recibo. Subir la declaración marca al cliente
+// como "ya declaró". El multer usa req.clienteId para elegir la carpeta.
+function validarTipoEntrega(req, res, next) {
+  if (!datos.TIPOS_ENTREGA.includes(req.params.tipo)) {
+    return res.status(400).json({ error: 'Tipo de documento inválido.' });
+  }
+  next();
+}
+
+api.post(
+  '/clientes/:id/entrega/:tipo',
+  validarTipoEntrega,
+  (req, res, next) => {
+    req.clienteId = req.params.id;
+    next();
+  },
+  subirArchivo,
+  ruta(async (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
+    const cliente = await datos.obtenerCliente(req.params.id);
+    if (!cliente) {
+      borrarArchivo(req.params.id, req.file.filename);
+      return res.status(404).json({ error: 'Cliente no encontrado.' });
+    }
+    const r = await datos.guardarEntrega(req.params.id, req.params.tipo, {
+      archivo: req.file.filename,
+      original: nombreOriginal(req.file),
+      fecha: datos.ahoraBogota(),
+    });
+    if (r.anterior) borrarArchivo(req.params.id, r.anterior);
+    res.status(201).json({ ok: true, entregas: await datos.listarEntregas(req.params.id) });
+  })
+);
+
+// Descarga desde el panel (para revisar qué se le subió al cliente).
+api.get('/clientes/:id/entrega/:tipo', validarTipoEntrega, ruta(async (req, res) => {
+  const entregas = await datos.listarEntregas(req.params.id);
+  const entrega = entregas.find((e) => e.tipo === req.params.tipo);
+  if (!entrega) return res.status(404).json({ error: 'No hay archivo subido de ese tipo.' });
+  res.download(rutaDe(req.params.id, entrega.archivo), entrega.original, (err) => {
+    if (err && !res.headersSent) {
+      res.status(404).json({ error: 'El archivo no está en el disco del servidor.' });
+    }
+  });
+}));
+
+api.delete('/clientes/:id/entrega/:tipo', validarTipoEntrega, ruta(async (req, res) => {
+  const r = await datos.borrarEntrega(req.params.id, req.params.tipo);
+  if (r && r.anterior) borrarArchivo(req.params.id, r.anterior);
+  res.json({ ok: true, entregas: await datos.listarEntregas(req.params.id) });
 }));
 
 // ---------- Correos ----------

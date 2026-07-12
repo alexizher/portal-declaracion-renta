@@ -30,6 +30,24 @@ export async function api(ruta, opciones = {}) {
   return data;
 }
 
+// Subida de archivos autenticada (FormData: el navegador pone el boundary,
+// por eso no se fija Content-Type).
+export async function apiFormulario(ruta, formData, method = 'POST') {
+  const res = await fetch(`/api${ruta}`, {
+    method,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: formData,
+  });
+  if (res.status === 401) {
+    setToken(null);
+    window.dispatchEvent(new Event('sesion-expirada'));
+    throw new Error('Sesión expirada. Inicia sesión de nuevo.');
+  }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data;
+}
+
 // Descarga binaria autenticada (los archivos del portal no se sirven como
 // estáticos: solo salen por la API con el token del panel).
 export async function apiArchivo(ruta) {

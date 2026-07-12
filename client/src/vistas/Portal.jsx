@@ -14,6 +14,13 @@ const ESTADOS = {
   rechazado: { texto: 'Para corregir', boton: 'Subir corregido', icono: 'alerta' },
 };
 
+// Documentos finales que sube la contadora, descargables por el cliente.
+const ENTREGA_TITULOS = {
+  declaracion: 'Declaración de renta presentada',
+  anexo: 'Anexo de renta',
+  recibo: 'Recibo de pago DIAN',
+};
+
 // Iconos SVG inline (trazo 2, estilo Lucide) para no depender de librerías.
 function Icono({ tipo, tam = 20 }) {
   const comunes = {
@@ -66,6 +73,15 @@ function Icono({ tipo, tam = 20 }) {
       <svg {...comunes}>
         <line x1="12" y1="5" x2="12" y2="19" />
         <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+    );
+  }
+  if (tipo === 'descarga') {
+    return (
+      <svg {...comunes}>
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
     );
   }
@@ -568,7 +584,14 @@ export default function Portal({ token }) {
   const total = docs.length;
   const todoAprobado = total > 0 && aprobados.length === total;
   const porcentaje = total > 0 ? Math.round((aprobados.length / total) * 100) : 0;
-  const chip = info.vencimiento ? chipVencimiento(info.vencimiento.fecha) : null;
+  const ordenEntregas = Object.keys(ENTREGA_TITULOS);
+  const entregas = [...(info.entregas || [])].sort(
+    (a, b) => ordenEntregas.indexOf(a.tipo) - ordenEntregas.indexOf(b.tipo)
+  );
+  const declaracionPresentada = entregas.some((e) => e.tipo === 'declaracion');
+  // Con la declaración ya presentada, el chip de urgencia sobra.
+  const chip =
+    !declaracionPresentada && info.vencimiento ? chipVencimiento(info.vencimiento.fecha) : null;
 
   return (
     <Cascaron>
@@ -637,7 +660,39 @@ export default function Portal({ token }) {
 
       {aviso && <div className="error" role="alert">{aviso}</div>}
 
-      {info.dian && total > 0 && (
+      {entregas.length > 0 && (
+        <div className="tarjeta tarjeta-entrega">
+          <div className="portal-doc-cab">
+            <span className="portal-doc-icono aprobado">
+              <Icono tipo="check" tam={18} />
+            </span>
+            <p className="portal-doc-nombre">
+              {declaracionPresentada
+                ? '¡Tu declaración fue presentada!'
+                : 'Documentos de tu declaración'}
+            </p>
+          </div>
+          <p className="tenue">
+            Tu contadora subió estos documentos. Descárgalos y guárdalos: son tu soporte ante la
+            DIAN.
+          </p>
+          <div className="entrega-descargas">
+            {entregas.map((e) => (
+              <a
+                key={e.tipo}
+                className="portal-boton-doc boton-entrega"
+                href={`/api/portal/${token}/entrega/${e.tipo}`}
+              >
+                <Icono tipo="descarga" tam={17} />
+                {ENTREGA_TITULOS[e.tipo] || e.original}
+                {e.fecha ? ` (${new Date(e.fecha).toLocaleDateString('es-CO')})` : ''}
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {info.dian && total > 0 && !declaracionPresentada && (
         <TarjetaDian
           dian={info.dian}
           token={token}

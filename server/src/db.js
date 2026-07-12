@@ -73,6 +73,18 @@ const TABLAS = [
     KEY idx_fecha (fecha)
   ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
 
+  // Documentos finales que el panel sube PARA el cliente (descargables desde
+  // su portal): declaración presentada, anexo de renta y recibo de pago DIAN.
+  // Un archivo por tipo por cliente; reemplazar borra el anterior del disco.
+  `CREATE TABLE IF NOT EXISTS entregas (
+    cliente_id VARCHAR(20) NOT NULL,
+    tipo VARCHAR(20) NOT NULL,
+    archivo VARCHAR(100) NOT NULL,
+    original VARCHAR(255) NOT NULL,
+    fecha DATETIME NOT NULL,
+    PRIMARY KEY (cliente_id, tipo)
+  ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+
   // Fase 2: archivos que los clientes suben desde el portal. El checklist se
   // arma cruzando la plantilla del cliente con estas filas; la clave es el
   // nombre del documento (hasheado, porque los nombres son frases largas y

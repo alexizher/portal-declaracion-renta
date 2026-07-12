@@ -935,6 +935,64 @@ td.acciones button {
   gap: 0.6rem;
 }
 
+/* Tarjeta "declaración presentada" en el portal */
+.tarjeta-entrega {
+  border-left: 4px solid #1e7d51;
+  margin-top: 1rem;
+}
+
+.tarjeta-entrega .tenue {
+  font-size: 0.85rem;
+  margin-top: 0;
+}
+
+.entrega-descargas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+a.portal-boton-doc {
+  text-decoration: none;
+  border: 1px solid var(--primario);
+  background: var(--primario);
+  color: #fff;
+}
+
+a.portal-boton-doc:hover {
+  background: var(--primario-osc);
+}
+
+/* Filas de "Documentos para el cliente" en Revisión */
+.entregas-panel {
+  display: block;
+}
+
+.entrega-fila {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid #f0ebe2;
+}
+
+.entrega-fila:nth-of-type(1) {
+  border-top: none;
+  margin-top: 0.4rem;
+}
+
+.entrega-titulo {
+  flex: 1;
+  min-width: 150px;
+  font-weight: 500;
+}
+
+.entregas-nota {
+  font-size: 0.8rem;
+  margin: 0.4rem 0 0;
+}
+
 /* Fila de la clave DIAN en la vista Revisión del panel */
 .dian-panel {
   display: flex;
