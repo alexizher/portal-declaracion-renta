@@ -21,6 +21,9 @@ Colombia; los hashes referencian los commits en `main`.
   Passenger/LiteSpeed (lo usan el rate limit y Turnstile). Nueva variable
   opcional `TRUST_PROXY` (defecto 1; poner 2 si el dominio pasa por el proxy
   de Cloudflare).
+- **`.htaccess` de producción** (solo en el servidor): bloque `mod_headers`
+  que replica las cabeceras y el caché en los estáticos que LiteSpeed sirve
+  sin pasar por Node (ver manual técnico §9).
 
 ## 2026-07-11 (noche) — Entregas, clave DIAN y plantilla de novedades
 

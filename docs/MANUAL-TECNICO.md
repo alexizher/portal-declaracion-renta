@@ -218,6 +218,15 @@ El build (`npm run build` en client/) escribe en `server/public/`.
 5. Si hay dependencias npm nuevas: subir las carpetas de `node_modules`
    afectadas con `scp -r` (usa protocolo SFTP).
 
+**`.htaccess` del app root (solo en el servidor, NO está en el repo)**: además
+de la config de Passenger y las env vars de CloudLinux (no tocar esos
+bloques), al final tiene un bloque `mod_headers` (agregado 2026-07-17) que
+replica las cabeceras de seguridad de `seguridad.js` y el caché de estáticos.
+Es necesario porque LiteSpeed sirve `public/` directo sin pasar por Node: sin
+ese bloque los assets salen sin cabeceras. Si se cambia la CSP en
+`seguridad.js`, actualizarla también ahí (bajar el archivo por SFTP, editar,
+subir; siempre guardar backup antes).
+
 **Gotchas del hosting**: contraseñas solo alfanuméricas en el `.env`;
 `connectionLimit: 4` en MySQL; el editor de archivos de cPanel mete saltos de
 línea fantasma; los correos por SMTP local son rechazados como spam por el
