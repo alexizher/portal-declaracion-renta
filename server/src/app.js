@@ -7,6 +7,7 @@ const { vencimientoDe } = require('./vencimientos');
 const { renderCorreo, enviarLote, enviarRevision, enviarEnlacePortal, urlPortal, verificarEnvio } = require('./correo');
 const { avisarSubida, revisarVencimientos } = require('./avisos');
 const { turnstileSiteKey, verificarTurnstile } = require('./turnstile');
+const { cabeceras, limitador } = require('./seguridad');
 const { cifradoActivo, cifrar, descifrar } = require('./cifrado');
 const {
   rutaDe,
@@ -17,16 +18,46 @@ const {
 } = require('./archivos');
 
 const app = express();
+
+// La app corre detrás de Passenger/LiteSpeed: sin trust proxy, req.ip sería
+// siempre el IP local del proxy y el rate limit frenaría a todos los clientes
+// juntos (y a Turnstile le llegaría un remoteip inútil). 1 = un salto de
+// proxy; si algún día el dominio pasa por el proxy de Cloudflare (nube
+// naranja), subir TRUST_PROXY a 2 en el .env.
+app.set('trust proxy', Number(process.env.TRUST_PROXY || 1));
+app.disable('x-powered-by');
+
+app.use(cabeceras);
 app.use(express.json({ limit: '2mb' }));
+
+// Límites de peticiones por IP (ver seguridad.js). Los formularios públicos
+// (login y recuperar enlace) van muy apretados: además del bloqueo interno de
+// login() y del freno de 15 min de la recuperación, frenan la fuerza bruta.
+const limiteSensible = limitador({
+  nombre: 'sensible',
+  ventanaMin: 15,
+  max: 10,
+  mensaje: 'Demasiados intentos. Espera 15 minutos e intenta de nuevo.',
+});
+const limitePortal = limitador({ nombre: 'portal', ventanaMin: 5, max: 120 });
+// 60 = MAX_DOCS_POR_CLIENTE: que un cliente pueda subir su checklist completo
+// de una sentada (y con margen para IPs compartidas de las redes móviles).
+const limiteSubidas = limitador({
+  nombre: 'subidas',
+  ventanaMin: 10,
+  max: 60,
+  mensaje: 'Subiste muchos archivos muy rápido. Espera unos minutos y continúa.',
+});
+const limiteApi = limitador({ nombre: 'api', ventanaMin: 5, max: 600 });
 
 // El portal de clientes va registrado ANTES que /api: usa el token del enlace
 // en lugar del login del panel. Lo que no coincida con sus rutas cae al
 // router /api y termina en el 401 de requiereAuth.
 const portal = express.Router();
-app.use('/api/portal', portal);
+app.use('/api/portal', limitePortal, portal);
 
 const api = express.Router();
-app.use('/api', api);
+app.use('/api', limiteApi, api);
 
 // Envuelve handlers async para que cualquier error termine en JSON y no
 // tumbe el proceso.
@@ -53,7 +84,7 @@ const RESPUESTA_RECUPERAR = {
     'Si tu cédula está registrada, en unos minutos te llegará el enlace al correo que tenemos guardado. Revisa también la carpeta de spam.',
 };
 
-portal.post('/recuperar', ruta(async (req, res) => {
+portal.post('/recuperar', limiteSensible, ruta(async (req, res) => {
   if (!(await verificarTurnstile(req.body.turnstile, req.ip))) {
     return res.status(400).json({ error: 'No pasaste la verificación anti-robots. Recarga la página e intenta de nuevo.' });
   }
@@ -128,7 +159,7 @@ portal.get('/:token', cargarClientePortal, ruta(async (req, res) => {
 // mismo escribe (varios certificados de deudas, cuentas, vehículos, etc.).
 const MAX_DOCS_POR_CLIENTE = 60;
 
-portal.post('/:token/documentos', cargarClientePortal, subirArchivo, ruta(async (req, res) => {
+portal.post('/:token/documentos', limiteSubidas, cargarClientePortal, subirArchivo, ruta(async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No se recibió ningún archivo.' });
   const nombre = String(req.body.nombre || '').trim();
   const esExtra = req.body.extra === '1';
@@ -237,7 +268,7 @@ api.get('/cron/alertas', ruta(async (req, res) => {
   res.json(await revisarVencimientos({ ignorarHorario: true }));
 }));
 
-api.post('/login', ruta(async (req, res) => {
+api.post('/login', limiteSensible, ruta(async (req, res) => {
   if (!(await verificarTurnstile(req.body.turnstile, req.ip))) {
     return res.status(400).json({ error: 'No pasaste la verificación anti-robots. Recarga la página e intenta de nuevo.' });
   }
@@ -560,8 +591,23 @@ api.get('/correos/historial', ruta(async (req, res) => {
 // ---------- Frontend (SPA compilada) ----------
 
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
-app.use(express.static(PUBLIC_DIR));
+app.use(
+  express.static(PUBLIC_DIR, {
+    setHeaders(res, archivo) {
+      // Vite mete el hash del contenido en el nombre (index-a1b2c3d4.js):
+      // esos archivos pueden cachearse "para siempre". El resto (index.html,
+      // logos) se revalida en cada visita vía ETag para que los despliegues
+      // lleguen de inmediato.
+      if (/-[0-9a-zA-Z_-]{8,}\.\w+$/.test(path.basename(archivo))) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      } else {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  })
+);
 app.get(/^(?!\/api\/).*/, (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache');
   res.sendFile(path.join(PUBLIC_DIR, 'index.html'), (err) => {
     if (err) res.status(404).send('Frontend no compilado. Ejecuta npm run build en /client.');
   });

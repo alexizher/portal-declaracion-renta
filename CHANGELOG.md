@@ -3,6 +3,25 @@
 Historial de cambios del portal de declaración de renta. Fechas en hora de
 Colombia; los hashes referencian los commits en `main`.
 
+## 2026-07-17 — Endurecimiento: cabeceras de seguridad, caché y rate limit
+
+- **Cabeceras de seguridad** (`server/src/seguridad.js`, sin dependencias
+  nuevas): CSP (permite solo `'self'` + `challenges.cloudflare.com` para
+  Turnstile), `Strict-Transport-Security` (1 año, solo sobre HTTPS),
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: no-referrer` (los enlaces del portal llevan el token en
+  la URL), `Permissions-Policy` y COOP/CORP. Se quitó `X-Powered-By`.
+- **Control de caché**: `no-store` en todo `/api` (datos de clientes y
+  descargas), `no-cache` + ETag en `index.html` y logos, e
+  `immutable` de 1 año en los assets con hash de Vite.
+- **Rate limit por IP** (ventana fija en memoria): 10/15 min en login del
+  panel y "recuperar mi enlace", 60/10 min en subidas del portal, 120/5 min
+  en el portal y 600/5 min en el API. Responde 429 con `Retry-After`.
+- **`trust proxy`**: `req.ip` ahora es el IP real del visitante detrás de
+  Passenger/LiteSpeed (lo usan el rate limit y Turnstile). Nueva variable
+  opcional `TRUST_PROXY` (defecto 1; poner 2 si el dominio pasa por el proxy
+  de Cloudflare).
+
 ## 2026-07-11 (noche) — Entregas, clave DIAN y plantilla de novedades
 
 - **Plantilla "Novedades del portal"**: tercer mensaje masivo editable en la

@@ -104,6 +104,19 @@ sesiones en memoria daban 401 intermitentes):
   en `archivos.js`.
 - **Cron**: `GET /api/cron/alertas?clave=CRON_SECRET`, registrado en el router
   ANTES de `requiereAuth`; sin `CRON_SECRET` queda deshabilitado.
+- **Cabeceras y rate limit** (`seguridad.js`, sin dependencias): middleware
+  `cabeceras` en toda respuesta — CSP (`'self'` + `challenges.cloudflare.com`
+  para el widget Turnstile; `style-src 'unsafe-inline'` porque la preview de
+  correos pinta HTML con estilos inline), `X-Frame-Options: DENY`,
+  `nosniff`, `Referrer-Policy: no-referrer` (los enlaces del portal llevan el
+  token en la URL), `Permissions-Policy`, COOP/CORP y HSTS (1 año, solo sobre
+  HTTPS). Caché: `no-store` en todo `/api`, `no-cache` en `index.html`/logos,
+  `immutable` 1 año en los assets con hash de Vite. `limitador()` es un rate
+  limit de ventana fija en memoria por IP (requiere `trust proxy`, ver
+  `TRUST_PROXY`): 10/15 min en login y recuperar enlace, 60/10 min en subidas
+  del portal, 120/5 min en el portal y 600/5 min en el API. Con varios
+  procesos de Passenger los contadores son por proceso (límite efectivo algo
+  más holgado).
 
 ## 5. Correo
 
@@ -181,6 +194,7 @@ Ver `server/.env.example` (comentado). Resumen:
 | `CRON_SECRET` | habilita `GET /api/cron/alertas` |
 | `TURNSTILE_SITE_KEY/SECRET` | anti-robots en login y recuperación |
 | `DATA_SECRET` | cifrado de la clave DIAN (no rotar) |
+| `TRUST_PROXY` | saltos de proxy confiables (defecto 1 = Passenger; 2 si Cloudflare proxy) |
 | `UPLOADS_DIR`, `PORT` | opcionales |
 
 ## 9. Desarrollo local y despliegue
