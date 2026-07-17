@@ -24,6 +24,12 @@ Colombia; los hashes referencian los commits en `main`.
 - **`.htaccess` de producción** (solo en el servidor): bloque `mod_headers`
   que replica las cabeceras y el caché en los estáticos que LiteSpeed sirve
   sin pasar por Node (ver manual técnico §9).
+- **Cierre de exposición crítica** (`.htaccess`, solo servidor): LiteSpeed
+  servía directo, por su ruta en disco y **sin token**, los PDFs de clientes
+  (`/uploads/...`), el código fuente (`/src/...`, `/server.js`) y `stderr.log`.
+  Reglas `mod_rewrite` que devuelven 403 en esas rutas; los documentos
+  legítimos siguen saliendo solo por la API autenticada. Pendiente de defensa
+  en profundidad: mover `UPLOADS_DIR` fuera del document root.
 
 ## 2026-07-11 (noche) — Entregas, clave DIAN y plantilla de novedades
 

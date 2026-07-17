@@ -220,12 +220,25 @@ El build (`npm run build` en client/) escribe en `server/public/`.
 
 **`.htaccess` del app root (solo en el servidor, NO está en el repo)**: además
 de la config de Passenger y las env vars de CloudLinux (no tocar esos
-bloques), al final tiene un bloque `mod_headers` (agregado 2026-07-17) que
-replica las cabeceras de seguridad de `seguridad.js` y el caché de estáticos.
-Es necesario porque LiteSpeed sirve `public/` directo sin pasar por Node: sin
-ese bloque los assets salen sin cabeceras. Si se cambia la CSP en
-`seguridad.js`, actualizarla también ahí (bajar el archivo por SFTP, editar,
-subir; siempre guardar backup antes).
+bloques), al final tiene dos bloques agregados el 2026-07-17:
+- `mod_headers`: replica las cabeceras de seguridad de `seguridad.js` y el
+  caché de estáticos. Es necesario porque LiteSpeed sirve archivos existentes
+  del app root directo, sin pasar por Node; sin él los assets salen sin
+  cabeceras. Si se cambia la CSP en `seguridad.js`, actualizarla también aquí.
+- `mod_rewrite`: **bloqueo crítico**. El app root ES el document root, así que
+  LiteSpeed serviría directo cualquier archivo que exista en él sin pasar por
+  Node — así quedaban expuestos por su ruta en disco los PDFs de clientes
+  (`/uploads/...`), el código (`/src/...`, `/server.js`) y `stderr.log`. Las
+  reglas `[F]` devuelven 403 en `uploads|src|scripts|cgi-bin|node_modules|tmp`,
+  `server.js`, `package*.json`, `php.ini` y `*.log|*.env|*.map`. Los documentos
+  legítimos solo salen por la API con token (`/api/...`, que lee del disco con
+  `fs`, sin verse afectado por estas reglas). **Defensa en profundidad
+  pendiente**: mover `UPLOADS_DIR` fuera del document root (a un directorio
+  hermano tipo `/home/repolite/renta-uploads`) para que ni siquiera existan
+  bajo la raíz web, por si cPanel regenerara el `.htaccess`.
+
+Editar el `.htaccess`: bajar por SFTP, editar, subir; **siempre guardar backup
+antes** (un `.htaccess` malo deja el sitio en 500).
 
 **Gotchas del hosting**: contraseñas solo alfanuméricas en el `.env`;
 `connectionLimit: 4` en MySQL; el editor de archivos de cPanel mete saltos de
