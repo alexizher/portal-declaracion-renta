@@ -232,10 +232,11 @@ bloques), al final tiene dos bloques agregados el 2026-07-17:
   reglas `[F]` devuelven 403 en `uploads|src|scripts|cgi-bin|node_modules|tmp`,
   `server.js`, `package*.json`, `php.ini` y `*.log|*.env|*.map`. Los documentos
   legítimos solo salen por la API con token (`/api/...`, que lee del disco con
-  `fs`, sin verse afectado por estas reglas). **Defensa en profundidad
-  pendiente**: mover `UPLOADS_DIR` fuera del document root (a un directorio
-  hermano tipo `/home/repolite/renta-uploads`) para que ni siquiera existan
-  bajo la raíz web, por si cPanel regenerara el `.htaccess`.
+  `fs`, sin verse afectado por estas reglas). Desde el 2026-07-17 las subidas
+  además viven FUERA del document root: `UPLOADS_DIR=/home/repolite/renta-uploads`
+  en el `.env` de prod (directorio hermano del app root). El bloqueo `[F]` de
+  `uploads` se mantiene como doble candado por si cPanel regenerara el
+  `.htaccess` o algo volviera a escribir bajo la raíz web.
 
 Editar el `.htaccess`: bajar por SFTP, editar, subir; **siempre guardar backup
 antes** (un `.htaccess` malo deja el sitio en 500).

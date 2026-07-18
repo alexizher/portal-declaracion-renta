@@ -3,6 +3,23 @@
 Historial de cambios del portal de declaración de renta. Fechas en hora de
 Colombia; los hashes referencian los commits en `main`.
 
+## 2026-07-17 (noche) — Uploads fuera del docroot y comparación segura en auth
+
+- **Subidas fuera del document root** (solo servidor, sin cambio de código):
+  la carpeta de archivos de clientes se movió de `<app root>/uploads/` a
+  `/home/repolite/renta-uploads/` (directorio hermano, no servible por
+  LiteSpeed) y se agregó `UPLOADS_DIR` al `.env` de prod. Verificado el ciclo
+  completo en producción: descarga por API (200), subida (cae en la ruta
+  nueva) y `/uploads/...` directo sigue 403 (el bloqueo `mod_rewrite` del
+  `.htaccess` queda como doble candado). Cierra el pendiente de defensa en
+  profundidad del endurecimiento de la mañana.
+- **`auth.js`: comparación en tiempo constante por bytes** (`209a70d`): las
+  tres comparaciones sensibles (contraseña del panel, token de sesión, firma
+  del enlace del portal) pasan por un único `igualSeguro()` que compara
+  `Buffer`s por tamaño en bytes; antes una entrada multibyte (tildes, ñ) con
+  la misma longitud de caracteres hacía lanzar `timingSafeEqual` y terminaba
+  en 500.
+
 ## 2026-07-17 — Endurecimiento: cabeceras de seguridad, caché y rate limit
 
 - **Cabeceras de seguridad** (`server/src/seguridad.js`, sin dependencias
