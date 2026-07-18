@@ -18,6 +18,15 @@ function firmar(expiracion) {
   return crypto.createHmac('sha256', claveFirma()).update(String(expiracion)).digest('hex');
 }
 
+// timingSafeEqual exige buffers del mismo tamaño en BYTES; comparar .length de
+// strings no alcanza con caracteres multibyte (tildes, ñ) y haría lanzar la
+// comparación en vez de rechazar.
+function igualSeguro(a, b) {
+  const bufA = Buffer.from(String(a));
+  const bufB = Buffer.from(String(b));
+  return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
+}
+
 let intentosFallidos = 0;
 let bloqueadoHasta = 0;
 
@@ -29,10 +38,7 @@ function login(password) {
   if (!esperado) {
     return { error: 'ADMIN_PASSWORD no está configurada en el servidor.' };
   }
-  const ok =
-    typeof password === 'string' &&
-    password.length === esperado.length &&
-    crypto.timingSafeEqual(Buffer.from(password), Buffer.from(esperado));
+  const ok = typeof password === 'string' && igualSeguro(password, esperado);
   if (!ok) {
     intentosFallidos += 1;
     if (intentosFallidos >= 5) {
@@ -50,11 +56,7 @@ function tokenValido(token) {
   const [expStr, firma] = String(token || '').split('.');
   const expiracion = Number(expStr);
   if (!expiracion || Date.now() > expiracion || !firma) return false;
-  const esperada = firmar(expiracion);
-  return (
-    firma.length === esperada.length &&
-    crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada))
-  );
+  return igualSeguro(firma, firmar(expiracion));
 }
 
 // ---------- Portal de documentos (Fase 2) ----------
@@ -77,11 +79,7 @@ function tokenPortal(clienteId) {
 function clienteIdDelPortal(token) {
   const [clienteId, firma] = String(token || '').split('.');
   if (!clienteId || !firma) return null;
-  const esperada = firmaPortal(clienteId);
-  const ok =
-    firma.length === esperada.length &&
-    crypto.timingSafeEqual(Buffer.from(firma), Buffer.from(esperada));
-  return ok ? clienteId : null;
+  return igualSeguro(firma, firmaPortal(clienteId)) ? clienteId : null;
 }
 
 function requiereAuth(req, res, next) {
