@@ -5,3 +5,11 @@ server/uploads/
 server/.env
 dist/
 *.log
+.playwright-mcp/
+
+# Motor 210: archivos fuente de referencia y volcados de análisis —
+# pueden contener datos reales de clientes, nunca se commitean.
+*.xlsm
+*.xlsm:Zone.Identifier
+client/tools/xlsm-dump/
+casos-prueba/

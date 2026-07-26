@@ -7,6 +7,7 @@ import Plantillas from './vistas/Plantillas.jsx';
 import Correos from './vistas/Correos.jsx';
 import Revision from './vistas/Revision.jsx';
 import Calendario from './vistas/Calendario.jsx';
+import Liquidador210 from './vistas/Liquidador210.jsx';
 
 const PESTANAS = [
   { id: 'clientes', titulo: 'Clientes', Vista: Clientes },
@@ -14,6 +15,7 @@ const PESTANAS = [
   { id: 'revision', titulo: 'Revisión', Vista: Revision },
   { id: 'plantillas', titulo: 'Documentos', Vista: Plantillas },
   { id: 'calendario', titulo: 'Calendario DIAN', Vista: Calendario },
+  { id: 'liquidador210', titulo: 'Liquidador 210', Vista: Liquidador210 },
 ];
 
 export default function App() {

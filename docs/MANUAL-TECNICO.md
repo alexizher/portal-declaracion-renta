@@ -47,7 +47,9 @@ client/
   src/api.js           fetch con Bearer token: api(), apiArchivo(), apiFormulario()
   src/Turnstile.jsx    widget + configPublica()
   src/vistas/          Clientes, Correos, Revision, Plantillas, Calendario,
-                       Login, ImportarExcel, Portal (página del cliente)
+                       Liquidador210, Login, ImportarExcel, Portal (página del cliente)
+  src/vistas/liquidador210/  wizard del liquidador (Wizard, Paso*.jsx, conceptos.js)
+  src/motor210/        motor de cálculo del Formulario 210 (ver §11)
   src/styles.css       todos los estilos (paleta DM en :root)
 ```
 
@@ -262,3 +264,76 @@ timestamp.
 - **Nuevo aviso interno**: seguir el patrón de `avisos.js` (dedupe con
   `datos.hayEnvioDesde` + registro en `envios` con un `tipo` nuevo + etiqueta
   en `Correos.jsx > TIPO_TEXTO`).
+
+## 11. Liquidador 210 (`motor210`)
+
+Pestaña "Liquidador 210" del panel — solo la usa la contadora, autenticada.
+Calcula un borrador del Formulario 210 (renta personas naturales) a partir
+de datos que ella digita leyendo la exógena y los soportes del cliente.
+Fundamentación normativa completa (artículo por artículo del ET) y el
+mapeo casilla por casilla en `docs/reglas-tributarias-AG2025.md`.
+
+**Corre 100% en el navegador.** El servidor no participa en el cálculo ni
+almacena nada de esto — ni la exógena, ni ingresos, ni patrimonio. La única
+llamada al backend es `GET /api/clientes` (ya existente) para autocompletar
+nombre por cédula; el resto vive y se autoguarda en `localStorage` del
+navegador, por cédula (`f210:<cedula_norm>`).
+
+```
+client/src/motor210/
+  redondeo.js, constantes/            utilidades y tablas (UVT, Art. 241 ET, cesantías escalonado)
+  cedulas/{trabajo,honorariosServicios,capital,noLaboral}.js
+                                       cada una: ingresos → INCRNGO → (costos) → renta líquida
+  cascada.js                          topes compartidos entre cédulas (medicina/vivienda/ICETEX)
+  exencionesDeducciones.js            tope combinado Art. 336 ET (1.340 UVT) + reparto en cascada
+  dependientes.js                     Art. 387 ET (10%) y Art. 336 parágrafo (72 UVT × N)
+  patrimonio.js, comparacionPatrimonial.js   Art. 236-239 ET
+  impuesto.js, descuentos.js, retenciones.js, anticipo.js (Art. 807 ET)
+  formulario210.js                    ensambla todo en las casillas del F210
+  index.js                            liquidar(entrada) — orquesta el orden correcto entre módulos
+  papelTrabajo.js                     genera el Excel descargable (memoria de cálculo)
+  clasificarExogena.js                sugiere cédula/casilla por fila de exógena leyendo la
+                                       columna "Uso declaración Sugerida" del propio reporte del
+                                       MUISCA (no una tabla de códigos DIAN mantenida a mano) +
+                                       palabras clave del "Detalle" para el campo específico.
+                                       Conservador a propósito: lo que no reconoce con confianza
+                                       queda en "sin clasificar" para digitar a mano, nunca
+                                       adivina. OJO: los exports reales del MUISCA pueden traer
+                                       el "!ref" (rango) de la hoja dañado/desactualizado —
+                                       PasoExogena.jsx lo recalcula desde las celdas reales antes
+                                       de convertir a filas, o SheetJS trunca los datos en silencio.
+  __fixtures__ / *.test.js            Vitest — validado contra cifras reales de un cliente AG2024
+                                       (anonimizadas) extraídas del .xlsm que usaba la contadora
+client/src/vistas/liquidador210/
+  Wizard.jsx                          orquesta los 5 pasos, autoguardado, carga cliente por cédula
+  PasoExogena.jsx                     visor de solo lectura del Excel de exógena (sin clasificar)
+  PasoCedulas.jsx, PasoPatrimonio.jsx, PasoResultado.jsx
+  conceptos.js, estadoInicial.js, campos.jsx
+```
+
+**Cédula general con 4 sub-cédulas simultáneas**: trabajo, honorarios y
+servicios (2+ trabajadores contratados), capital y no laboral se llenan
+todas para el mismo cliente si aplica (ej. asalariado con ingresos
+adicionales independientes) — no son mutuamente excluyentes.
+
+**Alcance de esta temporada** (documentado y deliberado, no accidental):
+pensiones, dividendos, ganancias ocasionales, venta de activos/acciones,
+Impuesto al Patrimonio (F420), renta presuntiva (confirmado 0% desde Ley
+2277/2022, se omite), patrimonio detallado activo-por-activo (se captura
+por categoría), clasificación automática de exógena (el `.xlsm` de
+referencia tampoco la hacía — es 100% digitación manual, igual que aquí).
+
+**Antes de usar con clientes reales**: validar 2-3 declaraciones de la
+temporada en paralelo contra el proceso anterior de la contadora, casilla
+por casilla (gate F7 del plan de implementación) — un error de cálculo
+tiene consecuencias reales frente a la DIAN.
+
+**Cómo extender una cédula**: cada módulo en `cedulas/` recibe `input` (los
+valores digitados) y `ctx` (UVT, topes compartidos disponibles) y devuelve
+`{ingresosBrutos, incrngo, rentaLiquida, baseExentasYDeduccionesLimitadas,
+...}` sin redondear (el redondeo a la unidad de mil, Art. 577 ET, solo pasa
+en `formulario210.js` al ensamblar las casillas — redondear antes acumula
+diferencias frente al `.xlsm` de referencia, ver los comentarios en
+`cedulas/trabajo.js`). Para agregar un concepto nuevo: sumarlo en el
+cálculo del módulo, agregarlo a `conceptos.js` con su cita del ET, y a
+`estadoInicial.js` con valor 0.

@@ -130,6 +130,8 @@ main {
   padding: 1.25rem;
   max-width: 1200px;
   margin: 0 auto;
+  overflow-x: hidden; /* una tabla ancha (ej. exógena con muchas columnas) debe
+                         scrollear dentro de su .tabla-scroll, nunca empujar la página */
 }
 
 /* ---- Componentes ---- */
@@ -260,6 +262,49 @@ th {
   font-weight: 600;
   position: sticky;
   top: 0;
+  padding: 0;
+}
+
+.th-ordenable {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: none;
+  border: none;
+  border-radius: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--tenue);
+  cursor: pointer;
+  text-align: left;
+}
+
+.th-ordenable:hover {
+  color: var(--texto);
+  background: #f0eee8;
+}
+
+.th-ordenable.activo {
+  color: var(--texto);
+}
+
+.th-flecha {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+
+.th-ordenable.activo .th-flecha {
+  opacity: 1;
+}
+
+/* Celdas de textos largos (ej. razón social completa de un informante en
+   la exógena) — recorta con "…" en vez de estirar la tabla. */
+.celda-truncada {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Los detalles de error (p. ej. respuestas largas del proveedor de correo)
@@ -1378,4 +1423,57 @@ a.portal-boton-doc:hover {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* ---- Liquidador 210 ---- */
+.seccion-conceptos {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 0.75rem 1rem 1rem;
+  margin: 0 0 1rem;
+}
+
+.seccion-conceptos legend {
+  padding: 0 0.4rem;
+  font-weight: 600;
+  color: var(--tenue);
+}
+
+.campo-dinero {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px dashed var(--borde);
+}
+
+.campo-dinero:last-child {
+  border-bottom: none;
+}
+
+.campo-dinero span {
+  flex: 1;
+  min-width: 220px;
+}
+
+.campo-dinero input,
+.campo-dinero select {
+  width: 180px;
+  text-align: right;
+  font: inherit;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  border: 1px solid var(--borde);
+}
+
+.campo-dinero input[type='checkbox'] {
+  width: auto;
+}
+
+.colapsable-cab {
+  cursor: pointer;
+  padding: 0.25rem 0;
+  text-align: left;
 }

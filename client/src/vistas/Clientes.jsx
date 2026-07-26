@@ -28,6 +28,18 @@ export function claseVencimiento(fechaIso) {
   return 'pill fecha';
 }
 
+// Valores para ordenar cada columna — separado de lo que se muestra en la
+// celda (ej. "Vence" muestra la fecha, pero un cliente que ya declaró debe
+// ordenar como "sin vencimiento pendiente", no por su fecha vieja).
+const EXTRACTORES_ORDEN = {
+  nombre: (c) => (c.nombre || '').toLowerCase(),
+  cedula: (c) => c.cedula || '',
+  email: (c) => (c.email || '').toLowerCase(),
+  vencimiento: (c) => (c.declarado ? '9999-99-99' : c.vencimiento?.fecha || '9999-99-98'),
+  documentos: (c, nombrePlantilla) => nombrePlantilla(c.plantillaId).toLowerCase(),
+  ultimoEnvio: (c) => c.ultimoEnvio || '',
+};
+
 export default function Clientes() {
   const [clientes, setClientes] = useState([]);
   const [plantillas, setPlantillas] = useState([]);
@@ -35,6 +47,13 @@ export default function Clientes() {
   const [editando, setEditando] = useState(null); // null | 'nuevo' | cliente
   const [importando, setImportando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
+  const [orden, setOrden] = useState({ campo: 'nombre', direccion: 'asc' });
+
+  function alternarOrden(campo) {
+    setOrden((o) =>
+      o.campo === campo ? { campo, direccion: o.direccion === 'asc' ? 'desc' : 'asc' } : { campo, direccion: 'asc' }
+    );
+  }
 
   async function cargar() {
     const [cli, pla] = await Promise.all([api('/clientes'), api('/plantillas')]);
@@ -60,6 +79,17 @@ export default function Clientes() {
   function nombrePlantilla(id) {
     return plantillas.find((p) => p.id === id)?.nombre || '—';
   }
+
+  const ordenados = useMemo(() => {
+    const extraer = EXTRACTORES_ORDEN[orden.campo];
+    const signo = orden.direccion === 'asc' ? 1 : -1;
+    return [...filtrados].sort((a, b) => {
+      const va = extraer(a, nombrePlantilla);
+      const vb = extraer(b, nombrePlantilla);
+      return va.localeCompare(vb, 'es', { numeric: true }) * signo;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtrados, orden, plantillas]);
 
   async function eliminar(cliente) {
     if (!window.confirm(`¿Eliminar a ${cliente.nombre}?`)) return;
@@ -88,17 +118,17 @@ export default function Clientes() {
         <table>
           <thead>
             <tr>
-              <th>Nombre</th>
-              <th className="oculta-movil">Cédula / NIT</th>
-              <th className="oculta-movil">Correo</th>
-              <th>Vence</th>
-              <th className="oculta-movil">Documentos</th>
-              <th className="oculta-movil">Último envío</th>
+              <ThOrdenable campo="nombre" orden={orden} onClick={alternarOrden}>Nombre</ThOrdenable>
+              <ThOrdenable campo="cedula" orden={orden} onClick={alternarOrden} className="oculta-movil">Cédula / NIT</ThOrdenable>
+              <ThOrdenable campo="email" orden={orden} onClick={alternarOrden} className="oculta-movil">Correo</ThOrdenable>
+              <ThOrdenable campo="vencimiento" orden={orden} onClick={alternarOrden}>Vence</ThOrdenable>
+              <ThOrdenable campo="documentos" orden={orden} onClick={alternarOrden} className="oculta-movil">Documentos</ThOrdenable>
+              <ThOrdenable campo="ultimoEnvio" orden={orden} onClick={alternarOrden} className="oculta-movil">Último envío</ThOrdenable>
               <th></th>
             </tr>
           </thead>
           <tbody>
-            {filtrados.map((c) => (
+            {ordenados.map((c) => (
               <tr key={c.id}>
                 <td>{c.nombre}</td>
                 <td className="oculta-movil">{c.cedula}</td>
@@ -130,7 +160,7 @@ export default function Clientes() {
                 </td>
               </tr>
             ))}
-            {filtrados.length === 0 && (
+            {ordenados.length === 0 && (
               <tr>
                 <td colSpan={7} className="tenue centrado">
                   {clientes.length === 0
@@ -171,6 +201,22 @@ export default function Clientes() {
         />
       )}
     </section>
+  );
+}
+
+function ThOrdenable({ campo, orden, onClick, className, children }) {
+  const activo = orden.campo === campo;
+  return (
+    <th className={className}>
+      <button
+        type="button"
+        className={'th-ordenable' + (activo ? ' activo' : '')}
+        onClick={() => onClick(campo)}
+      >
+        {children}
+        <span className="th-flecha">{activo ? (orden.direccion === 'asc' ? '▲' : '▼') : '↕'}</span>
+      </button>
+    </th>
   );
 }
 
