@@ -37,4 +37,21 @@ describe('fusionarConEstadoInicial', () => {
     expect(fusionarConEstadoInicial(null)).toEqual(crearEstadoInicial());
     expect(fusionarConEstadoInicial(undefined)).toEqual(crearEstadoInicial());
   });
+
+  it('divide el "nombre" de un guardado de antes de la Fase 1 (sin apellidos/nombres separados)', () => {
+    const estadoViejo = { cliente: { nombre: 'Jaime Alexis Herrera Ruiz', cedula: '1040732222' } };
+    const fusionado = fusionarConEstadoInicial(estadoViejo);
+    expect(fusionado.cliente.primerNombre).toBe('Jaime');
+    expect(fusionado.cliente.otrosNombres).toBe('Alexis');
+    expect(fusionado.cliente.primerApellido).toBe('Herrera');
+    expect(fusionado.cliente.segundoApellido).toBe('Ruiz');
+  });
+
+  it('NO sobreescribe apellidos/nombres si el guardado ya los tenía separados', () => {
+    const estadoViejo = {
+      cliente: { nombre: 'Jaime Herrera', cedula: '123', primerNombre: 'Jaime', primerApellido: 'Herrera Distinto' },
+    };
+    const fusionado = fusionarConEstadoInicial(estadoViejo);
+    expect(fusionado.cliente.primerApellido).toBe('Herrera Distinto');
+  });
 });

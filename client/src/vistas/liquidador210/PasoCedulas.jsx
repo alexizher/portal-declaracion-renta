@@ -44,8 +44,9 @@ function actualizar(objeto, ruta, valor) {
   return copia;
 }
 
-export default function PasoCedulas({ estado, onCambiar }) {
+export default function PasoCedulas({ estado, onCambiar, resultado }) {
   const set = (ruta, valor) => onCambiar(actualizar(estado, ruta, valor));
+  const trabajoCalc = resultado?.intermedios?.trabajo;
 
   return (
     <div>
@@ -75,6 +76,18 @@ export default function PasoCedulas({ estado, onCambiar }) {
             nota="Art. 126-1/126-4 ET, tope 30% del ingreso / 3.800 UVT"
             valor={estado.trabajo.afcPensionVoluntaria}
             onCambiar={(v) => set('trabajo.afcPensionVoluntaria', v)}
+          />
+          <CampoDinero
+            etiqueta="Auxilio de cesantía y los intereses sobre cesantías"
+            nota="Art. 206 núm. 4 ET — se calcula solo: (cesantías pagadas + cesantías al fondo) × % según salario"
+            valor={trabajoCalc?.cesantiasExentasLimitadas}
+            soloLectura
+          />
+          <CampoDinero
+            etiqueta="Renta exenta del 25% laboral"
+            nota="Art. 206 núm. 10 ET — se calcula sola, tope 790 UVT/año"
+            valor={trabajoCalc?.rentaExenta25}
+            soloLectura
           />
         </fieldset>
         <SeccionConceptos

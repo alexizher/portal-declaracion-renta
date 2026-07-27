@@ -18,6 +18,7 @@ import {
   CATEGORIAS_PATRIMONIO,
 } from './conceptos.js';
 import { UVT_POR_ANIO } from '../../motor210/constantes/uvt.js';
+import { dividirNombreCompleto } from '../../motor210/identificacion.js';
 
 function enCeros(conceptos) {
   return Object.fromEntries(conceptos.map((c) => [c.clave, 0]));
@@ -167,5 +168,14 @@ function fusionarProfundo(base, guardado) {
 export function fusionarConEstadoInicial(estadoGuardado) {
   const base = crearEstadoInicial(estadoGuardado?.anioGravable);
   if (!esObjetoPlano(estadoGuardado)) return base;
-  return fusionarProfundo(base, estadoGuardado);
+  const fusionado = fusionarProfundo(base, estadoGuardado);
+
+  // Guardados de antes de la identificación separada (Fase 1) solo tenían
+  // "nombre" en una sola cadena — se divide como punto de partida editable
+  // para que no se vea todo en blanco pese a que sí hay un cliente cargado.
+  if (fusionado.cliente.nombre && !fusionado.cliente.primerNombre && !fusionado.cliente.primerApellido) {
+    Object.assign(fusionado.cliente, dividirNombreCompleto(fusionado.cliente.nombre));
+  }
+
+  return fusionado;
 }

@@ -10,7 +10,7 @@ import PasoFormulario210 from './PasoFormulario210.jsx';
 import PasoResultado from './PasoResultado.jsx';
 import { liquidar } from '../../motor210/index.js';
 import { totalRetenciones } from '../../motor210/retenciones.js';
-import { calcularDigitoVerificacion } from '../../motor210/identificacion.js';
+import { calcularDigitoVerificacion, dividirNombreCompleto } from '../../motor210/identificacion.js';
 import { api } from '../../api.js';
 
 function soloDigitos(cedula) {
@@ -77,7 +77,11 @@ export default function Wizard() {
     if (enDB) {
       setEstado((prev) => {
         const base = crearEstadoInicial(prev.anioGravable);
-        return { ...base, cliente: { ...base.cliente, nombre: enDB.nombre, cedula } };
+        // La lista de Clientes solo guarda "nombre completo" en una sola
+        // cadena — se divide en apellidos/nombres como punto de partida
+        // editable (si no, el usuario ve todo en blanco pese a que el
+        // cliente sí está registrado, ver dividirNombreCompleto).
+        return { ...base, cliente: { ...base.cliente, ...dividirNombreCompleto(enDB.nombre), nombre: enDB.nombre, cedula } };
       });
       setCedulaCargada(cedula);
       setOrigenCliente('db');
@@ -262,7 +266,7 @@ export default function Wizard() {
       )}
 
       {paso.id === 'exogena' && <PasoExogena estado={estado} onCambiar={setEstado} />}
-      {paso.id === 'cedulas' && <PasoCedulas estado={estado} onCambiar={setEstado} />}
+      {paso.id === 'cedulas' && <PasoCedulas estado={estado} onCambiar={setEstado} resultado={resultado} />}
       {paso.id === 'gananciaOcasional' && <PasoGananciaOcasional estado={estado} onCambiar={setEstado} />}
       {paso.id === 'patrimonio' && <PasoPatrimonio estado={estado} onCambiar={setEstado} />}
       {paso.id === 'anticipo' && <PasoAnticipo resultado={resultado} estado={estado} />}

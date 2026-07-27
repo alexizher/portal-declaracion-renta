@@ -2,7 +2,10 @@ import React from 'react';
 
 function formatearPesos(valor) {
   if (!valor) return '';
-  return Number(valor).toLocaleString('es-CO');
+  // Redondeo SOLO de presentación (Math.round, no redondearMiles) — algunos
+  // valores de solo lectura vienen sin redondear desde el motor a propósito
+  // (ver cedulas/trabajo.js), pero en pesos no se muestran centavos.
+  return Math.round(Number(valor)).toLocaleString('es-CO');
 }
 
 function limpiarPesos(texto) {
@@ -10,7 +13,12 @@ function limpiarPesos(texto) {
   return Number.isFinite(numero) ? numero : 0;
 }
 
-export function CampoDinero({ etiqueta, nota, valor, onCambiar }) {
+/**
+ * @param {boolean} [soloLectura] Para valores que el motor calcula solo
+ *   (ej. auxilio de cesantía exento, renta exenta 25% laboral) — se
+ *   muestran junto a los campos digitables pero no se pueden editar.
+ */
+export function CampoDinero({ etiqueta, nota, valor, onCambiar, soloLectura }) {
   return (
     <label className="campo-dinero">
       <span>
@@ -22,7 +30,8 @@ export function CampoDinero({ etiqueta, nota, valor, onCambiar }) {
         inputMode="numeric"
         value={formatearPesos(valor)}
         placeholder="0"
-        onChange={(e) => onCambiar(limpiarPesos(e.target.value))}
+        disabled={soloLectura}
+        onChange={(e) => onCambiar && onCambiar(limpiarPesos(e.target.value))}
       />
     </label>
   );
