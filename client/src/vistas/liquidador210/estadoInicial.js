@@ -25,22 +25,24 @@ function enCeros(conceptos) {
 }
 
 // Componente inflacionario por año — DATOS BÁSICOS del .xlsm de
-// referencia. Solo se usa para AG2024 (validado); AG2025 se deja igual
-// hasta que la DIAN publique el valor oficial del año (advertir en UI).
-export const COMPONENTE_INFLACIONARIO_POR_ANIO = { 2024: 0.5088, 2025: 0.5088 };
+// referencia (E28). AG2024 validado contra el Excel; AG2025 = 55.43%
+// (dato oficial confirmado por el usuario 2026-08-09 — el .xlsm de
+// referencia traía el año 2025 en 0 porque aún no se había publicado).
+export const COMPONENTE_INFLACIONARIO_POR_ANIO = { 2024: 0.5088, 2025: 0.5543 };
 
 // Componente inflacionario de GASTOS financieros (DATOS BÁSICOS!E29) —
 // distinto del de rendimientos/ingresos (E28, arriba). Afecta solo la línea
-// "Gastos financieros" de costos y gastos de capital. Igual que el de
-// arriba, AG2025 se deja en el valor de AG2024 hasta que la DIAN publique
-// el oficial.
-export const COMPONENTE_INFLACIONARIO_GASTOS_POR_ANIO = { 2024: 0.2501, 2025: 0.2501 };
+// "Gastos financieros" de costos y gastos de capital. AG2025 = 28.35%
+// (Decreto DIAN, confirmado por búsqueda web 2026-08-09 — mismo patrón de
+// placeholder que los otros dos: el .xlsm de referencia traía 0 porque aún
+// no se había publicado cuando se hizo esa copia).
+export const COMPONENTE_INFLACIONARIO_GASTOS_POR_ANIO = { 2024: 0.2501, 2025: 0.2835 };
 
 // Reajuste fiscal anual (Art. 70 ET, DATOS BÁSICOS!E18) — % único publicado
-// por la DIAN cada año, opcional, sobre activos fijos. AG2025 se deja en el
-// valor de AG2024 hasta que la DIAN publique el oficial (mismo patrón que
-// los componentes inflacionarios de arriba).
-export const REAJUSTE_FISCAL_POR_ANIO = { 2024: 0.1097, 2025: 0.1097 };
+// por la DIAN cada año, opcional, sobre activos fijos. AG2025 = 5.81%
+// (dato oficial confirmado por el usuario 2026-08-09 — el .xlsm de
+// referencia traía el año 2025 en 0 porque aún no se había publicado).
+export const REAJUSTE_FISCAL_POR_ANIO = { 2024: 0.1097, 2025: 0.0581 };
 
 export function crearEstadoInicial(anioGravable = 2025) {
   return {

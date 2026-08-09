@@ -1,5 +1,5 @@
 import React from 'react';
-import { SeccionConceptos, CampoDinero } from './campos.jsx';
+import { SeccionConceptos, CampoDinero, TotalSeccion } from './campos.jsx';
 import { CONCEPTOS_INGRESOS_GANANCIA_OCASIONAL, CONCEPTOS_COSTOS_GANANCIA_OCASIONAL, CONCEPTOS_EXENTAS_GANANCIA_OCASIONAL } from './conceptos.js';
 
 function actualizar(objeto, ruta, valor) {
@@ -43,6 +43,12 @@ export default function PasoGananciaOcasional({ estado, onCambiar }) {
             nota="tarifa 15%"
             valor={estado.gananciaOcasional.gananciasExterior}
             onCambiar={(v) => set('gananciaOcasional.gananciasExterior', v)}
+          />
+          <TotalSeccion
+            valor={
+              (Number(estado.gananciaOcasional.loteriasRifas) || 0) +
+              (Number(estado.gananciaOcasional.gananciasExterior) || 0)
+            }
           />
         </fieldset>
       </div>

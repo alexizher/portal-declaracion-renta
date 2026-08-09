@@ -1453,6 +1453,18 @@ a.portal-boton-doc:hover {
   border-bottom: none;
 }
 
+.total-seccion {
+  margin-top: 0.15rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--borde);
+  border-bottom: none !important;
+}
+
+.total-seccion strong {
+  width: 180px;
+  text-align: right;
+}
+
 .campo-dinero span {
   flex: 1;
   min-width: 220px;

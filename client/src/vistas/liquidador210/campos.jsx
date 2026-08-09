@@ -38,10 +38,25 @@ export function CampoDinero({ etiqueta, nota, valor, onCambiar, soloLectura }) {
 }
 
 /**
+ * Fila de total de solo lectura para el pie de una sección — para que
+ * Daniela pueda cotejar el subtotal contra su Excel y ubicar rápido en qué
+ * sección se desvía un resultado.
+ */
+export function TotalSeccion({ etiqueta = 'Total', valor }) {
+  return (
+    <div className="campo-dinero total-seccion">
+      <span>{etiqueta}</span>
+      <strong>{formatearPesos(valor) || '0'}</strong>
+    </div>
+  );
+}
+
+/**
  * @param {{titulo:string, conceptos:{clave:string, etiqueta:string, nota?:string}[],
  *   valores:object, onCambiar:(clave:string, valor:number)=>void}} props
  */
 export function SeccionConceptos({ titulo, conceptos, valores, onCambiar }) {
+  const total = conceptos.reduce((s, c) => s + (Number(valores[c.clave]) || 0), 0);
   return (
     <fieldset className="seccion-conceptos">
       <legend>{titulo}</legend>
@@ -54,6 +69,7 @@ export function SeccionConceptos({ titulo, conceptos, valores, onCambiar }) {
           onCambiar={(v) => onCambiar(c.clave, v)}
         />
       ))}
+      <TotalSeccion valor={total} />
     </fieldset>
   );
 }

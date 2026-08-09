@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { SeccionConceptos, CampoDinero } from './campos.jsx';
+import { SeccionConceptos, CampoDinero, TotalSeccion } from './campos.jsx';
 import {
   CONCEPTOS_INGRESOS_TRABAJO,
   CONCEPTOS_INCRNGO_TRABAJO,
@@ -47,6 +47,7 @@ function actualizar(objeto, ruta, valor) {
 export default function PasoCedulas({ estado, onCambiar, resultado }) {
   const set = (ruta, valor) => onCambiar(actualizar(estado, ruta, valor));
   const trabajoCalc = resultado?.intermedios?.trabajo;
+  const capitalCalc = resultado?.intermedios?.capital;
 
   return (
     <div>
@@ -89,6 +90,13 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
             valor={trabajoCalc?.rentaExenta25}
             soloLectura
           />
+          <TotalSeccion
+            valor={
+              (Number(estado.trabajo.afcPensionVoluntaria) || 0) +
+              (Number(trabajoCalc?.cesantiasExentasLimitadas) || 0) +
+              (Number(trabajoCalc?.rentaExenta25) || 0)
+            }
+          />
         </fieldset>
         <SeccionConceptos
           titulo="Rentas exentas sujetas a limitación"
@@ -118,6 +126,15 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           <CampoDinero etiqueta="Medicina prepagada" nota="tope compartido con trabajo, 192 UVT" valor={estado.honorarios.medicinaDigitado} onCambiar={(v) => set('honorarios.medicinaDigitado', v)} />
           <CampoDinero etiqueta="Intereses vivienda" nota="tope compartido, 1.200 UVT" valor={estado.honorarios.viviendaDigitado} onCambiar={(v) => set('honorarios.viviendaDigitado', v)} />
           <CampoDinero etiqueta="Intereses ICETEX" nota="tope compartido, 100 UVT" valor={estado.honorarios.icetexDigitado} onCambiar={(v) => set('honorarios.icetexDigitado', v)} />
+          <TotalSeccion
+            valor={
+              (Number(estado.honorarios.costosYGastos) || 0) +
+              (Number(estado.honorarios.afcPensionVoluntaria) || 0) +
+              (Number(estado.honorarios.medicinaDigitado) || 0) +
+              (Number(estado.honorarios.viviendaDigitado) || 0) +
+              (Number(estado.honorarios.icetexDigitado) || 0)
+            }
+          />
         </fieldset>
       </Colapsable>
 
@@ -128,6 +145,15 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           valores={estado.capital.ingresos}
           onCambiar={(clave, v) => set(`capital.ingresos.${clave}`, v)}
         />
+        <fieldset className="seccion-conceptos">
+          <legend>Ingresos no constitutivos de renta (INCRNGO)</legend>
+          <CampoDinero
+            etiqueta="Componente inflacionario de rendimientos financieros"
+            nota="Art. 38/39 ET — se calcula solo: (intereses + rendimientos entidades vigiladas + títulos deuda pública + FIC) × % componente inflacionario del año"
+            valor={capitalCalc?.incrngo}
+            soloLectura
+          />
+        </fieldset>
         <SeccionConceptos
           titulo="Costos y gastos procedentes"
           conceptos={CONCEPTOS_COSTOS_GASTOS_CAPITAL}
@@ -139,6 +165,13 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           <CampoDinero etiqueta="Aportes voluntarios pensión + AFC" valor={estado.capital.afcPensionVoluntaria} onCambiar={(v) => set('capital.afcPensionVoluntaria', v)} />
           <CampoDinero etiqueta="Intereses vivienda" nota="tope compartido, 1.200 UVT" valor={estado.capital.viviendaDigitado} onCambiar={(v) => set('capital.viviendaDigitado', v)} />
           <CampoDinero etiqueta="Intereses ICETEX" nota="tope compartido, 100 UVT" valor={estado.capital.icetexDigitado} onCambiar={(v) => set('capital.icetexDigitado', v)} />
+          <TotalSeccion
+            valor={
+              (Number(estado.capital.afcPensionVoluntaria) || 0) +
+              (Number(estado.capital.viviendaDigitado) || 0) +
+              (Number(estado.capital.icetexDigitado) || 0)
+            }
+          />
         </fieldset>
       </Colapsable>
 
@@ -156,6 +189,15 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           <CampoDinero etiqueta="Aportes voluntarios pensión + AFC" valor={estado.noLaboral.afcPensionVoluntaria} onCambiar={(v) => set('noLaboral.afcPensionVoluntaria', v)} />
           <CampoDinero etiqueta="Intereses vivienda" nota="tope compartido, 1.200 UVT" valor={estado.noLaboral.viviendaDigitado} onCambiar={(v) => set('noLaboral.viviendaDigitado', v)} />
           <CampoDinero etiqueta="Intereses ICETEX" nota="tope compartido, 100 UVT" valor={estado.noLaboral.icetexDigitado} onCambiar={(v) => set('noLaboral.icetexDigitado', v)} />
+          <TotalSeccion
+            valor={
+              (Number(estado.noLaboral.devolucionesRebajas) || 0) +
+              (Number(estado.noLaboral.costosYGastos) || 0) +
+              (Number(estado.noLaboral.afcPensionVoluntaria) || 0) +
+              (Number(estado.noLaboral.viviendaDigitado) || 0) +
+              (Number(estado.noLaboral.icetexDigitado) || 0)
+            }
+          />
         </fieldset>
       </Colapsable>
 
@@ -210,6 +252,12 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
             valor={estado.dividendos.subcedula2Gravados}
             onCambiar={(v) => set('dividendos.subcedula2Gravados', v)}
           />
+          <TotalSeccion
+            valor={
+              (Number(estado.dividendos.subcedula1NoGravados) || 0) +
+              (Number(estado.dividendos.subcedula2Gravados) || 0)
+            }
+          />
         </fieldset>
         <fieldset className="seccion-conceptos">
           <legend>Recibidos del exterior / ECE</legend>
@@ -223,6 +271,12 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
             etiqueta="Rentas exentas asociadas"
             valor={estado.dividendos.rentaExentaExterior}
             onCambiar={(v) => set('dividendos.rentaExentaExterior', v)}
+          />
+          <TotalSeccion
+            valor={
+              (Number(estado.dividendos.rentaLiquidaPasivaExterior) || 0) +
+              (Number(estado.dividendos.rentaExentaExterior) || 0)
+            }
           />
         </fieldset>
       </Colapsable>
