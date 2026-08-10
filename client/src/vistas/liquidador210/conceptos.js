@@ -25,8 +25,12 @@ export const CONCEPTOS_INCRNGO_TRABAJO = [
   { clave: 'saludObligatoria', etiqueta: 'Salud obligatoria', nota: 'Art. 56 ET' },
   { clave: 'pensionObligatoria', etiqueta: 'Pensión obligatoria', nota: 'Art. 55 ET' },
   { clave: 'fondoSolidaridadPensional', etiqueta: 'Fondo de solidaridad pensional' },
+  { clave: 'aportesARL', etiqueta: 'Aportes a ARL', nota: 'Concepto Unificado 912 de 2018' },
   { clave: 'aportesVoluntariosRAIS', etiqueta: 'Aportes voluntarios RAIS', nota: 'tope 25% / 2.500 UVT' },
   { clave: 'apoyosEducativos', etiqueta: 'Apoyos económicos educativos', nota: 'Art. 46 ET' },
+  { clave: 'colciencias', etiqueta: 'Labores científicas/tecnológicas avaladas por Colciencias', nota: 'Art. 57-2 y 786 ET' },
+  { clave: 'danoEmergente', etiqueta: 'Indemnizaciones por daño emergente', nota: 'Art. 45 ET' },
+  { clave: 'aportesARLIndependientes', etiqueta: 'Aportes a ARL de trabajadores independientes', nota: 'Concepto 0912 de 2018' },
   { clave: 'otros', etiqueta: 'Otros INCRNGO' },
 ];
 
@@ -35,7 +39,38 @@ export const CONCEPTOS_DEDUCCIONES_TRABAJO = [
   { clave: 'interesesVivienda', etiqueta: 'Intereses de crédito de vivienda', nota: 'tope compartido 1.200 UVT' },
   { clave: 'gmfCertificado', etiqueta: 'GMF (4×1000) certificado', nota: 'se deduce el 50%' },
   { clave: 'interesesIcetex', etiqueta: 'Intereses créditos ICETEX', nota: 'tope compartido 100 UVT' },
-  { clave: 'otras', etiqueta: 'Otras deducciones' },
+  { clave: 'cesantiasParticipesIndependientes', etiqueta: 'Aportes de cesantías de partícipes independientes', nota: 'tope: 1/12 de la renta líquida de esta cédula, o 2.500 UVT' },
+  { clave: 'autoHibrido', etiqueta: 'Deducción por auto híbrido/eléctrico o paneles solares', nota: 'se deduce el 50%' },
+];
+
+// Mismo set de 10 conceptos que CONCEPTOS_INCRNGO_TRABAJO, confirmado fila
+// por fila idéntico en CED.1 GENERAL (columnas D/F/J) — se repite explícito
+// por cédula en vez de compartir el arreglo para que cada import quede
+// autocontenido, igual que el resto de este archivo.
+export const CONCEPTOS_INCRNGO_HONORARIOS = [
+  { clave: 'saludObligatoria', etiqueta: 'Salud obligatoria', nota: 'Art. 56 ET' },
+  { clave: 'pensionObligatoria', etiqueta: 'Pensión obligatoria', nota: 'Art. 55 ET' },
+  { clave: 'fondoSolidaridadPensional', etiqueta: 'Fondo de solidaridad pensional' },
+  { clave: 'aportesARL', etiqueta: 'Aportes a ARL', nota: 'Concepto Unificado 912 de 2018' },
+  { clave: 'aportesVoluntariosRAIS', etiqueta: 'Aportes voluntarios RAIS', nota: 'tope 25% / 2.500 UVT' },
+  { clave: 'apoyosEducativos', etiqueta: 'Apoyos económicos educativos', nota: 'Art. 46 ET' },
+  { clave: 'colciencias', etiqueta: 'Labores científicas/tecnológicas avaladas por Colciencias', nota: 'Art. 57-2 y 786 ET' },
+  { clave: 'danoEmergente', etiqueta: 'Indemnizaciones por daño emergente', nota: 'Art. 45 ET' },
+  { clave: 'aportesARLIndependientes', etiqueta: 'Aportes a ARL de trabajadores independientes', nota: 'Concepto 0912 de 2018' },
+  { clave: 'otros', etiqueta: 'Otros INCRNGO' },
+];
+
+export const CONCEPTOS_INCRNGO_NO_LABORAL = [
+  { clave: 'saludObligatoria', etiqueta: 'Salud obligatoria', nota: 'Art. 56 ET' },
+  { clave: 'pensionObligatoria', etiqueta: 'Pensión obligatoria', nota: 'Art. 55 ET' },
+  { clave: 'fondoSolidaridadPensional', etiqueta: 'Fondo de solidaridad pensional' },
+  { clave: 'aportesARL', etiqueta: 'Aportes a ARL', nota: 'Concepto Unificado 912 de 2018' },
+  { clave: 'aportesVoluntariosRAIS', etiqueta: 'Aportes voluntarios RAIS', nota: 'tope 25% / 2.500 UVT' },
+  { clave: 'apoyosEducativos', etiqueta: 'Apoyos económicos educativos', nota: 'Art. 46 ET' },
+  { clave: 'colciencias', etiqueta: 'Labores científicas/tecnológicas avaladas por Colciencias', nota: 'Art. 57-2 y 786 ET' },
+  { clave: 'danoEmergente', etiqueta: 'Indemnizaciones por daño emergente', nota: 'Art. 45 ET' },
+  { clave: 'aportesARLIndependientes', etiqueta: 'Aportes a ARL de trabajadores independientes', nota: 'Concepto 0912 de 2018' },
+  { clave: 'otros', etiqueta: 'Otros INCRNGO' },
 ];
 
 // CED.1 GENERAL filas 115-137 (columna trabajo) — se dejan por fuera de
@@ -68,7 +103,28 @@ export const CONCEPTOS_INGRESOS_HONORARIOS = [
   { clave: 'compensacionServicios', etiqueta: 'Compensación por servicios personales (2+ trabajadores)' },
   { clave: 'comisionesBonificaciones', etiqueta: 'Comisiones y bonificaciones' },
   { clave: 'ingresosExterior', etiqueta: 'Ingresos obtenidos en el exterior' },
-  { clave: 'otros', etiqueta: 'Otros ingresos' },
+];
+
+// CED.1 GENERAL filas 118-125 (columna honorarios, F) — igual que trabajo
+// pero SIN "primas misiones diplomáticas" (esa fila está vacía para
+// honorarios en el Excel, solo aplica a trabajo).
+export const CONCEPTOS_RENTAS_EXENTAS_LIMITADAS_HONORARIOS = [
+  { clave: 'indemnizacionAccidenteTrabajo', etiqueta: 'Indemnización por accidente de trabajo o enfermedad' },
+  { clave: 'indemnizacionMaternidad', etiqueta: 'Indemnización que implique protección a la maternidad' },
+  { clave: 'gastosEntierroTrabajador', etiqueta: 'Gastos de entierro del trabajador' },
+  { clave: 'ventaEnergiaElectrica', etiqueta: 'Venta de energía eléctrica (eólica, biomasa, solar, geotérmica, residuos agrícolas)' },
+  { clave: 'rentasVisVip', etiqueta: 'Rentas asociadas a vivienda de interés social y prioritario (VIS/VIP)' },
+  { clave: 'economiaNaranja', etiqueta: 'Incentivo tributario economía naranja', nota: 'Art. 28 Ley 98 de 1993' },
+  { clave: 'otrasRentasExentas', etiqueta: 'Otras rentas exentas no mencionadas anteriormente' },
+];
+
+// CED.1 GENERAL filas 128-137 (columna honorarios, F) — de las 8 filas de
+// trabajo, para honorarios el Excel solo tiene datos en CAN y hoteles (las
+// demás son específicas de relación laboral: FFMM, magistrados, jueces,
+// rectores, diplomáticos).
+export const CONCEPTOS_RENTAS_EXENTAS_NO_LIMITADAS_HONORARIOS = [
+  { clave: 'ingresosCAN', etiqueta: 'Ingresos obtenidos en países de la CAN' },
+  { clave: 'rentaHotelesConstruidos', etiqueta: 'Renta exenta hoteles construidos 2003-2016', nota: 'Art. 207-2 núm. 3-4 ET' },
 ];
 
 export const CONCEPTOS_INGRESOS_CAPITAL = [
@@ -93,7 +149,6 @@ export const CONCEPTOS_INGRESOS_CAPITAL = [
 export const CONCEPTOS_INGRESOS_NO_LABORAL = [
   { clave: 'honorarios2omastrabajadores', etiqueta: 'Honorarios (2 o más trabajadores contratados)' },
   { clave: 'compensacionServicios2omastrabajadores', etiqueta: 'Compensación por servicios personales (2+ trabajadores)' },
-  { clave: 'contratosPrestacionServicios', etiqueta: 'Contratos de prestación de servicios' },
   { clave: 'ventasMercancia', etiqueta: 'Ventas ordinarias de mercancías' },
   { clave: 'ventasActividades', etiqueta: 'Ingresos por actividades comerciales' },
   { clave: 'ventasInventarios', etiqueta: 'Venta de inventarios producidos' },
@@ -113,6 +168,24 @@ export const CONCEPTOS_INGRESOS_NO_LABORAL = [
   { clave: 'ingresosCAN', etiqueta: 'Rentas de países de la CAN' },
   { clave: 'ingresosExterior', etiqueta: 'Otros ingresos del exterior' },
   { clave: 'otros', etiqueta: 'Otros ingresos no laborales' },
+];
+
+// CED.1 GENERAL filas 122-125 (columna no laboral, J) — a diferencia de
+// trabajo/honorarios, para no laboral el Excel NO tiene indemnización por
+// accidente/maternidad/entierro (filas 118-120 vacías, son específicas de
+// relación laboral).
+export const CONCEPTOS_RENTAS_EXENTAS_LIMITADAS_NO_LABORAL = [
+  { clave: 'ventaEnergiaElectrica', etiqueta: 'Venta de energía eléctrica (eólica, biomasa, solar, geotérmica, residuos agrícolas)' },
+  { clave: 'rentasVisVip', etiqueta: 'Rentas asociadas a vivienda de interés social y prioritario (VIS/VIP)' },
+  { clave: 'economiaNaranja', etiqueta: 'Incentivo tributario economía naranja', nota: 'Art. 28 Ley 98 de 1993' },
+  { clave: 'otrasRentasExentas', etiqueta: 'Otras rentas exentas no mencionadas anteriormente' },
+];
+
+// CED.1 GENERAL filas 134/136 (columna no laboral, J) — igual que
+// honorarios, solo CAN y hoteles.
+export const CONCEPTOS_RENTAS_EXENTAS_NO_LIMITADAS_NO_LABORAL = [
+  { clave: 'ingresosCAN', etiqueta: 'Ingresos obtenidos en países de la CAN' },
+  { clave: 'rentaHotelesConstruidos', etiqueta: 'Renta exenta hoteles construidos 2003-2016', nota: 'Art. 207-2 núm. 3-4 ET' },
 ];
 
 // CED.1 GENERAL filas 89-111 (columna capital) — costos y gastos
@@ -210,7 +283,7 @@ export const CONCEPTOS_EXENTAS_GANANCIA_OCASIONAL = [
   { clave: 'viviendaCausante', etiqueta: 'Vivienda de habitación del causante (herencia)', nota: 'tope 13.000 UVT' },
   { clave: 'inmuebleCausante', etiqueta: 'Bienes inmuebles del causante distintos a la vivienda', nota: 'tope 6.500 UVT' },
   { clave: 'herenciaLegado', etiqueta: 'Herencia o legado (herederos/legitimarios)', nota: 'tope 3.250 UVT' },
-  { clave: 'bienesTerceros', etiqueta: 'Bienes recibidos por terceros (no legitimarios ni cónyuge)', nota: '20%, tope 1.625 UVT' },
+  { clave: 'bienesTerceros', etiqueta: 'Bienes recibidos por terceros (no legitimarios ni cónyuge)', nota: 'digita ya el 20% calculado (a diferencia de donaciones, aquí NO se calcula solo), tope 1.625 UVT' },
   { clave: 'librosRopaMobiliario', etiqueta: 'Libros, ropa, utensilios personales y mobiliario del causante', nota: 'sin límite' },
   { clave: 'ventaCasaHabitual', etiqueta: 'Utilidad venta casa o apartamento de habitación', nota: 'Art. 311-1 ET, tope 5.000 UVT' },
   { clave: 'accionesBVC', etiqueta: 'Utilidad venta acciones inscritas en bolsa (< 3%)', nota: 'sin límite' },

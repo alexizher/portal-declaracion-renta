@@ -78,8 +78,8 @@ describe('calcularFormulario210 — integración con caso dorado completo', () =
         gastosRepresentacion: 0,
         ingresosExterior: 0,
       },
-      incrngo: { saludObligatoria: 3272000, pensionObligatoria: 4091000, fondoSolidaridadPensional: 0, aportesVoluntariosRAIS: 0, apoyosEducativos: 0, otros: 0 },
-      deducciones: { medicinaPrepagada: 0, interesesVivienda: 3503000, gmfCertificado: 315000, interesesIcetex: 0, otras: 0 },
+      incrngo: { saludObligatoria: 3272000, pensionObligatoria: 4091000, fondoSolidaridadPensional: 0, aportesARL: 0, aportesVoluntariosRAIS: 0, apoyosEducativos: 0, colciencias: 0, danoEmergente: 0, aportesARLIndependientes: 0, otros: 0 },
+      deducciones: { medicinaPrepagada: 0, interesesVivienda: 3503000, gmfCertificado: 315000, interesesIcetex: 0, cesantiasParticipesIndependientes: 0, autoHibrido: 0 },
       rentasExentasLimitadas: {},
       rentasExentasNoLimitadas: {},
       afcPensionVoluntaria: 2300000,
@@ -239,8 +239,8 @@ describe('calcularFormulario210 — Fase 4: pensiones, dividendos y ganancia oca
       ingresos: Object.fromEntries(
         ['salarios', 'cesantiasPagadas', 'cesantiasFondo', 'cesantiasPre2017', 'prestacionesSociales', 'primasExtralegales', 'comisionesBonificaciones', 'otrosPagosLaborales', 'indemnizacionesDespido', 'subsidiosAuxilios', 'viaticos', 'honorariosSinCostos', 'compensacionServiciosSinCostos', 'pagosAlimentacion', 'gastosRepresentacion', 'ingresosExterior'].map((k) => [k, 0])
       ),
-      incrngo: { saludObligatoria: 0, pensionObligatoria: 0, fondoSolidaridadPensional: 0, aportesVoluntariosRAIS: 0, apoyosEducativos: 0, otros: 0 },
-      deducciones: { medicinaPrepagada: 0, interesesVivienda: 0, gmfCertificado: 0, interesesIcetex: 0, otras: 0 },
+      incrngo: { saludObligatoria: 0, pensionObligatoria: 0, fondoSolidaridadPensional: 0, aportesARL: 0, aportesVoluntariosRAIS: 0, apoyosEducativos: 0, colciencias: 0, danoEmergente: 0, aportesARLIndependientes: 0, otros: 0 },
+      deducciones: { medicinaPrepagada: 0, interesesVivienda: 0, gmfCertificado: 0, interesesIcetex: 0, cesantiasParticipesIndependientes: 0, autoHibrido: 0 },
       rentasExentasLimitadas: {},
       rentasExentasNoLimitadas: {},
       afcPensionVoluntaria: 0,

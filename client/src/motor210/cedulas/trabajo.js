@@ -76,22 +76,31 @@ export function calcularCedulaTrabajo(input, ctx) {
     inc.saludObligatoria +
     inc.pensionObligatoria +
     inc.fondoSolidaridadPensional +
+    inc.aportesARL +
     raisLimitado +
     inc.apoyosEducativos +
+    inc.colciencias +
+    inc.danoEmergente +
+    inc.aportesARLIndependientes +
     alimentacionPermitida +
     inc.otros;
 
   const rentaLiquida = noNegativo(ingresosBrutos - incrngo);
 
   // Deducciones imputables — Art. 387 ET (medicina prepagada, intereses
-  // vivienda, GMF, ICETEX). Dependientes (10%) se calcula aparte en
+  // vivienda, GMF, ICETEX, cesantías partícipes independientes, auto
+  // híbrido/eléctrico). Dependientes (10%) se calcula aparte en
   // dependientes.js porque se prorratea entre trabajo y honorarios.
   const ded = input.deducciones;
   const medicinaPrepagadaLimitada = Math.min(ded.medicinaPrepagada, 192 * uvt);
   const interesesViviendaLimitados = Math.min(ded.interesesVivienda, 1200 * uvt);
   const gmfDeducible = ded.gmfCertificado * 0.5;
   const icetexLimitado = Math.min(ded.interesesIcetex, 100 * uvt);
-  const deduccionesSinGmfIcetex = medicinaPrepagadaLimitada + interesesViviendaLimitados + ded.otras;
+  // CED.1 GENERAL!E150: MIN(digitado, renta líquida de esta cédula / 12, 2.500 UVT).
+  const cesantiasParticipesLimitadas = Math.min(ded.cesantiasParticipesIndependientes, rentaLiquida / 12, 2500 * uvt);
+  const autoHibridoDeducible = ded.autoHibrido * 0.5;
+  const deduccionesSinGmfIcetex =
+    medicinaPrepagadaLimitada + interesesViviendaLimitados + cesantiasParticipesLimitadas + autoHibridoDeducible;
   const deduccionesImputablesSinDependientes = deduccionesSinGmfIcetex + gmfDeducible + icetexLimitado;
 
   // Aportes voluntarios a pensión + AFC — Art. 126-1/126-4 ET, tope

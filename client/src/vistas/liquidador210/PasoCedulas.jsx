@@ -7,9 +7,15 @@ import {
   CONCEPTOS_RENTAS_EXENTAS_LIMITADAS_TRABAJO,
   CONCEPTOS_RENTAS_EXENTAS_NO_LIMITADAS_TRABAJO,
   CONCEPTOS_INGRESOS_HONORARIOS,
+  CONCEPTOS_INCRNGO_HONORARIOS,
+  CONCEPTOS_RENTAS_EXENTAS_LIMITADAS_HONORARIOS,
+  CONCEPTOS_RENTAS_EXENTAS_NO_LIMITADAS_HONORARIOS,
   CONCEPTOS_INGRESOS_CAPITAL,
   CONCEPTOS_COSTOS_GASTOS_CAPITAL,
   CONCEPTOS_INGRESOS_NO_LABORAL,
+  CONCEPTOS_INCRNGO_NO_LABORAL,
+  CONCEPTOS_RENTAS_EXENTAS_LIMITADAS_NO_LABORAL,
+  CONCEPTOS_RENTAS_EXENTAS_NO_LIMITADAS_NO_LABORAL,
   CONCEPTOS_INGRESOS_PENSIONES,
   CONCEPTOS_INGRESOS_EXTERIOR_PENSIONES,
   CONCEPTOS_INCRNGO_PENSIONES,
@@ -133,6 +139,12 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           valores={estado.honorarios.ingresos}
           onCambiar={(clave, v) => set(`honorarios.ingresos.${clave}`, v)}
         />
+        <SeccionConceptos
+          titulo="Ingresos no constitutivos de renta (INCRNGO)"
+          conceptos={CONCEPTOS_INCRNGO_HONORARIOS}
+          valores={estado.honorarios.incrngo}
+          onCambiar={(clave, v) => set(`honorarios.incrngo.${clave}`, v)}
+        />
         <fieldset className="seccion-conceptos">
           <legend>Costos, deducciones y rentas exentas</legend>
           <CampoDinero etiqueta="Costos y gastos procedentes" nota="Art. 107/107-1/771-2 ET, total" valor={estado.honorarios.costosYGastos} onCambiar={(v) => set('honorarios.costosYGastos', v)} />
@@ -140,16 +152,44 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           <CampoDinero etiqueta="Medicina prepagada" nota="tope compartido con trabajo, 192 UVT" valor={estado.honorarios.medicinaDigitado} onCambiar={(v) => set('honorarios.medicinaDigitado', v)} />
           <CampoDinero etiqueta="Intereses vivienda" nota="tope compartido, 1.200 UVT" valor={estado.honorarios.viviendaDigitado} onCambiar={(v) => set('honorarios.viviendaDigitado', v)} />
           <CampoDinero etiqueta="Intereses ICETEX" nota="tope compartido, 100 UVT" valor={estado.honorarios.icetexDigitado} onCambiar={(v) => set('honorarios.icetexDigitado', v)} />
+          <CampoDinero etiqueta="GMF (4×1000) certificado" nota="se deduce el 50%" valor={estado.honorarios.gmfCertificado} onCambiar={(v) => set('honorarios.gmfCertificado', v)} />
+          <CampoDinero
+            etiqueta="Aportes de cesantías de partícipes independientes"
+            nota="tope: 1/12 de la renta líquida de esta cédula, o 2.500 UVT"
+            valor={estado.honorarios.cesantiasParticipesIndependientes}
+            onCambiar={(v) => set('honorarios.cesantiasParticipesIndependientes', v)}
+          />
+          <CampoDinero
+            etiqueta="Deducción por auto híbrido/eléctrico o paneles solares"
+            nota="se deduce el 50%"
+            valor={estado.honorarios.autoHibrido}
+            onCambiar={(v) => set('honorarios.autoHibrido', v)}
+          />
           <TotalSeccion
             valor={
               (Number(estado.honorarios.costosYGastos) || 0) +
               (Number(estado.honorarios.afcPensionVoluntaria) || 0) +
               (Number(estado.honorarios.medicinaDigitado) || 0) +
               (Number(estado.honorarios.viviendaDigitado) || 0) +
-              (Number(estado.honorarios.icetexDigitado) || 0)
+              (Number(estado.honorarios.icetexDigitado) || 0) +
+              (Number(estado.honorarios.gmfCertificado) || 0) +
+              (Number(estado.honorarios.cesantiasParticipesIndependientes) || 0) +
+              (Number(estado.honorarios.autoHibrido) || 0)
             }
           />
         </fieldset>
+        <SeccionConceptos
+          titulo="Rentas exentas sujetas a limitación"
+          conceptos={CONCEPTOS_RENTAS_EXENTAS_LIMITADAS_HONORARIOS}
+          valores={estado.honorarios.rentasExentasLimitadas}
+          onCambiar={(clave, v) => set(`honorarios.rentasExentasLimitadas.${clave}`, v)}
+        />
+        <SeccionConceptos
+          titulo="Rentas exentas que NO se someten al límite"
+          conceptos={CONCEPTOS_RENTAS_EXENTAS_NO_LIMITADAS_HONORARIOS}
+          valores={estado.honorarios.rentasExentasNoLimitadas}
+          onCambiar={(clave, v) => set(`honorarios.rentasExentasNoLimitadas.${clave}`, v)}
+        />
       </Colapsable>
 
       <Colapsable titulo="Rentas de capital" resumen="intereses, arrendamientos, dividendos…">
@@ -196,6 +236,12 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           valores={estado.noLaboral.ingresos}
           onCambiar={(clave, v) => set(`noLaboral.ingresos.${clave}`, v)}
         />
+        <SeccionConceptos
+          titulo="Ingresos no constitutivos de renta (INCRNGO)"
+          conceptos={CONCEPTOS_INCRNGO_NO_LABORAL}
+          valores={estado.noLaboral.incrngo}
+          onCambiar={(clave, v) => set(`noLaboral.incrngo.${clave}`, v)}
+        />
         <fieldset className="seccion-conceptos">
           <legend>Costos, deducciones y rentas exentas</legend>
           <CampoDinero etiqueta="Devoluciones, rebajas y descuentos" valor={estado.noLaboral.devolucionesRebajas} onCambiar={(v) => set('noLaboral.devolucionesRebajas', v)} />
@@ -203,16 +249,44 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           <CampoDinero etiqueta="Aportes voluntarios pensión + AFC" valor={estado.noLaboral.afcPensionVoluntaria} onCambiar={(v) => set('noLaboral.afcPensionVoluntaria', v)} />
           <CampoDinero etiqueta="Intereses vivienda" nota="tope compartido, 1.200 UVT" valor={estado.noLaboral.viviendaDigitado} onCambiar={(v) => set('noLaboral.viviendaDigitado', v)} />
           <CampoDinero etiqueta="Intereses ICETEX" nota="tope compartido, 100 UVT" valor={estado.noLaboral.icetexDigitado} onCambiar={(v) => set('noLaboral.icetexDigitado', v)} />
+          <CampoDinero etiqueta="GMF (4×1000) certificado" nota="se deduce el 50%" valor={estado.noLaboral.gmfCertificado} onCambiar={(v) => set('noLaboral.gmfCertificado', v)} />
+          <CampoDinero
+            etiqueta="Aportes de cesantías de partícipes independientes"
+            nota="tope: 1/12 de la renta líquida de esta cédula, o 2.500 UVT"
+            valor={estado.noLaboral.cesantiasParticipesIndependientes}
+            onCambiar={(v) => set('noLaboral.cesantiasParticipesIndependientes', v)}
+          />
+          <CampoDinero
+            etiqueta="Deducción por auto híbrido/eléctrico o paneles solares"
+            nota="se deduce el 50%"
+            valor={estado.noLaboral.autoHibrido}
+            onCambiar={(v) => set('noLaboral.autoHibrido', v)}
+          />
           <TotalSeccion
             valor={
               (Number(estado.noLaboral.devolucionesRebajas) || 0) +
               (Number(estado.noLaboral.costosYGastos) || 0) +
               (Number(estado.noLaboral.afcPensionVoluntaria) || 0) +
               (Number(estado.noLaboral.viviendaDigitado) || 0) +
-              (Number(estado.noLaboral.icetexDigitado) || 0)
+              (Number(estado.noLaboral.icetexDigitado) || 0) +
+              (Number(estado.noLaboral.gmfCertificado) || 0) +
+              (Number(estado.noLaboral.cesantiasParticipesIndependientes) || 0) +
+              (Number(estado.noLaboral.autoHibrido) || 0)
             }
           />
         </fieldset>
+        <SeccionConceptos
+          titulo="Rentas exentas sujetas a limitación"
+          conceptos={CONCEPTOS_RENTAS_EXENTAS_LIMITADAS_NO_LABORAL}
+          valores={estado.noLaboral.rentasExentasLimitadas}
+          onCambiar={(clave, v) => set(`noLaboral.rentasExentasLimitadas.${clave}`, v)}
+        />
+        <SeccionConceptos
+          titulo="Rentas exentas que NO se someten al límite"
+          conceptos={CONCEPTOS_RENTAS_EXENTAS_NO_LIMITADAS_NO_LABORAL}
+          valores={estado.noLaboral.rentasExentasNoLimitadas}
+          onCambiar={(clave, v) => set(`noLaboral.rentasExentasNoLimitadas.${clave}`, v)}
+        />
       </Colapsable>
 
       <Colapsable titulo="Pensiones" resumen="jubilación, invalidez, vejez, sobrevivientes…">

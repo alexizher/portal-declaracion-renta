@@ -122,7 +122,7 @@ const PALABRAS_CLAVE_INGRESO = {
   noLaboral: [
     [/honorario/i, 'honorarios2omastrabajadores'],
     [/servicio/i, 'compensacionServicios2omastrabajadores'],
-    [/contrato.*prestaci[oó]n/i, 'contratosPrestacionServicios'],
+    [/contrato.*prestaci[oó]n/i, 'compensacionServicios2omastrabajadores'],
     [/mercanc[ií]a/i, 'ventasMercancia'],
     [/comercial/i, 'ventasActividades'],
     [/inventario/i, 'ventasInventarios'],
@@ -149,27 +149,37 @@ const PALABRAS_CLAVE_INGRESO = {
 // el nombre genérico "otros" (usa "otrosPagosLaborales") — bug real
 // encontrado con un caso real: "Otros pagos Rentas de trabajo y pensión"
 // se perdía por completo.
+// Honorarios NO tiene fila "otros" en el Excel (CED.1 GENERAL columna F,
+// ingresos): solo honorarios/compensación/comisiones/exterior — un ingreso
+// que no calce con ninguna de esas palabras clave queda sin clasificar en
+// vez de forzarse a un campo inexistente.
 const CAMPO_OTROS_POR_CEDULA = {
   trabajo: 'otrosPagosLaborales',
-  honorarios: 'otros',
   capital: 'otros',
   noLaboral: 'otros',
 };
 
-// INCRNGO — solo la cédula de trabajo tiene campos editables para esto en
-// el wizard (honorarios/capital/no laboral no piden INCRNGO por separado,
-// ver cedulas/honorariosServicios.js y noLaboral.js); si el renglón sugiere
-// INCRNGO de otra cédula, no hay dónde prellenarlo — se deja sin clasificar.
+// INCRNGO — trabajo/honorarios/no laboral tienen el mismo set de 10 campos
+// en el wizard (CED.1 GENERAL!D70-D86, F70-F86, J70-J86 — ver
+// cedulas/trabajo.js, honorariosServicios.js y noLaboral.js). Capital NO
+// tiene campo de INCRNGO digitable (se calcula solo, componente
+// inflacionario) — si el renglón sugiere INCRNGO de capital, no hay dónde
+// prellenarlo y se deja sin clasificar.
 // OJO: "alimentación" NO va aquí — el campo de alimentación vive en
 // trabajo.ingresos.pagosAlimentacion (el motor calcula solo cuánto de ese
 // ingreso es INCRNGO, tope 41 UVT/mes, ver cedulas/trabajo.js). Un valor
 // aquí con clave "pagosAlimentacion" apuntaría a un campo inexistente en
 // trabajo.incrngo — bug real encontrado por el test de auditoría.
 const PALABRAS_CLAVE_INCRNGO_TRABAJO = [
+  [/arl.*independiente|independiente.*arl/i, 'aportesARLIndependientes'],
+  [/\barl\b/i, 'aportesARL'],
   [/salud/i, 'saludObligatoria'],
   [/pensi[oó]n.*solidaridad|solidaridad.*pensi[oó]n/i, 'fondoSolidaridadPensional'],
+  [/rais\b/i, 'aportesVoluntariosRAIS'],
   [/pensi[oó]n/i, 'pensionObligatoria'],
   [/educaci[oó]n|educativ/i, 'apoyosEducativos'],
+  [/colciencias|cient[ií]fic|tecnol[oó]gic/i, 'colciencias'],
+  [/da[nñ]o emergente/i, 'danoEmergente'],
 ];
 
 const PALABRAS_CLAVE_PATRIMONIO_ACTIVO = [
@@ -328,12 +338,12 @@ export function clasificarFilasExogena(filasDetalle) {
     if (seccion.destino === 'fueraDeAlcance') {
       sinClasificar.push({ ...fila, motivo: seccion.motivo });
     } else if (seccion.destino === 'incrngo') {
-      if (seccion.cedula !== 'trabajo') {
-        sinClasificar.push({ ...fila, motivo: `INCRNGO de la cédula ${seccion.cedula} — esta cédula no tiene campo de INCRNGO en el wizard, se resta directamente al total si aplica.` });
+      if (seccion.cedula === 'capital') {
+        sinClasificar.push({ ...fila, motivo: 'INCRNGO de la cédula de capital — se calcula solo (componente inflacionario), no hay campo digitable para prellenar.' });
         continue;
       }
       const campo = PALABRAS_CLAVE_INCRNGO_TRABAJO.find(([re]) => re.test(fila.detalle))?.[1] || 'otros';
-      sugerencias.push({ ruta: ['trabajo', 'incrngo', campo], valor: fila.valor, etiqueta: `${fila.detalle} (${fila.nombreInformante})` });
+      sugerencias.push({ ruta: [seccion.cedula, 'incrngo', campo], valor: fila.valor, etiqueta: `${fila.detalle} (${fila.nombreInformante})` });
     } else if (seccion.destino === 'patrimonioActivo') {
       const categoria = PALABRAS_CLAVE_PATRIMONIO_ACTIVO.find(([re]) => re.test(fila.detalle))?.[1] || 'otros';
       sugerencias.push({ ruta: ['activosPatrimonio', categoria], valor: fila.valor, etiqueta: `${fila.detalle} (${fila.nombreInformante})` });
@@ -353,6 +363,10 @@ export function clasificarFilasExogena(filasDetalle) {
     } else if (seccion.destino === 'ingreso') {
       const reglas = PALABRAS_CLAVE_INGRESO[seccion.cedula];
       const campo = reglas.find(([re]) => re.test(fila.detalle))?.[1] || CAMPO_OTROS_POR_CEDULA[seccion.cedula];
+      if (!campo) {
+        sinClasificar.push({ ...fila, motivo: `No calza con ningún renglón de ingresos de ${seccion.cedula} — revisar y digitar manualmente.` });
+        continue;
+      }
       const cedulaInputKey = seccion.cedula === 'trabajo' ? 'trabajo' : seccion.cedula === 'honorarios' ? 'honorarios' : seccion.cedula;
       sugerencias.push({
         ruta: [cedulaInputKey, 'ingresos', campo],

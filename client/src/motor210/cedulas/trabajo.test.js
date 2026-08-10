@@ -30,8 +30,12 @@ const CASO_ASALARIADO_SIMPLE = {
       saludObligatoria: 3272000,
       pensionObligatoria: 4091000,
       fondoSolidaridadPensional: 0,
+      aportesARL: 0,
       aportesVoluntariosRAIS: 0,
       apoyosEducativos: 0,
+      colciencias: 0,
+      danoEmergente: 0,
+      aportesARLIndependientes: 0,
       otros: 0,
     },
     deducciones: {
@@ -39,7 +43,8 @@ const CASO_ASALARIADO_SIMPLE = {
       interesesVivienda: 3503000,
       gmfCertificado: 315000,
       interesesIcetex: 0,
-      otras: 0,
+      cesantiasParticipesIndependientes: 0,
+      autoHibrido: 0,
     },
     rentasExentasLimitadas: {},
     rentasExentasNoLimitadas: {},
@@ -107,8 +112,8 @@ describe('calcularCedulaTrabajo — casos de borde', () => {
     const input = {
       ...base,
       ingresos: { ...base.ingresos, salarios: 500000000 },
-      incrngo: { saludObligatoria: 0, pensionObligatoria: 0, fondoSolidaridadPensional: 0, aportesVoluntariosRAIS: 0, apoyosEducativos: 0, otros: 0 },
-      deducciones: { medicinaPrepagada: 0, interesesVivienda: 0, gmfCertificado: 0, interesesIcetex: 0, otras: 0 },
+      incrngo: { saludObligatoria: 0, pensionObligatoria: 0, fondoSolidaridadPensional: 0, aportesARL: 0, aportesVoluntariosRAIS: 0, apoyosEducativos: 0, colciencias: 0, danoEmergente: 0, aportesARLIndependientes: 0, otros: 0 },
+      deducciones: { medicinaPrepagada: 0, interesesVivienda: 0, gmfCertificado: 0, interesesIcetex: 0, cesantiasParticipesIndependientes: 0, autoHibrido: 0 },
       afcPensionVoluntaria: 0,
     };
     const r = calcularCedulaTrabajo(input, ctx);
@@ -132,8 +137,8 @@ describe('calcularCedulaTrabajo — casos de borde', () => {
   it('sin ingresos no hay renta líquida negativa', () => {
     const input = {
       ingresos: Object.fromEntries(Object.keys(base.ingresos).map((k) => [k, 0])),
-      incrngo: { saludObligatoria: 0, pensionObligatoria: 0, fondoSolidaridadPensional: 0, aportesVoluntariosRAIS: 0, apoyosEducativos: 0, otros: 0 },
-      deducciones: { medicinaPrepagada: 0, interesesVivienda: 0, gmfCertificado: 0, interesesIcetex: 0, otras: 0 },
+      incrngo: { saludObligatoria: 0, pensionObligatoria: 0, fondoSolidaridadPensional: 0, aportesARL: 0, aportesVoluntariosRAIS: 0, apoyosEducativos: 0, colciencias: 0, danoEmergente: 0, aportesARLIndependientes: 0, otros: 0 },
+      deducciones: { medicinaPrepagada: 0, interesesVivienda: 0, gmfCertificado: 0, interesesIcetex: 0, cesantiasParticipesIndependientes: 0, autoHibrido: 0 },
       rentasExentasLimitadas: {},
       rentasExentasNoLimitadas: {},
       afcPensionVoluntaria: 0,
