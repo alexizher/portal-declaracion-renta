@@ -61,6 +61,17 @@ export function liquidar(entrada) {
     uvt
   );
 
+  // 2b) Segunda pasada de la cédula trabajo — ahora que se conoce
+  // dependientesArt387.trabajo, se recalcula para que la renta exenta del
+  // 25% lo reste de su base (CED.1 GENERAL!D141 incluye la fila 145 de
+  // dependientes). ingresosBrutos/incrngo/topes de medicina-vivienda-ICETEX
+  // no cambian entre pasadas (no dependen de dependientesArt387).
+  const trabajoFinal = calcularCedulaTrabajo(
+    { ...entrada.trabajo, dependientesArt387: dependientesArt387.trabajo },
+    { uvt, ingresoMensualPromedio6m: entrada.ingresoMensualPromedio6m, mesesTrabajados: entrada.mesesTrabajados }
+  );
+  Object.assign(trabajo, trabajoFinal);
+
   // 3) Topes compartidos en cascada (trabajo → honorarios → capital → no
   // laboral) — medicina solo entre trabajo/honorarios; vivienda e ICETEX
   // entre las 4. Ver cascada.js y docs §2bis.
@@ -144,11 +155,26 @@ export function liquidar(entrada) {
   // la primera pasada. NO se incluye automáticamente en la casilla 96; se
   // muestra como advertencia para que Daniela decida tras revisar con el
   // cliente (activos omitidos, pasivos inexistentes).
+  //
+  // "Rentas ajustadas" (RENTA COMP PATR!H22/H23/H24 del .xlsm) — a
+  // diferencia de la casilla 111 (que arma el IMPUESTO y por eso deja
+  // fuera dividendos/pensiones con tarifa plana propia), la conciliación
+  // patrimonial SÍ debe incluir TODAS las cédulas con renta líquida,
+  // incluidas pensiones y dividendos completos (no solo su remanente).
+  const rentaLiquidaGravableAjustada =
+    primeraPasada.casillas[97] +
+    primeraPasada.casillas[103] + // pensiones
+    primeraPasada.casillas[106] + // dividendos 2016
+    primeraPasada.casillas[107] + // dividendos subcédula 1
+    primeraPasada.casillas[108] + // dividendos subcédula 2 (completa, no el remanente)
+    primeraPasada.casillas[109]; // dividendos exterior/ECE (bruto)
   const rentasExentasTotalesAprox =
     trabajo.rentaExenta25 +
     cedulas.reduce((s, c) => s + (c.rentasExentasNoLimitadas || 0), 0) +
-    primeraPasada.intermedios.tope.limitadaPorCedula.reduce((s, v) => s + v, 0);
-  const incrngoTotal = cedulas.reduce((s, c) => s + c.incrngo, 0);
+    primeraPasada.intermedios.tope.limitadaPorCedula.reduce((s, v) => s + v, 0) +
+    pensiones.totalRentasExentas +
+    dividendos.rentaExentaExterior;
+  const incrngoTotal = cedulas.reduce((s, c) => s + c.incrngo, 0) + pensiones.incrngo + dividendos.incrngo2016;
 
   const comparacion = calcularRentaPorComparacionPatrimonial({
     patrimonioLiquidoActual: patrimonio.patrimonioLiquido,
@@ -156,7 +182,7 @@ export function liquidar(entrada) {
     gananciaOcasionalNeta: gananciaOcasional.ingresosTotales - gananciaOcasional.costosAplicados,
     valorizaciones: entrada.valorizaciones || 0,
     desvalorizaciones: entrada.desvalorizaciones || 0,
-    rentaLiquidaGravable: primeraPasada.casillas[111],
+    rentaLiquidaGravable: rentaLiquidaGravableAjustada,
     rentasExentasTotales: rentasExentasTotalesAprox,
     incrngoTotal,
     impuestosYAnticiposPagadosAnioGravable: entrada.impuestosYAnticiposPagadosAnioGravable,

@@ -72,9 +72,13 @@ export const CONCEPTOS_INGRESOS_HONORARIOS = [
 ];
 
 export const CONCEPTOS_INGRESOS_CAPITAL = [
-  { clave: 'intereses', etiqueta: 'Intereses financieros / entre particulares' },
+  { clave: 'intereses', etiqueta: 'Intereses y rendimientos financieros', nota: 'cuenta para el componente inflacionario' },
+  { clave: 'interesesParticulares', etiqueta: 'Intereses pagados por particulares', nota: 'Art. 38 ET no aplica, NO cuenta para el componente inflacionario' },
+  { clave: 'descuentosTitulos', etiqueta: 'Intereses por descuentos de títulos' },
+  { clave: 'colaboracionEmpresarial', etiqueta: 'Rendimientos de contratos de colaboración empresarial' },
   { clave: 'rendimientosEntidadesFinancieras', etiqueta: 'Rendimientos de entidades financieras vigiladas', nota: 'Art. 38 ET' },
   { clave: 'rendimientosTitulosDeudaPublica', etiqueta: 'Rendimientos de títulos de deuda pública', nota: 'Art. 38 ET' },
+  { clave: 'bonosPapelesComerciales', etiqueta: 'Rendimientos de bonos y papeles comerciales', nota: 'Art. 38 ET' },
   { clave: 'fondosInversionColectiva', etiqueta: 'Fondos de inversión colectiva (FIC)', nota: 'Art. 39 ET' },
   { clave: 'rendimientosPensiones', etiqueta: 'Rendimientos de fondos de pensiones' },
   { clave: 'rendimientosCesantias', etiqueta: 'Rendimientos de fondos de cesantías' },
@@ -99,7 +103,7 @@ export const CONCEPTOS_INGRESOS_NO_LABORAL = [
   { clave: 'gananciales', etiqueta: 'Ingresos por gananciales' },
   { clave: 'indemnizacionDanoEmergente', etiqueta: 'Indemnización por daño emergente' },
   { clave: 'indemnizacionLucroCesante', etiqueta: 'Indemnización por lucro cesante' },
-  { clave: 'indemnizacionSegurosVida', etiqueta: 'Indemnización de seguros de vida' },
+  { clave: 'indemnizacionSegurosDistintosVida', etiqueta: 'Indemnización de seguros DIFERENTES a los de vida', nota: 'los de vida van en Ganancia Ocasional, no aquí' },
   { clave: 'retiroPensionSinPermanencia', etiqueta: 'Retiro de fondo de pensión sin requisito de permanencia' },
   { clave: 'retiroAfcSinPermanencia', etiqueta: 'Retiro de cuenta AFC sin requisito de permanencia' },
   { clave: 'ventaInmuebles', etiqueta: 'Venta de inmuebles (< 2 años)' },

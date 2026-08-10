@@ -7,8 +7,9 @@ function sumarValores(objeto) {
 
 /**
  * @param {object} input
- * @param {object} input.ingresos intereses, rendimientosEntidadesFinancieras,
- *   rendimientosTitulosDeudaPublica, fondosInversionColectiva,
+ * @param {object} input.ingresos intereses, interesesParticulares,
+ *   descuentosTitulos, colaboracionEmpresarial, rendimientosEntidadesFinancieras,
+ *   rendimientosTitulosDeudaPublica, bonosPapelesComerciales, fondosInversionColectiva,
  *   rendimientosPensiones, rendimientosCesantias, rendimientosAFC,
  *   arrendamientos, regalias, propiedadIntelectual, ingresosExterior, otros.
  * @param {object} input.costosYGastos Costos y gastos procedentes (Art.
@@ -31,8 +32,12 @@ export function calcularCedulaCapital(input, ctx) {
 
   const ingresosBrutos =
     ing.intereses +
+    ing.interesesParticulares +
+    ing.descuentosTitulos +
+    ing.colaboracionEmpresarial +
     ing.rendimientosEntidadesFinancieras +
     ing.rendimientosTitulosDeudaPublica +
+    ing.bonosPapelesComerciales +
     ing.fondosInversionColectiva +
     ing.rendimientosPensiones +
     ing.rendimientosCesantias +
@@ -43,12 +48,19 @@ export function calcularCedulaCapital(input, ctx) {
     ing.ingresosExterior +
     ing.otros;
 
-  // Componente inflacionario (Art. 38/39 ET) — solo aplica a intereses,
-  // rendimientos de entidades vigiladas, deuda pública y FIC (NO a
-  // rendimientos de pensiones/cesantías/AFC, que ya están exentos por otra
-  // vía). Confirmado en CED.1 GENERAL!H78: SUM(I28:I38)-I29-I30-I31.
+  // Componente inflacionario (Art. 38/39 ET) — aplica a "intereses y
+  // rendimientos financieros", entidades vigiladas, deuda pública, bonos y
+  // papeles comerciales, y FIC. NO aplica a intereses entre particulares,
+  // descuentos de títulos, contratos de colaboración empresarial, ni a
+  // rendimientos de pensiones/cesantías/AFC (ya exentos por otra vía).
+  // Confirmado en CED.1 GENERAL!H78: SUM(I28:I38)-I29-I30-I31 (I29/I30/I31
+  // son justo interesesParticulares/descuentosTitulos/colaboracionEmpresarial).
   const baseComponenteInflacionario =
-    ing.intereses + ing.rendimientosEntidadesFinancieras + ing.rendimientosTitulosDeudaPublica + ing.fondosInversionColectiva;
+    ing.intereses +
+    ing.rendimientosEntidadesFinancieras +
+    ing.rendimientosTitulosDeudaPublica +
+    ing.bonosPapelesComerciales +
+    ing.fondosInversionColectiva;
   const incrngo = baseComponenteInflacionario * componenteInflacionarioTasa;
 
   // Costos y gastos procedentes — "gastosFinancieros" lleva su propio

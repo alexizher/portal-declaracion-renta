@@ -11,6 +11,7 @@ function activoVacio() {
     valorAdquisicion: 0,
     valorDeclaradoAnioAnterior: 0,
     mejorasYValorizaciones: 0,
+    disminucionesYTransferencias: 0,
     aplicaReajusteFiscal: false,
     aplicaArt73: false,
     valorCatastralOAvaluo: 0,
@@ -116,6 +117,12 @@ export default function PasoPatrimonio({ estado, onCambiar }) {
                 etiqueta="Mejoras no deducidas y valorizaciones pagadas este año"
                 valor={a.mejorasYValorizaciones}
                 onCambiar={(v) => editarActivo(i, 'mejorasYValorizaciones', v)}
+              />
+              <CampoDinero
+                etiqueta="Disminuciones y/o transferencias del año"
+                nota="ventas parciales, transferencias — se resta del costo fiscal ajustado y del ajuste Art. 73"
+                valor={a.disminucionesYTransferencias}
+                onCambiar={(v) => editarActivo(i, 'disminucionesYTransferencias', v)}
               />
               <label className="campo-dinero">
                 <span>¿Aplica reajuste fiscal anual? (Art. 70 ET)</span>

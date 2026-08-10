@@ -52,14 +52,45 @@ describe('calcularValorActivoConReajuste', () => {
     expect(r.valorPatrimonial).toBe(90000000);
   });
 
-  it('reajuste fiscal anual: usa el costo de adquisición si se compró ESTE año gravable', () => {
+  it('comprado ESTE año gravable: el costo fiscal usa el valor de adquisición, pero el reajuste NUNCA aplica sobre él (solo sobre el valor declarado el año anterior, que aquí es 0)', () => {
     const r = calcularValorActivoConReajuste(
       activo({ anioAdquisicion: 2024, valorAdquisicion: 50000000, aplicaReajusteFiscal: true }),
       ctx
     );
-    const esperado = 50000000 + 50000000 * 0.1097;
-    expect(r.costoFiscalAjustado).toBeCloseTo(esperado, 6);
-    expect(r.valorPatrimonial).toBeCloseTo(esperado, 6);
+    // PATRIMONIO!J336 siempre usa F336 (valor declarado año anterior) para el
+    // reajuste, nunca E336 (adquisición) — un activo nuevo no tiene "año
+    // pasado" que reajustar, así que el monto de reajuste es 0 aquí.
+    expect(r.costoFiscalAjustado).toBe(50000000);
+    expect(r.valorPatrimonial).toBe(50000000);
+  });
+
+  it('el reajuste fiscal SIEMPRE se calcula sobre el valor declarado el año anterior, incluso si se compró este año (caso con valor previo distinto de 0 por mejoras acumuladas)', () => {
+    const r = calcularValorActivoConReajuste(
+      activo({
+        anioAdquisicion: 2024,
+        valorAdquisicion: 50000000,
+        valorDeclaradoAnioAnterior: 40000000,
+        aplicaReajusteFiscal: true,
+      }),
+      ctx
+    );
+    expect(r.costoFiscalAjustado).toBeCloseTo(50000000 + 40000000 * 0.1097, 6);
+  });
+
+  it('las disminuciones y/o transferencias se restan del costo fiscal ajustado y del ajuste Art. 73', () => {
+    const r = calcularValorActivoConReajuste(
+      activo({
+        anioAdquisicion: 2016,
+        valorAdquisicion: 100000000,
+        valorDeclaradoAnioAnterior: 100000000,
+        disminucionesYTransferencias: 5000000,
+        aplicaReajusteFiscal: true,
+        aplicaArt73: true,
+      }),
+      ctx
+    );
+    expect(r.costoFiscalAjustado).toBeCloseTo(100000000 + 100000000 * 0.1097 - 5000000, 6);
+    expect(r.ajusteArt73).toBe(100000000 * 1.54 - 5000000);
   });
 
   it('toma el mayor entre reajuste fiscal, Art. 73 y catastral/avalúo', () => {

@@ -101,8 +101,12 @@ describe('calcularFormulario210 — integración con caso dorado completo', () =
     {
       ingresos: {
         intereses: 0,
+        interesesParticulares: 0,
+        descuentosTitulos: 0,
+        colaboracionEmpresarial: 0,
         rendimientosEntidadesFinancieras: 2300000,
         rendimientosTitulosDeudaPublica: 0,
+        bonosPapelesComerciales: 0,
         fondosInversionColectiva: 0,
         rendimientosPensiones: 1667000,
         rendimientosCesantias: 0,
@@ -135,7 +139,7 @@ describe('calcularFormulario210 — integración con caso dorado completo', () =
         gananciales: 0,
         indemnizacionDanoEmergente: 0,
         indemnizacionLucroCesante: 0,
-        indemnizacionSegurosVida: 0,
+        indemnizacionSegurosDistintosVida: 0,
         retiroPensionSinPermanencia: 0,
         retiroAfcSinPermanencia: 0,
         ventaInmuebles: 0,
@@ -252,7 +256,7 @@ describe('calcularFormulario210 — Fase 4: pensiones, dividendos y ganancia oca
     { uvt, componenteInflacionarioTasa: 0.5088, viviendaDisponible: 1200 * uvt, icetexDisponible: 100 * uvt }
   );
   const noLaboralVacio = calcularCedulaNoLaboral(
-    { ingresos: Object.fromEntries(['honorarios2omastrabajadores', 'compensacionServicios2omastrabajadores', 'contratosPrestacionServicios', 'ventasMercancia', 'ventasActividades', 'ventasInventarios', 'ventasActivosBiologicos', 'construccion', 'apoyosEducativos', 'gananciales', 'indemnizacionDanoEmergente', 'indemnizacionLucroCesante', 'indemnizacionSegurosVida', 'retiroPensionSinPermanencia', 'retiroAfcSinPermanencia', 'ventaInmuebles', 'ventaInversiones', 'ventaActivosFijos', 'colaboracionEmpresarial', 'ingresosCAN', 'ingresosExterior', 'otros'].map((k) => [k, 0])), devolucionesRebajas: 0, costosYGastos: 0, afcPensionVoluntaria: 0, viviendaDigitado: 0, icetexDigitado: 0 },
+    { ingresos: Object.fromEntries(['honorarios2omastrabajadores', 'compensacionServicios2omastrabajadores', 'contratosPrestacionServicios', 'ventasMercancia', 'ventasActividades', 'ventasInventarios', 'ventasActivosBiologicos', 'construccion', 'apoyosEducativos', 'gananciales', 'indemnizacionDanoEmergente', 'indemnizacionLucroCesante', 'indemnizacionSegurosDistintosVida', 'retiroPensionSinPermanencia', 'retiroAfcSinPermanencia', 'ventaInmuebles', 'ventaInversiones', 'ventaActivosFijos', 'colaboracionEmpresarial', 'ingresosCAN', 'ingresosExterior', 'otros'].map((k) => [k, 0])), devolucionesRebajas: 0, costosYGastos: 0, afcPensionVoluntaria: 0, viviendaDigitado: 0, icetexDigitado: 0 },
     { uvt, viviendaDisponible: 1200 * uvt, icetexDisponible: 100 * uvt }
   );
 

@@ -22,7 +22,8 @@ import { factorArt73 } from './constantes/tablaArt73.js';
  * @param {number} activo.valorAdquisicion Costo histórico (E).
  * @param {number} activo.valorDeclaradoAnioAnterior Renglón 31 del F210 anterior para este activo (F).
  * @param {number} activo.mejorasYValorizaciones Pagadas efectivamente este año (G).
- * @param {boolean} activo.aplicaReajusteFiscal (H)
+ * @param {number} [activo.disminucionesYTransferencias] Ventas parciales/transferencias del año (H).
+ * @param {boolean} activo.aplicaReajusteFiscal (H, columna del check — ojo, no confundir con `disminucionesYTransferencias`)
  * @param {boolean} activo.aplicaArt73 (K) — ignorado si `tipo` es 'vehiculo'.
  * @param {number} activo.valorCatastralOAvaluo Catastral (inmuebles) o avalúo comercial (vehículos).
  * @param {object} ctx
@@ -33,14 +34,28 @@ import { factorArt73 } from './constantes/tablaArt73.js';
 export function calcularValorActivoConReajuste(activo, ctx) {
   const { anioGravable, tasaReajusteFiscal } = ctx;
   const compradoEsteAnio = activo.anioAdquisicion === anioGravable;
-  const base = (compradoEsteAnio ? activo.valorAdquisicion : activo.valorDeclaradoAnioAnterior) + activo.mejorasYValorizaciones;
+  const disminuciones = activo.disminucionesYTransferencias || 0;
 
-  const montoReajusteFiscal = activo.aplicaReajusteFiscal ? base * tasaReajusteFiscal : 0;
-  const costoFiscalAjustado = base + montoReajusteFiscal;
+  // El reajuste fiscal SIEMPRE se calcula sobre el valor declarado el año
+  // anterior (nunca sobre el costo de adquisición, ni siquiera si se compró
+  // este año — un activo nuevo no tiene "valor del año pasado" que
+  // reajustar) y SIN sumarle las mejoras antes de aplicar la tasa.
+  // Confirmado en PATRIMONIO!J336: `=IF(H336="NO",0,F336*'DATOS BÁSICOS'!E18)`.
+  const montoReajusteFiscal = activo.aplicaReajusteFiscal ? activo.valorDeclaradoAnioAnterior * tasaReajusteFiscal : 0;
+
+  // Costo fiscal ajustado (K336): base (adquisición si es nuevo este año,
+  // si no el valor declarado el año anterior) + mejoras + reajuste −
+  // disminuciones/transferencias del año.
+  const costoFiscalAjustado =
+    (compradoEsteAnio ? activo.valorAdquisicion : activo.valorDeclaradoAnioAnterior) +
+    activo.mejorasYValorizaciones +
+    montoReajusteFiscal -
+    disminuciones;
 
   const tablaAplica = activo.tipo !== 'vehiculo' && activo.aplicaArt73;
   const factor = tablaAplica ? factorArt73(activo.anioAdquisicion, activo.tipo === 'inmuebleUrbano' ? 'urbano' : 'rural') : 0;
-  const ajusteArt73 = activo.valorAdquisicion * factor + activo.mejorasYValorizaciones;
+  // O336: `=IF(L336="SI",E336*N336+G336-H336,0)` — también resta disminuciones.
+  const ajusteArt73 = tablaAplica ? activo.valorAdquisicion * factor + activo.mejorasYValorizaciones - disminuciones : 0;
 
   const valorPatrimonial = Math.max(costoFiscalAjustado, ajusteArt73, activo.valorCatastralOAvaluo || 0);
 

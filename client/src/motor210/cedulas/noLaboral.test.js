@@ -14,7 +14,7 @@ const CONCEPTOS_VACIOS = {
   gananciales: 0,
   indemnizacionDanoEmergente: 0,
   indemnizacionLucroCesante: 0,
-  indemnizacionSegurosVida: 0,
+  indemnizacionSegurosDistintosVida: 0,
   retiroPensionSinPermanencia: 0,
   retiroAfcSinPermanencia: 0,
   ventaInmuebles: 0,

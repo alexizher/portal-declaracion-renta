@@ -105,6 +105,18 @@ const TABLAS = [
     UNIQUE KEY uq_cliente_doc (cliente_id, nombre_hash),
     KEY idx_cliente (cliente_id)
   ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+
+  // Estado completo del Liquidador 210 (todas las cédulas, patrimonio,
+  // retenciones…) cifrado con AES-256-GCM (ver cifrado.js), para que
+  // Daniela pueda continuar una declaración desde cualquier PC en vez de
+  // depender solo del localStorage del navegador. Clave por cedula_norm
+  // (no por clientes.id): el Liquidador se usa también para cédulas que
+  // aún no son clientes formales del portal.
+  `CREATE TABLE IF NOT EXISTS liquidaciones210 (
+    cedula_norm VARCHAR(50) PRIMARY KEY,
+    datos_cifrados LONGTEXT NOT NULL,
+    actualizado_en DATETIME NOT NULL
+  ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
 ];
 
 async function init() {

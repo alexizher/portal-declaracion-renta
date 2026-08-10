@@ -115,6 +115,20 @@ describe('calcularCedulaTrabajo — casos de borde', () => {
     expect(r.rentaExenta25).toBe(790 * ctx.uvt);
   });
 
+  it('rentaExenta25Manual sobrescribe el valor calculado y advierte', () => {
+    const input = { ...base, rentaExenta25Manual: 5000000 };
+    const r = calcularCedulaTrabajo(input, ctx);
+    expect(r.rentaExenta25).toBe(5000000);
+    expect(r.rentaExenta25Calculada).toBe(22175750);
+    expect(r.advertencias.some((a) => a.includes('sobrescrita manualmente'))).toBe(true);
+  });
+
+  it('rentaExenta25Manual en null/undefined no altera el cálculo automático', () => {
+    const r = calcularCedulaTrabajo({ ...base, rentaExenta25Manual: null }, ctx);
+    expect(r.rentaExenta25).toBe(r.rentaExenta25Calculada);
+    expect(r.advertencias.some((a) => a.includes('sobrescrita'))).toBe(false);
+  });
+
   it('sin ingresos no hay renta líquida negativa', () => {
     const input = {
       ingresos: Object.fromEntries(Object.keys(base.ingresos).map((k) => [k, 0])),
@@ -134,13 +148,20 @@ describe('calcularCedulaTrabajo — rentas exentas desglosadas (Fase 2)', () => 
   const base = CASO_ASALARIADO_SIMPLE.input;
   const ctx = CASO_ASALARIADO_SIMPLE.ctx;
 
-  it('rentas exentas sujetas a limitación se suman a la bolsa limitada', () => {
+  it('rentas exentas sujetas a limitación se suman a la bolsa limitada (y reducen la base del 25%, CED.1 GENERAL!D142)', () => {
     const sinDesglose = calcularCedulaTrabajo(base, ctx);
     const conDesglose = calcularCedulaTrabajo(
       { ...base, rentasExentasLimitadas: { ...base.rentasExentasLimitadas, gastosEntierroTrabajador: 1000000, economiaNaranja: 500000 } },
       ctx
     );
-    expect(conDesglose.baseExentasYDeduccionesLimitadas).toBe(sinDesglose.baseExentasYDeduccionesLimitadas + 1500000);
+    // +1.500.000 directo a la bolsa, menos la reducción de la renta exenta
+    // del 25% porque ahora también se resta de su base (25% × 1.500.000).
+    const reduccionRentaExenta25 = sinDesglose.rentaExenta25 - conDesglose.rentaExenta25;
+    expect(reduccionRentaExenta25).toBeCloseTo(1500000 * 0.25, 6);
+    expect(conDesglose.baseExentasYDeduccionesLimitadas).toBeCloseTo(
+      sinDesglose.baseExentasYDeduccionesLimitadas + 1500000 - reduccionRentaExenta25,
+      6
+    );
   });
 
   it('rentas exentas que NO se someten al límite se suman fuera de la bolsa limitada y afectan la base del 25%', () => {

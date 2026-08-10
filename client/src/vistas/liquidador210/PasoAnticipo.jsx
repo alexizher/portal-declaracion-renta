@@ -6,7 +6,7 @@ const ETIQUETA_ANTIGUEDAD = {
   terceroYSiguientes: 'Tercer año y siguientes',
 };
 
-const TARIFA_POR_ANTIGUEDAD = { primerAnio: 0, segundoAnio: 0.5, terceroYSiguientes: 0.75 };
+const TARIFA_POR_ANTIGUEDAD = { primerAnio: 0.25, segundoAnio: 0.5, terceroYSiguientes: 0.75 };
 
 function formatoPesos(v) {
   return (v || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
@@ -24,9 +24,20 @@ export default function PasoAnticipo({ resultado, estado }) {
 
   if (estado.antiguedadDeclarante === 'primerAnio') {
     return (
-      <div className="tarjeta">
-        <strong>Anticipo de renta (Art. 807 ET)</strong>
-        <p className="tenue" style={{ marginTop: '0.5rem' }}>{anticipoCalc.nota}</p>
+      <div>
+        <div className="tarjeta">
+          <strong>Anticipo de renta (Art. 807 ET) — casilla 133</strong>
+          <p className="tenue" style={{ marginTop: '0.5rem' }}>{anticipoCalc.nota}</p>
+        </div>
+        <div className="tarjeta">
+          <strong>Método 2 — año actual (único aplicable)</strong>
+          <p className="tenue">126 actual × 25% − retenciones</p>
+          <p style={{ fontSize: '1.2rem', fontWeight: 700 }}>{formatoPesos(anticipoCalc.metodo2)}</p>
+        </div>
+        <div className="tarjeta">
+          <strong>Anticipo a declarar (casilla 133)</strong>
+          <p style={{ fontSize: '1.4rem', fontWeight: 700 }}>{formatoPesos(anticipoCalc.anticipo)}</p>
+        </div>
       </div>
     );
   }

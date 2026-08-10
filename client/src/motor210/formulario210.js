@@ -65,6 +65,13 @@ export function calcularFormulario210(entrada) {
     { ingresos: 74, devoluciones: 75, incrngo: 76, costos: 77, rentaLiquida: 78, ecePasivas: 79, afc: 80, otrasExentas: 81, totalExentas: 82, vivienda: 83, otrasDeducciones: 84, totalDeducciones: 85, limitada: 86, rentaOrdinariaEjercicio: 87, perdida: 88, compensacion: 89, rentaOrdinaria: 90 },
   ];
 
+  // Renta líquida floreada en 0 por cédula ANTES de sumar — CED.1
+  // GENERAL!E23/G113/I113/K113 aplican el IF(...>0,...,0) por cédula, no
+  // sobre la suma total (ver casilla91 más abajo).
+  const rentaLiquidaCedulas = cedulas.map((c) =>
+    noNegativo(c.ingresosBrutos - c.incrngo - (c.costosDeducciones || 0) - (c.devolucionesRebajas || 0))
+  );
+
   const casillasPorCedula = {};
   cedulas.forEach((c, i) => {
     const off = OFFSETS_CASILLA[i];
@@ -74,7 +81,7 @@ export function calcularFormulario210(entrada) {
     const exentasTotal = c.baseExentasYDeduccionesLimitadas || 0;
     const otrasExentas = noNegativo(exentasTotal - afc - deduccionesTotal);
     const otrasDeducciones = noNegativo(deduccionesTotal - vivienda);
-    const rentaLiquidaCedula = noNegativo(c.ingresosBrutos - c.incrngo - (c.costosDeducciones || 0) - (c.devolucionesRebajas || 0));
+    const rentaLiquidaCedula = rentaLiquidaCedulas[i];
 
     // Los módulos de cédula devuelven cifras SIN redondear a propósito
     // (ver cedulas/trabajo.js) — se redondea acá, al ensamblar la casilla,
@@ -99,8 +106,9 @@ export function calcularFormulario210(entrada) {
   });
 
   // Casilla 91: renta líquida cédula general = suma de renta líquida
-  // (pre-exención) de las 4 cédulas — equivale a limitada+ordinaria de cada una.
-  const casilla91 = redondearMiles(cedulas.reduce((s, c) => s + c.ingresosBrutos - c.incrngo - (c.costosDeducciones || 0) - (c.devolucionesRebajas || 0), 0));
+  // (pre-exención) de las 4 cédulas, cada una ya floreada en 0 — equivale
+  // a limitada+ordinaria de cada una.
+  const casilla91 = redondearMiles(rentaLiquidaCedulas.reduce((s, v) => s + v, 0));
 
   const compras1Porciento = Math.min(entrada.comprasConFacturaElectronica * 0.01, 240 * uvt);
   const adicionDependientes = adicionDependientesArt336(entrada.numeroDependientesArt336, uvt);

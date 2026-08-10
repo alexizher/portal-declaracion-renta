@@ -7,8 +7,12 @@ describe('calcularCedulaCapital — caso dorado (cliente real AG2024, anonimizad
   const input = {
     ingresos: {
       intereses: 0,
+      interesesParticulares: 0,
+      descuentosTitulos: 0,
+      colaboracionEmpresarial: 0,
       rendimientosEntidadesFinancieras: 2300000,
       rendimientosTitulosDeudaPublica: 0,
+      bonosPapelesComerciales: 0,
       fondosInversionColectiva: 0,
       rendimientosPensiones: 1667000,
       rendimientosCesantias: 0,
@@ -51,8 +55,12 @@ describe('calcularCedulaCapital — caso dorado (cliente real AG2024, anonimizad
 describe('calcularCedulaCapital — costos y gastos procedentes (Fase 3)', () => {
   const ingresosBase = {
     intereses: 0,
+    interesesParticulares: 0,
+    descuentosTitulos: 0,
+    colaboracionEmpresarial: 0,
     rendimientosEntidadesFinancieras: 0,
     rendimientosTitulosDeudaPublica: 0,
+    bonosPapelesComerciales: 0,
     fondosInversionColectiva: 0,
     rendimientosPensiones: 0,
     rendimientosCesantias: 0,

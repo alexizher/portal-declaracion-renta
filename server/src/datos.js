@@ -216,6 +216,22 @@ async function borrarClaveDian(id) {
   await q('UPDATE clientes SET dian_clave = NULL, dian_actualizado = NULL WHERE id = ?', [id]);
 }
 
+// ---------- Liquidador 210 (estado completo, cifrado; solo panel) ----------
+
+async function guardarLiquidacion210(cedulaNorm, datosCifrados, actualizadoEn) {
+  await q(
+    `INSERT INTO liquidaciones210 (cedula_norm, datos_cifrados, actualizado_en)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE datos_cifrados = VALUES(datos_cifrados), actualizado_en = VALUES(actualizado_en)`,
+    [cedulaNorm, datosCifrados, actualizadoEn]
+  );
+}
+
+async function obtenerLiquidacion210Cifrada(cedulaNorm) {
+  const filas = await q('SELECT datos_cifrados, actualizado_en FROM liquidaciones210 WHERE cedula_norm = ?', [cedulaNorm]);
+  return filas[0] || null;
+}
+
 async function marcarUltimoEnvio(id, fechaIso) {
   await q('UPDATE clientes SET ultimo_envio = ? WHERE id = ?', [
     fechaIso.slice(0, 19).replace('T', ' '),
@@ -477,6 +493,9 @@ module.exports = {
   guardarClaveDian,
   obtenerClaveDianCifrada,
   borrarClaveDian,
+  normalizarCedula,
+  guardarLiquidacion210,
+  obtenerLiquidacion210Cifrada,
   TIPOS_ENTREGA,
   listarEntregas,
   guardarEntrega,

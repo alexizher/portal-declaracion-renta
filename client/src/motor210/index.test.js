@@ -14,7 +14,7 @@ const CONCEPTOS_NO_LABORAL_VACIOS = {
   gananciales: 0,
   indemnizacionDanoEmergente: 0,
   indemnizacionLucroCesante: 0,
-  indemnizacionSegurosVida: 0,
+  indemnizacionSegurosDistintosVida: 0,
   retiroPensionSinPermanencia: 0,
   retiroAfcSinPermanencia: 0,
   ventaInmuebles: 0,
@@ -96,8 +96,12 @@ describe('liquidar — orquestación completa del caso dorado', () => {
     capital: {
       ingresos: {
         intereses: 0,
+        interesesParticulares: 0,
+        descuentosTitulos: 0,
+        colaboracionEmpresarial: 0,
         rendimientosEntidadesFinancieras: 2300000,
         rendimientosTitulosDeudaPublica: 0,
+        bonosPapelesComerciales: 0,
         fondosInversionColectiva: 0,
         rendimientosPensiones: 1667000,
         rendimientosCesantias: 0,

@@ -21,6 +21,10 @@ function sumarValores(objeto) {
  *   jueces, rectores, países CAN, hoteles) — NO sujetas al tope combinado.
  * @param {number} input.afcPensionVoluntaria Aportes voluntarios a
  *   pensión + AFC (Art. 126-1/126-4 ET), antes de aplicar el tope 30%/3.800 UVT.
+ * @param {number} [input.dependientesArt387] Deducción de dependientes ya
+ *   prorrateada para esta cédula (CED.1 GENERAL fila 145) — se calcula en
+ *   dependientes.js y se pasa de vuelta acá porque también resta de la base
+ *   del 25% (CED.1 GENERAL!D141: `=E152-E148-E149`, E152 incluye fila 145).
  * @param {object} ctx
  * @param {number} ctx.uvt Valor UVT del año gravable.
  * @param {number} ctx.ingresoMensualPromedio6m Para la tabla escalonada de
@@ -111,13 +115,35 @@ export function calcularCedulaTrabajo(input, ctx) {
 
   // Renta exenta del 25% laboral — Art. 206 núm. 10 ET, tope 790 UVT/año.
   // Es la exención más común e importante de esta cédula. La base resta
-  // deducciones SIN GMF/ICETEX y rentas exentas ya limitadas (AFC/pensión +
-  // especiales) — así lo calcula CED.1 GENERAL fila 141-142.
+  // ingreso laboral sin cesantías, INCRNGO, deducciones SIN GMF/ICETEX
+  // (que SÍ incluyen dependientes, fila 145) y rentas exentas ya limitadas
+  // (AFC/pensión + limitadas + no limitadas) — confirmado en CED.1
+  // GENERAL!D138-D142: D141=E152-E148-E149 (E152 incluye fila 145
+  // dependientes) y D142=E126-E117+E137-E128 (equivale a AFC/pensión +
+  // otras limitadas + otras no limitadas, una vez se cancelan los términos
+  // de cesantías que ya se excluyeron en D139).
   const ingresoLaboralSinCesantias = ingresosBrutos - ing.cesantiasPagadas - ing.cesantiasFondo - ing.cesantiasPre2017;
   const baseExencion25 = noNegativo(
-    ingresoLaboralSinCesantias - incrngo - deduccionesSinGmfIcetex - afcPensionLimitada - otrasRentasExentasNoLimitadas
+    ingresoLaboralSinCesantias -
+      incrngo -
+      deduccionesSinGmfIcetex -
+      (input.dependientesArt387 || 0) -
+      afcPensionLimitada -
+      otrasRentasExentasLimitadas -
+      otrasRentasExentasNoLimitadas
   );
-  const rentaExenta25 = Math.min(baseExencion25 * 0.25, 790 * uvt);
+  const rentaExenta25Calculada = Math.min(baseExencion25 * 0.25, 790 * uvt);
+  // Override manual — Daniela puede forzar el valor cuando el cálculo
+  // automático no aplica para un cliente puntual (ej. bono de alimentación
+  // que en la práctica no todos los clientes reciben, aunque esté
+  // digitado). Se desvía del Excel oficial si se usa; queda advertido.
+  const tieneOverride = input.rentaExenta25Manual !== null && input.rentaExenta25Manual !== undefined && input.rentaExenta25Manual !== '';
+  const rentaExenta25 = tieneOverride ? Number(input.rentaExenta25Manual) : rentaExenta25Calculada;
+  if (tieneOverride) {
+    advertencias.push(
+      `Renta exenta del 25% laboral sobrescrita manualmente ($${Math.round(rentaExenta25).toLocaleString('es-CO')} en vez del valor calculado $${Math.round(rentaExenta25Calculada).toLocaleString('es-CO')}) — se desvía del cálculo del Excel oficial.`
+    );
+  }
 
   // Nota: no se redondea aquí — el .xlsm de referencia mantiene precisión
   // completa en los cálculos intermedios (CED.1 GENERAL) y solo redondea a
@@ -132,6 +158,7 @@ export function calcularCedulaTrabajo(input, ctx) {
     deduccionesImputablesSinDependientes,
     rentasExentasNoLimitadas,
     rentaExenta25,
+    rentaExenta25Calculada,
     afcPensionLimitada,
     cesantiasExentasLimitadas,
     // Expuestos para que index.js calcule el remanente de los topes

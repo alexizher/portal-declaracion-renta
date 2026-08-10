@@ -488,6 +488,33 @@ api.delete('/clientes/:id/dian', ruta(async (req, res) => {
   res.json({ ok: true });
 }));
 
+// Estado completo del Liquidador 210 (todas las cédulas, patrimonio,
+// retenciones…), cifrado igual que la clave DIAN — así Daniela puede
+// continuar una declaración desde cualquier PC en vez de depender solo
+// del localStorage del navegador. Clave por cédula normalizada, no por
+// clientes.id (el Liquidador se usa también para cédulas que aún no son
+// clientes formales del portal).
+api.get('/liquidaciones210/:cedula', ruta(async (req, res) => {
+  if (!cifradoActivo()) return res.status(503).json({ error: 'Falta DATA_SECRET en el servidor.' });
+  const cedulaNorm = datos.normalizarCedula(req.params.cedula);
+  const fila = await datos.obtenerLiquidacion210Cifrada(cedulaNorm);
+  if (!fila) return res.status(404).json({ error: 'No hay liquidación guardada para esta cédula.' });
+  try {
+    res.json({ datos: JSON.parse(descifrar(fila.datos_cifrados)), actualizadoEn: fila.actualizado_en });
+  } catch {
+    res.status(500).json({ error: 'No se pudo descifrar (¿cambió DATA_SECRET?).' });
+  }
+}));
+
+api.put('/liquidaciones210/:cedula', ruta(async (req, res) => {
+  if (!cifradoActivo()) return res.status(503).json({ error: 'Falta DATA_SECRET en el servidor.' });
+  const cedulaNorm = datos.normalizarCedula(req.params.cedula);
+  if (!cedulaNorm) return res.status(400).json({ error: 'Cédula inválida.' });
+  const json = JSON.stringify(req.body.datos || {});
+  await datos.guardarLiquidacion210(cedulaNorm, cifrar(json), datos.ahoraBogota());
+  res.json({ ok: true });
+}));
+
 // ---------- Entregas (documentos finales que sube Daniela) ----------
 
 // tipos: declaracion | anexo | recibo. Subir la declaración marca al cliente

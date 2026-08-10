@@ -18,12 +18,16 @@ export function aplicarTopeCombinado(cedulas, uvt) {
   const advertencias = [];
   const totalIngresosBrutos = cedulas.reduce((s, c) => s + c.ingresosBrutos, 0);
   const totalIncrngo = cedulas.reduce((s, c) => s + c.incrngo, 0);
-  const totalDevoluciones = cedulas.reduce((s, c) => s + (c.devolucionesRebajas || 0), 0);
   const totalRentasExentasNoLimitadas = cedulas.reduce((s, c) => s + c.rentasExentasNoLimitadas, 0);
 
   // Desde AG2023 la base del límite NO resta las rentas exentas no
   // limitadas (cambio de criterio DIAN, ver docs §4 fuente actualicese.com).
-  const baseLimite40 = totalIngresosBrutos - totalIncrngo - totalDevoluciones;
+  // Tampoco resta devoluciones/rebajas — confirmado en CED.1 GENERAL!E210-
+  // E218 (Total ingresos brutos - INCRNGO de las 4 cédulas, la cadena
+  // E206-E218 nunca toca la fila de devoluciones de no laboral); las
+  // devoluciones solo afectan la renta líquida de esa cédula (K113), no
+  // esta base del tope combinado.
+  const baseLimite40 = totalIngresosBrutos - totalIncrngo;
   const montoA = baseLimite40 * 0.4;
   const montoB = TOPE_UVT * uvt;
   const techoLimitado = Math.min(montoA, montoB);

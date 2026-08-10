@@ -74,6 +74,7 @@ export function crearEstadoInicial(anioGravable = 2025) {
       rentasExentasLimitadas: enCeros(CONCEPTOS_RENTAS_EXENTAS_LIMITADAS_TRABAJO),
       rentasExentasNoLimitadas: enCeros(CONCEPTOS_RENTAS_EXENTAS_NO_LIMITADAS_TRABAJO),
       afcPensionVoluntaria: 0,
+      rentaExenta25Manual: null, // null = automático (Art. 206 núm. 10 ET); número = sobrescrito a mano
     },
     honorarios: {
       ingresos: enCeros(CONCEPTOS_INGRESOS_HONORARIOS),

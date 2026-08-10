@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { crearEstadoInicial, fusionarConEstadoInicial } from './estadoInicial.js';
 import PasoExogena from './PasoExogena.jsx';
 import PasoCedulas from './PasoCedulas.jsx';
@@ -38,7 +38,9 @@ export default function Wizard() {
   const [pasoIndex, setPasoIndex] = useState(0);
   const [cedulaCargada, setCedulaCargada] = useState('');
   const [clientesDB, setClientesDB] = useState([]);
-  const [origenCliente, setOrigenCliente] = useState(null); // 'guardado' | 'db' | 'nuevo' | null
+  const [origenCliente, setOrigenCliente] = useState(null); // 'servidor' | 'guardado' | 'db' | 'nuevo' | null
+  const [estadoSync, setEstadoSync] = useState(null); // null | 'pendiente' | 'guardando' | 'guardado' | 'error'
+  const guardadoTimeout = useRef(null);
   // Texto en edición del campo cédula, separado de estado.cliente.cedula:
   // así el autoguardado (atado a estado.cliente.cedula) no se dispara con
   // cada tecla mientras se escribe, solo cuando se confirma con blur/Enter.
@@ -51,22 +53,61 @@ export default function Wizard() {
     api('/clientes').then(setClientesDB).catch(() => setClientesDB([]));
   }, []);
 
-  // Autoguardado en localStorage por cédula — nunca sale del navegador.
+  // Autoguardado en localStorage por cédula — caché rápida y resiliencia
+  // offline, siempre disponible aunque falle el servidor.
   useEffect(() => {
     if (!estado.cliente.cedula) return;
     const clave = claveGuardado(estado.cliente.cedula);
     localStorage.setItem(clave, JSON.stringify(estado));
   }, [estado]);
 
-  function cargarCliente(cedula) {
+  // Autoguardado cifrado en el servidor (con debounce) — así Daniela puede
+  // seguir la misma declaración desde otra PC. Nunca bloquea: si falla
+  // (offline, DATA_SECRET no configurado), el caso sigue disponible en
+  // este navegador vía localStorage.
+  useEffect(() => {
+    if (!estado.cliente.cedula) return;
+    setEstadoSync('pendiente');
+    if (guardadoTimeout.current) clearTimeout(guardadoTimeout.current);
+    guardadoTimeout.current = setTimeout(() => {
+      const cedula = estado.cliente.cedula;
+      setEstadoSync('guardando');
+      api(`/liquidaciones210/${encodeURIComponent(cedula)}`, { method: 'PUT', body: { datos: estado } })
+        .then(() => setEstadoSync('guardado'))
+        .catch(() => setEstadoSync('error'));
+    }, 1500);
+    return () => clearTimeout(guardadoTimeout.current);
+  }, [estado]);
+
+  async function cargarCliente(cedula) {
+    try {
+      const resp = await api(`/liquidaciones210/${encodeURIComponent(cedula)}`);
+      setEstado(fusionarConEstadoInicial(resp.datos));
+      setCedulaCargada(cedula);
+      setOrigenCliente('servidor');
+      setEstadoSync('guardado');
+      return;
+    } catch {
+      // Esperado si aún no hay nada guardado en el servidor para esta
+      // cédula (404), o si falló la conexión — seguir con las fuentes
+      // locales de siempre.
+    }
+
     const clave = claveGuardado(cedula);
     const guardado = localStorage.getItem(clave);
     if (guardado) {
       try {
         const estadoGuardado = JSON.parse(guardado);
-        setEstado(fusionarConEstadoInicial(estadoGuardado));
+        const fusionado = fusionarConEstadoInicial(estadoGuardado);
+        setEstado(fusionado);
         setCedulaCargada(cedula);
         setOrigenCliente('guardado');
+        // Migración: este caso solo vivía en localStorage — subirlo ya
+        // mismo al servidor para que deje de depender solo de este
+        // navegador la próxima vez.
+        api(`/liquidaciones210/${encodeURIComponent(cedula)}`, { method: 'PUT', body: { datos: fusionado } })
+          .then(() => setEstadoSync('guardado'))
+          .catch(() => setEstadoSync('error'));
         return;
       } catch {
         // si el JSON guardado está corrupto, seguir con estado en blanco
@@ -131,6 +172,14 @@ export default function Wizard() {
       <div className="progreso">
         <div className="progreso-relleno" style={{ width: `${progresoPct}%` }} />
       </div>
+      {estado.cliente.cedula && (
+        <p className="tenue" style={{ textAlign: 'right', margin: '0 0 0.5rem' }}>
+          {estadoSync === 'pendiente' && 'Cambios sin guardar…'}
+          {estadoSync === 'guardando' && 'Guardando en el servidor…'}
+          {estadoSync === 'guardado' && '✓ Guardado en el servidor'}
+          {estadoSync === 'error' && '⚠ Sin conexión con el servidor — guardado solo en este navegador'}
+        </p>
+      )}
       <div className="fila-botones" style={{ justifyContent: 'flex-start', flexWrap: 'wrap' }}>
         {PASOS.map((p, i) => (
           <button
@@ -252,8 +301,11 @@ export default function Wizard() {
               />
             </label>
           </fieldset>
+          {cedulaCargada === estado.cliente.cedula && origenCliente === 'servidor' && (
+            <p className="tenue">✓ Cálculo recuperado del servidor — puedes continuarlo desde cualquier PC.</p>
+          )}
           {cedulaCargada === estado.cliente.cedula && origenCliente === 'guardado' && (
-            <p className="tenue">✓ Continuando un cálculo ya guardado en este navegador para esta cédula.</p>
+            <p className="tenue">✓ Continuando un cálculo guardado en este navegador — subiéndolo al servidor…</p>
           )}
           {cedulaCargada === estado.cliente.cedula && origenCliente === 'db' && (
             <p className="tenue">✓ Cliente encontrado en tu lista de clientes — nombre autocompletado.</p>

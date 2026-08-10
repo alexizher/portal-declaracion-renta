@@ -10,7 +10,7 @@ import { noNegativo } from '../redondeo.js';
  *   ventasMercancia, ventasActividades,
  *   ventasInventarios, ventasActivosBiologicos, construccion,
  *   apoyosEducativos, gananciales, indemnizacionDanoEmergente,
- *   indemnizacionLucroCesante, indemnizacionSegurosVida,
+ *   indemnizacionLucroCesante, indemnizacionSegurosDistintosVida,
  *   retiroPensionSinPermanencia, retiroAfcSinPermanencia,
  *   ventaInmuebles, ventaInversiones, ventaActivosFijos,
  *   colaboracionEmpresarial, ingresosCAN, ingresosExterior, otros.
@@ -41,7 +41,7 @@ export function calcularCedulaNoLaboral(input, ctx) {
     ing.gananciales +
     ing.indemnizacionDanoEmergente +
     ing.indemnizacionLucroCesante +
-    ing.indemnizacionSegurosVida +
+    ing.indemnizacionSegurosDistintosVida +
     ing.retiroPensionSinPermanencia +
     ing.retiroAfcSinPermanencia +
     ing.ventaInmuebles +

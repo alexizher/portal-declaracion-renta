@@ -48,6 +48,7 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
   const set = (ruta, valor) => onCambiar(actualizar(estado, ruta, valor));
   const trabajoCalc = resultado?.intermedios?.trabajo;
   const capitalCalc = resultado?.intermedios?.capital;
+  const dividendosCalc = resultado?.intermedios?.dividendos;
 
   return (
     <div>
@@ -86,10 +87,23 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           />
           <CampoDinero
             etiqueta="Renta exenta del 25% laboral"
-            nota="Art. 206 núm. 10 ET — se calcula sola, tope 790 UVT/año"
-            valor={trabajoCalc?.rentaExenta25}
-            soloLectura
+            nota={
+              estado.trabajo.rentaExenta25Manual === null || estado.trabajo.rentaExenta25Manual === undefined
+                ? `Art. 206 núm. 10 ET — se calcula sola, tope 790 UVT/año (calculado: ${Math.round(trabajoCalc?.rentaExenta25Calculada || 0).toLocaleString('es-CO')})`
+                : `Art. 206 núm. 10 ET, tope 790 UVT/año — SOBRESCRITO A MANO (el cálculo automático daría ${Math.round(trabajoCalc?.rentaExenta25Calculada || 0).toLocaleString('es-CO')})`
+            }
+            valor={estado.trabajo.rentaExenta25Manual === null || estado.trabajo.rentaExenta25Manual === undefined ? trabajoCalc?.rentaExenta25 : estado.trabajo.rentaExenta25Manual}
+            soloLectura={estado.trabajo.rentaExenta25Manual === null || estado.trabajo.rentaExenta25Manual === undefined}
+            onCambiar={(v) => set('trabajo.rentaExenta25Manual', v)}
           />
+          <label className="campo-dinero">
+            <span>¿Sobrescribir la renta exenta del 25% a mano?</span>
+            <input
+              type="checkbox"
+              checked={estado.trabajo.rentaExenta25Manual !== null && estado.trabajo.rentaExenta25Manual !== undefined}
+              onChange={(e) => set('trabajo.rentaExenta25Manual', e.target.checked ? Math.round(trabajoCalc?.rentaExenta25Calculada || 0) : null)}
+            />
+          </label>
           <TotalSeccion
             valor={
               (Number(estado.trabajo.afcPensionVoluntaria) || 0) +
@@ -149,7 +163,7 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
           <legend>Ingresos no constitutivos de renta (INCRNGO)</legend>
           <CampoDinero
             etiqueta="Componente inflacionario de rendimientos financieros"
-            nota="Art. 38/39 ET — se calcula solo: (intereses + rendimientos entidades vigiladas + títulos deuda pública + FIC) × % componente inflacionario del año"
+            nota="Art. 38/39 ET — se calcula solo: (intereses y rendimientos financieros + entidades vigiladas + títulos deuda pública + bonos y papeles comerciales + FIC) × % componente inflacionario del año — NO incluye intereses entre particulares, descuentos de títulos ni colaboración empresarial"
             valor={capitalCalc?.incrngo}
             soloLectura
           />
@@ -233,34 +247,38 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
 
       <Colapsable titulo="Dividendos y participaciones" resumen="2016 y anteriores, subcédulas 2017+, exterior…">
         <SeccionConceptos
-          titulo="Año 2016 y anteriores"
+          titulo="I. Año 2016 y anteriores"
           conceptos={CONCEPTOS_DIVIDENDOS_2016}
           valores={estado.dividendos.anio2016yAnteriores}
           onCambiar={(clave, v) => set(`dividendos.anio2016yAnteriores.${clave}`, v)}
         />
         <fieldset className="seccion-conceptos">
-          <legend>Año 2017 y siguientes</legend>
+          <legend>Resultado del bloque 2016 y anteriores</legend>
+          <CampoDinero etiqueta="Total INCRNGO Dividendos y participaciones" valor={dividendosCalc?.incrngo2016} soloLectura />
+          <CampoDinero etiqueta="Renta líquida ordinaria dividendos año 2016 y anteriores" valor={dividendosCalc?.rentaLiquida2016} soloLectura />
+        </fieldset>
+        <fieldset className="seccion-conceptos">
+          <legend>II. Subcédula N°1 — año 2017 y siguientes (numeral 3 art. 49 ET)</legend>
           <CampoDinero
-            etiqueta="Subcédula N°1 — no gravados"
-            nota="numeral 3 art. 49 ET, utilidades que ya pagaron impuesto pleno en la sociedad"
+            etiqueta="Dividendos y participaciones NO gravados"
+            nota="sin límite, utilidades que ya pagaron impuesto pleno en la sociedad"
             valor={estado.dividendos.subcedula1NoGravados}
             onCambiar={(v) => set('dividendos.subcedula1NoGravados', v)}
           />
+          <TotalSeccion etiqueta="Total Subcédula N°1" valor={estado.dividendos.subcedula1NoGravados} />
+        </fieldset>
+        <fieldset className="seccion-conceptos">
+          <legend>III. Subcédula N°2 — año 2017 y siguientes (parágrafo 2° art. 49 ET)</legend>
           <CampoDinero
-            etiqueta="Subcédula N°2 — gravados"
-            nota="parágrafo 2° art. 49 ET, tarifa plana del 35%"
+            etiqueta="Dividendos, participaciones y capitalizaciones gravadas"
+            nota="sin límite, tarifa plana del 35%"
             valor={estado.dividendos.subcedula2Gravados}
             onCambiar={(v) => set('dividendos.subcedula2Gravados', v)}
           />
-          <TotalSeccion
-            valor={
-              (Number(estado.dividendos.subcedula1NoGravados) || 0) +
-              (Number(estado.dividendos.subcedula2Gravados) || 0)
-            }
-          />
+          <TotalSeccion etiqueta="Total Subcédula N°2" valor={estado.dividendos.subcedula2Gravados} />
         </fieldset>
         <fieldset className="seccion-conceptos">
-          <legend>Recibidos del exterior / ECE</legend>
+          <legend>IV. Provenientes del exterior — ECE y/o CAN y/o recibidos del exterior</legend>
           <CampoDinero
             etiqueta="Renta líquida pasiva"
             nota="dividendos ECE y/o recibidos del exterior y/o países CAN"
@@ -268,16 +286,15 @@ export default function PasoCedulas({ estado, onCambiar, resultado }) {
             onCambiar={(v) => set('dividendos.rentaLiquidaPasivaExterior', v)}
           />
           <CampoDinero
-            etiqueta="Rentas exentas asociadas"
+            etiqueta="(-) Rentas exentas asociadas"
             valor={estado.dividendos.rentaExentaExterior}
             onCambiar={(v) => set('dividendos.rentaExentaExterior', v)}
           />
-          <TotalSeccion
-            valor={
-              (Number(estado.dividendos.rentaLiquidaPasivaExterior) || 0) +
-              (Number(estado.dividendos.rentaExentaExterior) || 0)
-            }
-          />
+          <TotalSeccion etiqueta="Total recibidos del exterior" valor={dividendosCalc?.rentaLiquidaExterior} />
+        </fieldset>
+        <fieldset className="seccion-conceptos">
+          <legend>Total renta líquida gravable cédula Dividendos y Participaciones</legend>
+          <TotalSeccion etiqueta="Total" valor={dividendosCalc?.rentaLiquidaGravableTotal} />
         </fieldset>
       </Colapsable>
 
