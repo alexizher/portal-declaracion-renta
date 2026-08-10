@@ -191,6 +191,18 @@ export function fusionarConEstadoInicial(estadoGuardado) {
   if (!esObjetoPlano(estadoGuardado)) return base;
   const fusionado = fusionarProfundo(base, estadoGuardado);
 
+  // Tasas oficiales del año (componente inflacionario, reajuste fiscal) —
+  // SIEMPRE se toman de la constante vigente en `base`, nunca del valor
+  // guardado. Se calculan una sola vez al crear el estado y quedan
+  // "horneadas" dentro del JSON persistido (localStorage/servidor); si la
+  // DIAN publica la tasa después de que ese caso ya se guardó (como pasó
+  // con AG2025 hoy), cargar el caso viejo repetía la tasa vieja para
+  // siempre en vez de recoger la corrección. Bug real encontrado
+  // comparando un caso real (Raúl) contra el Excel.
+  fusionado.componenteInflacionarioTasa = base.componenteInflacionarioTasa;
+  fusionado.componenteInflacionarioGastosTasa = base.componenteInflacionarioGastosTasa;
+  fusionado.tasaReajusteFiscal = base.tasaReajusteFiscal;
+
   // Guardados de antes de la identificación separada (Fase 1) solo tenían
   // "nombre" en una sola cadena — se divide como punto de partida editable
   // para que no se vea todo en blanco pese a que sí hay un cliente cargado.

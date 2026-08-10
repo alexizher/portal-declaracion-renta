@@ -47,6 +47,23 @@ describe('fusionarConEstadoInicial', () => {
     expect(fusionado.cliente.segundoApellido).toBe('Ruiz');
   });
 
+  it('las tasas oficiales del año (componente inflacionario, reajuste fiscal) SIEMPRE se toman de la constante vigente, nunca del valor guardado', () => {
+    // Simula un caso guardado ANTES de que se corrigiera la tasa AG2025 —
+    // quedó "horneada" con el valor viejo de AG2024 en el JSON persistido.
+    const estadoViejo = {
+      anioGravable: 2025,
+      cliente: { nombre: 'Caso Viejo', cedula: '999' },
+      componenteInflacionarioTasa: 0.5088, // valor viejo, ya no vigente para 2025
+      componenteInflacionarioGastosTasa: 0.2501,
+      tasaReajusteFiscal: 0.1097,
+    };
+    const fusionado = fusionarConEstadoInicial(estadoViejo);
+    const vigente = crearEstadoInicial(2025);
+    expect(fusionado.componenteInflacionarioTasa).toBe(vigente.componenteInflacionarioTasa);
+    expect(fusionado.componenteInflacionarioGastosTasa).toBe(vigente.componenteInflacionarioGastosTasa);
+    expect(fusionado.tasaReajusteFiscal).toBe(vigente.tasaReajusteFiscal);
+  });
+
   it('NO sobreescribe apellidos/nombres si el guardado ya los tenía separados', () => {
     const estadoViejo = {
       cliente: { nombre: 'Jaime Herrera', cedula: '123', primerNombre: 'Jaime', primerApellido: 'Herrera Distinto' },
