@@ -1484,6 +1484,180 @@ a.portal-boton-doc:hover {
   width: auto;
 }
 
+/* ---- Anexos de la declaración ---- */
+.anexos-declaracion {
+  max-width: 820px;
+}
+
+.anexos-encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 2px solid var(--acento);
+}
+
+.anexos-encabezado h2 {
+  color: var(--primario);
+}
+
+.anexos-resumen-ejecutivo {
+  /* flex, no grid: html2canvas soporta mal CSS Grid (el fondo oscuro de
+     .enfasis salía lavado en el PDF solo cuando era hijo de un grid). */
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.anexos-stat {
+  flex: 1 1 150px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--borde);
+  border-top: 3px solid var(--primario);
+  border-radius: 8px;
+  background: var(--fondo);
+}
+
+.anexos-stat span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--tenue);
+}
+
+.anexos-stat strong {
+  font-size: 1.05rem;
+  color: var(--primario);
+}
+
+.anexos-stat.enfasis {
+  /* Mismo lenguaje cream+dorado que el resto del informe (nunca un fill
+     oscuro sólido): html2canvas lo desvanece de forma intermitente en
+     capturas grandes sin importar la técnica (color plano, gradiente,
+     imagen SVG) — ver commit de esta sección para el historial de intentos.
+     Este tratamiento (borde grueso + texto grande) da el mismo énfasis
+     visual sin depender de un fill que la librería no reproduce fiel. */
+  border: 1px solid var(--acento);
+  border-top-width: 3px;
+  background: var(--alerta-fondo);
+}
+
+.anexos-stat.enfasis span {
+  color: var(--alerta-texto);
+}
+
+.anexos-stat.enfasis strong {
+  color: var(--primario);
+  font-size: 1.25rem;
+}
+
+.anexos-seccion {
+  border-top: 1px solid var(--borde);
+  padding-top: 0.9rem;
+  margin-top: 0.9rem;
+}
+
+.anexos-seccion.destacada {
+  border-top: none;
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--fondo);
+  border: 1px solid var(--borde);
+  border-left: 6px solid var(--acento);
+  border-radius: 0 10px 10px 0;
+}
+
+.anexos-seccion h3 {
+  margin: 0 0 0.4rem;
+  padding-left: 0.7rem;
+  border-left: 4px solid var(--acento);
+  color: var(--primario);
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+}
+
+.anexos-seccion.destacada h3 {
+  padding-left: 0;
+  border-left: none;
+  font-size: 1.15rem;
+}
+
+.anexos-bloque {
+  margin-top: 0.5rem;
+}
+
+.anexos-bloque strong {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--alerta-texto);
+  background: var(--alerta-fondo);
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+}
+
+.anexos-bloque table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin-top: 0.4rem;
+}
+
+.anexos-bloque tr:nth-child(even) td {
+  background: var(--fondo);
+}
+
+.anexos-bloque td {
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px dashed var(--borde);
+  white-space: normal;
+  overflow-wrap: break-word;
+}
+
+.anexos-valor {
+  width: 130px;
+  text-align: right;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.anexos-resumen-final {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 8px;
+  /* Ver nota en .anexos-stat.enfasis — sin fill oscuro sólido. */
+  border: 2px solid var(--primario);
+  background: var(--alerta-fondo);
+  color: var(--primario);
+}
+
+.anexos-resumen-final span {
+  font-weight: 600;
+}
+
+.anexos-resumen-final strong {
+  font-size: 1.25rem;
+  color: var(--primario);
+}
+
+@media (max-width: 600px) {
+  .anexos-stat {
+    flex-basis: calc(50% - 0.3rem);
+  }
+}
+
 .colapsable-cab {
   cursor: pointer;
   padding: 0.25rem 0;

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { generarPapelTrabajo } from '../../motor210/papelTrabajo.js';
+import AnexosDeclaracion from './AnexosDeclaracion.jsx';
 
 const FILAS_RESUMEN = [
   { casilla: 29, etiqueta: 'Patrimonio bruto' },
@@ -22,6 +23,8 @@ function formatoPesos(v) {
 }
 
 export default function PasoResultado({ resultado, cliente, estado, onCambiar }) {
+  const [mostrarAnexos, setMostrarAnexos] = useState(false);
+
   if (!resultado) return <div className="tarjeta">Completa los pasos anteriores para ver el resultado.</div>;
 
   const comparacion = resultado.intermedios?.comparacion;
@@ -69,7 +72,10 @@ export default function PasoResultado({ resultado, cliente, estado, onCambiar })
           </tbody>
         </table>
         <div className="fila-botones">
-          <button type="button" className="primario" onClick={() => generarPapelTrabajo(resultado, cliente)}>
+          <button type="button" className="primario" onClick={() => setMostrarAnexos(true)}>
+            Ver anexos de la declaración
+          </button>
+          <button type="button" onClick={() => generarPapelTrabajo(resultado, cliente)}>
             Descargar papel de trabajo (Excel)
           </button>
         </div>
@@ -80,6 +86,15 @@ export default function PasoResultado({ resultado, cliente, estado, onCambiar })
         soportes del cliente antes de firmar y presentar la declaración — la responsabilidad es de la
         contadora que revisa y firma.
       </p>
+
+      {mostrarAnexos && (
+        <AnexosDeclaracion
+          resultado={resultado}
+          estado={estado}
+          cliente={cliente}
+          onCerrar={() => setMostrarAnexos(false)}
+        />
+      )}
     </div>
   );
 }
