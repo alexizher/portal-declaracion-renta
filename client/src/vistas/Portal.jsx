@@ -748,7 +748,9 @@ export default function Portal({ token }) {
           <p className="portal-doc-nombre">¿Tienes otro documento que no está en la lista?</p>
           <p className="tenue">
             Por ejemplo: certificados de deudas de otras entidades, extractos de otras cuentas o
-            tarjetas, billeteras digitales (Nequi, Daviplata…) u otro vehículo o activo.
+            tarjetas, billeteras digitales (Nequi, Daviplata…), documentos de casa o apartamento
+            si tienes (recibo de impuesto predial o certificado SIBGA), certificados de retención
+            en la fuente de tus cuentas bancarias, u otro vehículo o activo.
           </p>
           <button
             className="portal-boton-doc"
