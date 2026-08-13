@@ -9,13 +9,20 @@ const TURNSTILE = 'https://challenges.cloudflare.com';
 // - style-src 'unsafe-inline': la previsualización de correos del panel pinta
 //   el HTML real del mensaje (estilos inline de correo) con
 //   dangerouslySetInnerHTML; sin esto se vería en blanco.
+// - 'wasm-unsafe-eval' + connect-src data:: @react-pdf/renderer (Anexos PDF)
+//   compila internamente un motor de layout flexbox (yoga) a WebAssembly,
+//   embebido como data: URI — sin estos dos permisos el navegador bloquea la
+//   compilación del wasm y "Descargar PDF" no hace nada (sin error visible
+//   para el usuario, solo en la consola). 'wasm-unsafe-eval' es más acotado
+//   que 'unsafe-eval': solo habilita WebAssembly.instantiate(), no eval()/
+//   Function() de cadenas JS arbitrarias.
 const CSP = [
   "default-src 'self'",
-  `script-src 'self' ${TURNSTILE}`,
+  `script-src 'self' 'wasm-unsafe-eval' ${TURNSTILE}`,
   `frame-src ${TURNSTILE}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
-  "connect-src 'self'",
+  "connect-src 'self' data:",
   "font-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",
