@@ -129,8 +129,15 @@ async function descargarPDF(nodo, nombreArchivo, metadatos) {
       // Recorte explícito hasta "corte": sin esto, la página física seguiría
       // mostrando la imagen completa hasta su borde inferior, exponiendo el
       // trocito de fila que el ajuste de arriba quiso evitar.
+      // El último argumento (null) es obligatorio: sin él, rect() pinta el
+      // trazo del rectángulo (operador "S" de PDF) y esa pintura CIERRA la
+      // ruta — el clip() + discardPath() de abajo ya no tienen una ruta
+      // abierta sobre la cual actuar. El margen superior/inferior quedaba
+      // bien en la página 1 (donde por casualidad no había nada debajo)
+      // pero se perdía por completo desde la página 2 en adelante: el
+      // contenido volvía a llenar toda la página sin respetar los márgenes.
       pdf.saveGraphicsState();
-      pdf.rect(MARGEN_LATERAL, MARGEN_SUPERIOR, imgWidth, corte - posicion);
+      pdf.rect(MARGEN_LATERAL, MARGEN_SUPERIOR, imgWidth, corte - posicion, null);
       pdf.clip();
       pdf.discardPath();
       pdf.addImage(imgData, 'PNG', MARGEN_LATERAL, MARGEN_SUPERIOR - posicion, imgWidth, imgHeight);
