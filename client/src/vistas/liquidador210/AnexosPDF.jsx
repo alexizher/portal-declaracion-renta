@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 6.3, fontFamily: 'Helvetica-Bold', color: COLOR.tenue, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 3 },
   statValor: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: COLOR.primario },
 
-  seccion: { borderTopWidth: 1, borderTopColor: COLOR.borde, paddingTop: 8, marginTop: 8 },
+  seccion: { borderTopWidth: 1, borderTopColor: COLOR.borde, paddingTop: 14, marginTop: 16 },
   seccionDestacada: {
     borderTopWidth: 0,
     backgroundColor: COLOR.fondo,
@@ -103,8 +103,8 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: COLOR.acento,
     borderRadius: 4,
-    padding: 8,
-    marginTop: 8,
+    padding: 10,
+    marginTop: 16,
   },
   seccionTitulo: {
     fontSize: 10.5,
@@ -113,11 +113,11 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: COLOR.acento,
     paddingLeft: 6,
-    marginBottom: 3,
+    marginBottom: 4,
   },
   seccionParrafo: { fontSize: 8.3, color: COLOR.tenue, lineHeight: 1.4 },
 
-  bloque: { marginTop: 6 },
+  bloque: { marginTop: 9 },
   bloqueEtiqueta: {
     fontSize: 6.3,
     fontFamily: 'Helvetica-Bold',
@@ -146,8 +146,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 12,
-    padding: 10,
+    marginTop: 18,
+    padding: 12,
     borderRadius: 5,
     borderWidth: 2,
     borderColor: COLOR.primario,
@@ -156,11 +156,19 @@ const styles = StyleSheet.create({
   resumenFinalEtiqueta: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: COLOR.primario },
   resumenFinalValor: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: COLOR.primario },
 
-  glosarioSeccion: { marginTop: 10 },
-  glosarioItem: { marginTop: 6 },
+  glosarioSeccion: { marginTop: 18 },
+  glosarioItem: { marginTop: 8 },
   glosarioTermino: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: COLOR.primario },
   glosarioDefinicion: { fontSize: 8.3, color: COLOR.texto, marginTop: 1, lineHeight: 1.4 },
 });
+
+// Espacio mínimo (pt) que debe quedar debajo de un encabezado para que valga
+// la pena empezarlo en esta página: si no caben el rótulo del bloque y unas
+// 4 filas de tabla después del título, react-pdf lo baja entero a la página
+// siguiente. Sin esto quedaban títulos (o una fila suelta) colgando al pie,
+// con el cuerpo de la sección arrancando en la página de al lado — en las
+// secciones destacadas se veía además el marco de la tarjeta vacío.
+const ESPACIO_MINIMO_TRAS_TITULO = 110;
 
 // Cada fila queda con wrap={false} para que nunca se corte a la mitad por un
 // salto de página; el bloque completo (rótulo + tabla) también, así el
@@ -181,15 +189,29 @@ function TablaBloque({ etiqueta, items }) {
   );
 }
 
+// Cuántas filas de tabla trae la sección en total: las secciones cortas caben
+// enteras en una página, así que se marcan como indivisibles (wrap={false})
+// y se mueven completas — es la única forma de que la tarjeta de una sección
+// "destacada" no se dibuje vacía al pie con el título adentro y las filas en
+// la página siguiente. Las secciones largas sí se dejan partir (si no, no
+// cabrían en ninguna página), protegidas fila a fila por TablaBloque.
+const FILAS_MAX_SECCION_INDIVISIBLE = 12;
+
 function Seccion({ s }) {
+  const totalFilas = (s.declarado?.length || 0) + (s.calculo?.length || 0);
+  const indivisible = totalFilas <= FILAS_MAX_SECCION_INDIVISIBLE;
   return (
-    <View style={s.destacada ? styles.seccionDestacada : styles.seccion}>
+    <View
+      style={s.destacada ? styles.seccionDestacada : styles.seccion}
+      wrap={!indivisible}
+      minPresenceAhead={ESPACIO_MINIMO_TRAS_TITULO}
+    >
       <View wrap={false}>
         <Text style={styles.seccionTitulo}>{s.titulo}</Text>
         {s.parrafo && <Text style={styles.seccionParrafo}>{s.parrafo}</Text>}
       </View>
       <TablaBloque etiqueta="Qué se declaró" items={s.declarado} />
-      {s.notaAnticipo && <Text style={[styles.seccionParrafo, { marginTop: 4 }]}>{s.notaAnticipo}</Text>}
+      {s.notaAnticipo && <Text style={[styles.seccionParrafo, { marginTop: 6 }]}>{s.notaAnticipo}</Text>}
       <TablaBloque etiqueta="Cómo se calculó" items={s.calculo} />
     </View>
   );
@@ -253,7 +275,10 @@ export default function AnexosPDF({ anexos, cliente }) {
           <Text style={styles.resumenFinalValor}>{formatoPesos(anexos.resumenFinal.valor)}</Text>
         </View>
 
-        <View style={styles.glosarioSeccion}>
+        {/* El glosario cierra el documento y entra completo en una página:
+            wrap={false} lo mantiene entero en vez de dejar dos o tres
+            términos sueltos como única cosa en la última hoja. */}
+        <View style={styles.glosarioSeccion} wrap={false}>
           <Text style={styles.seccionTitulo}>Notas y términos</Text>
           {anexos.glosario.map((g) => (
             <View key={g.termino} style={styles.glosarioItem} wrap={false}>
