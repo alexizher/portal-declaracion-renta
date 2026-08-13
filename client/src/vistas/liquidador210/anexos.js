@@ -85,6 +85,8 @@ export function construirAnexos(resultado, estado, cliente) {
     {
       clave: 'trabajo',
       titulo: 'Rentas de trabajo',
+      parrafo:
+        'Salarios, prestaciones y demás pagos por una relación laboral o legal y reglamentaria — se restan los ingresos no constitutivos de renta, las deducciones y las rentas exentas (como el 25% exento) para llegar a la renta líquida de esta cédula.',
       catalogos: {
         ingresos: CONCEPTOS_INGRESOS_TRABAJO,
         incrngo: CONCEPTOS_INCRNGO_TRABAJO,
@@ -97,6 +99,8 @@ export function construirAnexos(resultado, estado, cliente) {
     {
       clave: 'honorarios',
       titulo: 'Rentas de honorarios (sin relación laboral)',
+      parrafo:
+        'Honorarios, comisiones y servicios prestados de forma independiente, sin que exista subordinación laboral — tributan dentro de la misma cédula general, con sus propios topes de rentas exentas.',
       catalogos: {
         ingresos: CONCEPTOS_INGRESOS_HONORARIOS,
         incrngo: CONCEPTOS_INCRNGO_HONORARIOS,
@@ -108,6 +112,8 @@ export function construirAnexos(resultado, estado, cliente) {
     {
       clave: 'capital',
       titulo: 'Rentas de capital',
+      parrafo:
+        'Intereses, arrendamientos y rendimientos financieros — se declaran los ingresos brutos y, frente a ellos, los costos y gastos asociados que la ley permite restar.',
       catalogos: {
         ingresos: CONCEPTOS_INGRESOS_CAPITAL,
         costosYGastos: CONCEPTOS_COSTOS_GASTOS_CAPITAL,
@@ -117,6 +123,8 @@ export function construirAnexos(resultado, estado, cliente) {
     {
       clave: 'noLaboral',
       titulo: 'Rentas no laborales',
+      parrafo:
+        'Todo ingreso que no encaja en las categorías anteriores (por ejemplo, venta ocasional de bienes o servicios) — es la cédula "de cierre" dentro de la cédula general.',
       catalogos: {
         ingresos: CONCEPTOS_INGRESOS_NO_LABORAL,
         incrngo: CONCEPTOS_INCRNGO_NO_LABORAL,
@@ -136,6 +144,7 @@ export function construirAnexos(resultado, estado, cliente) {
     secciones.push({
       id: cedula.clave,
       titulo: cedula.titulo,
+      parrafo: cedula.parrafo,
       declarado,
       calculo: casillasDeSeccion(cedula.tituloCasillas, casillas),
     });
@@ -158,6 +167,7 @@ export function construirAnexos(resultado, estado, cliente) {
     secciones.push({
       id: 'pensiones',
       titulo: 'Cédula de pensiones',
+      parrafo: 'Mesadas pensionales de origen nacional o extranjero — tiene su propio tope de renta exenta, independiente del de la cédula general.',
       declarado: declaradoPensiones,
       calculo: casillasDeSeccion('Cédula de pensiones', casillas),
     });
@@ -175,6 +185,8 @@ export function construirAnexos(resultado, estado, cliente) {
     secciones.push({
       id: 'dividendos',
       titulo: 'Cédula de dividendos y participaciones',
+      parrafo:
+        'Dividendos y participaciones recibidos de sociedades — tributan aparte de las demás rentas, con tarifa distinta según si ya pagaron impuesto en cabeza de la sociedad que los reparte.',
       declarado: declaradoDividendos,
       calculo: casillasDeSeccion('Cédula de dividendos y participaciones', casillas),
     });
@@ -202,6 +214,8 @@ export function construirAnexos(resultado, estado, cliente) {
     secciones.push({
       id: 'gananciaOcasional',
       titulo: 'Ganancias ocasionales',
+      parrafo:
+        'Ingresos esporádicos y ajenos a la actividad habitual del cliente — herencias, loterías, o utilidad en la venta de activos fijos poseídos por más de dos años — que se liquidan aparte de las rentas líquidas gravables.',
       declarado: declaradoGO,
       calculo: casillasDeSeccion('Ganancias ocasionales', casillas),
     });
@@ -257,6 +271,18 @@ export function construirAnexos(resultado, estado, cliente) {
     { etiqueta: resumenFinal.etiqueta, valor: resumenFinal.valor, enfasis: true },
   ];
 
+  // ---- Glosario — términos técnicos que aparecen en el informe, en
+  // lenguaje llano para un cliente que no es contador.
+  const glosario = [
+    { termino: 'Cédula', definicion: 'Cada "casillero" en el que la DIAN agrupa un tipo de ingreso (trabajo, capital, pensiones, dividendos…). Cada uno tiene sus propias reglas de ingresos exentos y deducciones antes de sumarse al total.' },
+    { termino: 'INCRNGO', definicion: 'Ingreso No Constitutivo de Renta ni Ganancia Ocasional: dinero que entra pero que la ley excluye de la base gravable (por ejemplo, aportes obligatorios a pensión).' },
+    { termino: 'Renta exenta', definicion: 'Parte del ingreso que sí es renta, pero que la ley libera de impuesto hasta un tope — a diferencia del INCRNGO, si se pasa el tope el excedente sí tributa.' },
+    { termino: 'Renta líquida gravable', definicion: 'La base final sobre la que se calcula el impuesto, después de sumar todas las cédulas y restar lo que la ley permite.' },
+    { termino: 'Patrimonio líquido', definicion: 'Lo que el cliente posee (activos) menos lo que debe (pasivos) a 31 de diciembre del año declarado.' },
+    { termino: 'Retención en la fuente', definicion: 'Impuesto que un tercero (empleador, banco, cliente) ya le descontó y pagó al cliente durante el año, y que se resta del impuesto a cargo en la declaración.' },
+    { termino: 'Anticipo', definicion: 'Adelanto del impuesto del próximo año que se paga junto con esta declaración, calculado por el método más favorable para el cliente.' },
+  ];
+
   return {
     cliente,
     generado: new Date(),
@@ -264,5 +290,6 @@ export function construirAnexos(resultado, estado, cliente) {
     resumenEjecutivo,
     secciones,
     resumenFinal,
+    glosario,
   };
 }
