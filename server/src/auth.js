@@ -27,11 +27,23 @@ function igualSeguro(a, b) {
   return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
 }
 
-let intentosFallidos = 0;
-let bloqueadoHasta = 0;
+// Por IP (antes era un único contador global): así los intentos fallidos de
+// un atacante no bloquean también a Daniela, que entra desde otra IP.
+// Sigue viviendo en memoria por proceso (Passenger puede correr varios), pero
+// el limitador de /api/login en seguridad.js (10 intentos/15min por IP) ya
+// cubre esa rendija.
+const intentosPorIp = new Map();
 
-function login(password) {
-  if (Date.now() < bloqueadoHasta) {
+setInterval(() => {
+  const ahora = Date.now();
+  for (const [ip, estado] of intentosPorIp) {
+    if (estado.bloqueadoHasta <= ahora && estado.fallos === 0) intentosPorIp.delete(ip);
+  }
+}, 5 * 60_000).unref();
+
+function login(password, ip = 'sin-ip') {
+  const estado = intentosPorIp.get(ip) || { fallos: 0, bloqueadoHasta: 0 };
+  if (Date.now() < estado.bloqueadoHasta) {
     return { error: 'Demasiados intentos. Espera un minuto e intenta de nuevo.' };
   }
   const esperado = process.env.ADMIN_PASSWORD;
@@ -40,14 +52,15 @@ function login(password) {
   }
   const ok = typeof password === 'string' && igualSeguro(password, esperado);
   if (!ok) {
-    intentosFallidos += 1;
-    if (intentosFallidos >= 5) {
-      bloqueadoHasta = Date.now() + 60_000;
-      intentosFallidos = 0;
+    estado.fallos += 1;
+    if (estado.fallos >= 5) {
+      estado.bloqueadoHasta = Date.now() + 60_000;
+      estado.fallos = 0;
     }
+    intentosPorIp.set(ip, estado);
     return { error: 'Contraseña incorrecta.' };
   }
-  intentosFallidos = 0;
+  intentosPorIp.delete(ip);
   const expiracion = Date.now() + DURACION_MS;
   return { token: `${expiracion}.${firmar(expiracion)}` };
 }
@@ -91,4 +104,4 @@ function requiereAuth(req, res, next) {
   next();
 }
 
-module.exports = { login, requiereAuth, tokenPortal, clienteIdDelPortal };
+module.exports = { login, requiereAuth, tokenPortal, clienteIdDelPortal, igualSeguro };

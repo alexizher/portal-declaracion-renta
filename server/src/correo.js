@@ -5,6 +5,21 @@ const { tokenPortal } = require('./auth');
 
 let transporter = null;
 
+// Escapa texto que viene de un campo editable por el cliente (nombre,
+// nombre de documento "extra", motivo de rechazo) antes de meterlo en HTML
+// de correo: sin esto, un nombre de documento con < o & rompe el mensaje, y
+// si el cliente lo escribe con intención (<img onerror=...>) queda inyectado
+// tal cual en el HTML que le llega a su propio correo.
+function escapeHtml(texto) {
+  return String(texto ?? '').replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[c]));
+}
+
 // Con SMTP_HOST definido se usa un SMTP genérico (p. ej. el servidor de
 // correo del propio hosting, ya que los hostings compartidos bloquean la
 // salida hacia SMTP externos como Gmail). Sin SMTP_HOST, Gmail directo
@@ -128,7 +143,7 @@ function renderCorreo(cliente, plantillas, config, calendario, tipo = 'recordato
     : '<p>(Sin documentos asignados)</p>';
 
   const reemplazos = {
-    '{{nombre}}': cliente.nombre || '',
+    '{{nombre}}': escapeHtml(cliente.nombre || ''),
     '{{vencimiento}}': venc ? venc.fechaTexto : '(sin fecha — revisa la cédula)',
     '{{digitos}}': venc ? venc.digitos : '--',
     '{{documentos}}': listaHtml,
@@ -248,8 +263,8 @@ function renderCorreoRevision(cliente, checklist, config) {
     if (!items.length) return '';
     const filas = items
       .map(
-        (d) => `<li style="margin:0 0 6px;">${d.nombre}${
-          d.motivo ? `<br><em style="color:#8a6d1a;">Motivo: ${d.motivo}</em>` : ''
+        (d) => `<li style="margin:0 0 6px;">${escapeHtml(d.nombre)}${
+          d.motivo ? `<br><em style="color:#8a6d1a;">Motivo: ${escapeHtml(d.motivo)}</em>` : ''
         }</li>`
       )
       .join('\n');
@@ -278,7 +293,7 @@ function renderCorreoRevision(cliente, checklist, config) {
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e3ddd4;border-top:4px solid #c39a3b;border-radius:10px;padding:28px 32px;">
       ${logo}
       <h2 style="color:#152a45;font-size:18px;margin:0 0 12px;text-align:center;">Revisión de tus documentos</h2>
-      <p style="color:#2b3440;">Hola <strong>${cliente.nombre}</strong>,</p>
+      <p style="color:#2b3440;">Hola <strong>${escapeHtml(cliente.nombre)}</strong>,</p>
       <p style="color:#2b3440;">${intro}</p>
       ${seccion('✔ Aprobados', '#1e7d51', aprobados)}
       ${seccion('✖ Para corregir (súbelos de nuevo)', '#c0392b', rechazados)}
@@ -361,7 +376,7 @@ async function enviarEnlacePortal(cliente) {
     <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e3ddd4;border-top:4px solid #c39a3b;border-radius:10px;padding:28px 32px;">
       ${logo}
       <h2 style="color:#152a45;font-size:18px;margin:0 0 12px;text-align:center;">Tu enlace del portal de documentos</h2>
-      <p style="color:#2b3440;">Hola <strong>${cliente.nombre}</strong>,</p>
+      <p style="color:#2b3440;">Hola <strong>${escapeHtml(cliente.nombre)}</strong>,</p>
       <p style="color:#2b3440;">Nos pediste reenviarte el acceso a tu portal personal para la
       declaración de renta. Entra con este botón:</p>
       <p style="text-align:center;margin:24px 0;">

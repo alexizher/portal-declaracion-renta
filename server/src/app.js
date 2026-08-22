@@ -2,7 +2,7 @@ const path = require('path');
 const express = require('express');
 
 const datos = require('./datos');
-const { login, requiereAuth, clienteIdDelPortal } = require('./auth');
+const { login, requiereAuth, clienteIdDelPortal, igualSeguro } = require('./auth');
 const { vencimientoDe } = require('./vencimientos');
 const { renderCorreo, enviarLote, enviarRevision, enviarEnlacePortal, urlPortal, verificarEnvio } = require('./correo');
 const { avisarSubida, revisarVencimientos } = require('./avisos');
@@ -262,7 +262,7 @@ portal.post('/:token/dian', cargarClientePortal, ruta(async (req, res) => {
 // Va en el router api pero registrado ANTES de requiereAuth.
 api.get('/cron/alertas', ruta(async (req, res) => {
   const clave = process.env.CRON_SECRET;
-  if (!clave || req.query.clave !== clave) {
+  if (!clave || !igualSeguro(req.query.clave || '', clave)) {
     return res.status(401).json({ error: 'No autorizado' });
   }
   res.json(await revisarVencimientos({ ignorarHorario: true }));
@@ -272,7 +272,7 @@ api.post('/login', limiteSensible, ruta(async (req, res) => {
   if (!(await verificarTurnstile(req.body.turnstile, req.ip))) {
     return res.status(400).json({ error: 'No pasaste la verificación anti-robots. Recarga la página e intenta de nuevo.' });
   }
-  const resultado = login(req.body.password);
+  const resultado = login(req.body.password, req.ip);
   if (resultado.error) return res.status(401).json(resultado);
   res.json(resultado);
 }));
