@@ -32,6 +32,10 @@ import {
   CONCEPTOS_EXENTAS_GANANCIA_OCASIONAL,
 } from './conceptos.js';
 
+function pesos(v) {
+  return (v || 0).toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+}
+
 function itemsConValor(conceptos, valores) {
   if (!valores) return [];
   return conceptos
@@ -271,17 +275,58 @@ export function construirAnexos(resultado, estado, cliente) {
     { etiqueta: resumenFinal.etiqueta, valor: resumenFinal.valor, enfasis: true },
   ];
 
-  // ---- Glosario — términos técnicos que aparecen en el informe, en
-  // lenguaje llano para un cliente que no es contador.
-  const glosario = [
-    { termino: 'Cédula', definicion: 'Cada "casillero" en el que la DIAN agrupa un tipo de ingreso (trabajo, capital, pensiones, dividendos…). Cada uno tiene sus propias reglas de ingresos exentos y deducciones antes de sumarse al total.' },
-    { termino: 'INCRNGO', definicion: 'Ingreso No Constitutivo de Renta ni Ganancia Ocasional: dinero que entra pero que la ley excluye de la base gravable (por ejemplo, aportes obligatorios a pensión).' },
-    { termino: 'Renta exenta', definicion: 'Parte del ingreso que sí es renta, pero que la ley libera de impuesto hasta un tope — a diferencia del INCRNGO, si se pasa el tope el excedente sí tributa.' },
-    { termino: 'Renta líquida gravable', definicion: 'La base final sobre la que se calcula el impuesto, después de sumar todas las cédulas y restar lo que la ley permite.' },
-    { termino: 'Patrimonio líquido', definicion: 'Lo que el cliente posee (activos) menos lo que debe (pasivos) a 31 de diciembre del año declarado.' },
-    { termino: 'Retención en la fuente', definicion: 'Impuesto que un tercero (empleador, banco, cliente) ya le descontó y pagó al cliente durante el año, y que se resta del impuesto a cargo en la declaración.' },
-    { termino: 'Anticipo', definicion: 'Adelanto del impuesto del próximo año que se paga junto con esta declaración, calculado por el método más favorable para el cliente.' },
+  // ---- Conclusiones — cierre narrativo en prosa (reemplaza el glosario
+  // técnico): explica en lenguaje llano el resultado ya visto en las
+  // tarjetas y tablas, para que el cliente entienda de un vistazo qué se
+  // reportó y por qué la declaración termina en el resultado que termina.
+  const patrimonioLiquido = casillas[31] || 0;
+  const rentaLiquidaGravable = casillas[111] || 0;
+  const impuestoACargo = casillas[129] || 0;
+  const anticipoAnterior = casillas[130] || 0;
+  const saldoFavorAnterior = casillas[131] || 0;
+  const retenciones = casillas[132] || 0;
+  const anticipoProximo = casillas[133] || 0;
+  const anioSiguiente = (cliente.anioGravable || 0) + 1;
+  const nombreCliente = (cliente.nombre || 'El cliente').split(' ')[0];
+
+  const cubrimientos = [];
+  if (retenciones > 0) cubrimientos.push(`las retenciones practicadas durante el año (${pesos(retenciones)})`);
+  if (saldoFavorAnterior > 0) cubrimientos.push(`el saldo a favor del año anterior (${pesos(saldoFavorAnterior)})`);
+  if (anticipoAnterior > 0) cubrimientos.push(`el anticipo liquidado el año anterior (${pesos(anticipoAnterior)})`);
+
+  const claususlaAnticipo =
+    anticipoProximo > 0
+      ? ` y genera un anticipo de ${pesos(anticipoProximo)} para el año ${anioSiguiente}`
+      : ` y no genera anticipo para el año ${anioSiguiente}`;
+
+  let parrafoResultado;
+  if (cubrimientos.length > 0) {
+    parrafoResultado =
+      `${cubrimientos.join(', ').replace(/,([^,]*)$/, cubrimientos.length > 1 ? ' y$1' : '$1')} ` +
+      `${saldoAPagar > 0 ? 'cubren parte de' : 'cubren de sobra'} el impuesto a cargo de ${pesos(impuestoACargo)}, ` +
+      `por lo que la declaración arroja ${resumenFinal.etiqueta.toLowerCase()} de ${pesos(resumenFinal.valor)}${claususlaAnticipo}.`;
+  } else if (impuestoACargo > 0) {
+    parrafoResultado =
+      `Al no haber retenciones ni saldos de años anteriores que lo cubran, el impuesto a cargo de ${pesos(impuestoACargo)} ` +
+      `queda como ${resumenFinal.etiqueta.toLowerCase()} de ${pesos(resumenFinal.valor)}${claususlaAnticipo}.`;
+  } else {
+    parrafoResultado = `La declaración no genera impuesto a cargo, por lo que cierra en ${resumenFinal.etiqueta.toLowerCase()}${claususlaAnticipo}.`;
+  }
+
+  const conclusiones = [
+    `${nombreCliente} cierra el año gravable ${cliente.anioGravable} con un patrimonio líquido de ${pesos(
+      patrimonioLiquido
+    )} y una renta líquida gravable de ${pesos(rentaLiquidaGravable)}, sobre la cual se liquida un impuesto de renta de ${pesos(
+      impuestoACargo
+    )}.`,
+    parrafoResultado,
+    resultado.advertencias?.length > 0
+      ? 'Antes de presentar la declaración, revise con el cliente las advertencias señaladas al inicio de este documento.'
+      : 'El patrimonio, los ingresos, las retenciones y las deducciones declaradas son consistentes entre sí, con base en la información y los certificados aportados.',
   ];
+
+  const notaConclusiones =
+    'Este documento es un anexo de trabajo preparado por su asesor tributario para acompañar la declaración de renta. No reemplaza el Formulario 210 oficial ni los certificados originales, que deben conservarse como soporte.';
 
   return {
     cliente,
@@ -290,6 +335,7 @@ export function construirAnexos(resultado, estado, cliente) {
     resumenEjecutivo,
     secciones,
     resumenFinal,
-    glosario,
+    conclusiones,
+    notaConclusiones,
   };
 }

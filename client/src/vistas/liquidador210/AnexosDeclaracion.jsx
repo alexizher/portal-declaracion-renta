@@ -11,6 +11,30 @@ function formatoFecha(fecha) {
   return fecha.toLocaleDateString('es-CO', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+// Misma cabecera de tabla en color que el PDF (ver TablaBloque en
+// AnexosPDF.jsx): franja dorada con la etiqueta y "Valor", filas a rayas.
+function BloqueTabla({ etiqueta, items }) {
+  if (!items || items.length === 0) return null;
+  return (
+    <div className="anexos-bloque">
+      <div className="anexos-bloque-cabecera">
+        <span>{etiqueta}</span>
+        <span>Valor</span>
+      </div>
+      <table>
+        <tbody>
+          {items.map((item, i) => (
+            <tr key={i}>
+              <td>{item.etiqueta}</td>
+              <td className="anexos-valor">{formatoPesos(item.valor)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function AnexosDeclaracion({ resultado, estado, cliente, onCerrar }) {
   const anexos = useMemo(() => construirAnexos(resultado, estado, cliente), [resultado, estado, cliente]);
   const [generandoPDF, setGenerandoPDF] = useState(false);
@@ -81,7 +105,7 @@ export default function AnexosDeclaracion({ resultado, estado, cliente, onCerrar
             {anexos.secciones.map((s) => (
               <li key={s.id}>{s.titulo}</li>
             ))}
-            <li>Notas y términos</li>
+            <li>Conclusiones de la renta</li>
           </ol>
         </nav>
 
@@ -90,39 +114,9 @@ export default function AnexosDeclaracion({ resultado, estado, cliente, onCerrar
             <h3>{s.titulo}</h3>
             {s.parrafo && <p className="tenue">{s.parrafo}</p>}
 
-            {s.declarado && s.declarado.length > 0 && (
-              <div className="anexos-bloque">
-                <strong>Qué se declaró</strong>
-                <table>
-                  <tbody>
-                    {s.declarado.map((item, i) => (
-                      <tr key={i}>
-                        <td>{item.etiqueta}</td>
-                        <td className="anexos-valor">{formatoPesos(item.valor)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
+            <BloqueTabla etiqueta="Qué se declaró" items={s.declarado} />
             {s.notaAnticipo && <p className="tenue">{s.notaAnticipo}</p>}
-
-            {s.calculo && s.calculo.length > 0 && (
-              <div className="anexos-bloque">
-                <strong>Cómo se calculó</strong>
-                <table>
-                  <tbody>
-                    {s.calculo.map((item, i) => (
-                      <tr key={i}>
-                        <td>{item.etiqueta}</td>
-                        <td className="anexos-valor">{formatoPesos(item.valor)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <BloqueTabla etiqueta="Cómo se calculó" items={s.calculo} />
           </section>
         ))}
 
@@ -131,16 +125,15 @@ export default function AnexosDeclaracion({ resultado, estado, cliente, onCerrar
           <strong>{formatoPesos(anexos.resumenFinal.valor)}</strong>
         </section>
 
-        <section className="anexos-seccion anexos-glosario">
-          <h3>Notas y términos</h3>
-          <dl>
-            {anexos.glosario.map((g) => (
-              <React.Fragment key={g.termino}>
-                <dt>{g.termino}</dt>
-                <dd>{g.definicion}</dd>
-              </React.Fragment>
-            ))}
-          </dl>
+        <section className="anexos-seccion anexos-conclusiones">
+          <h3>Conclusiones de la renta</h3>
+          <p className="tenue">
+            Cierre de la declaración de renta persona natural — año gravable {cliente.anioGravable}
+          </p>
+          {anexos.conclusiones.map((parrafo, i) => (
+            <p key={i}>{parrafo}</p>
+          ))}
+          <p className="anexos-conclusiones-nota">{anexos.notaConclusiones}</p>
         </section>
 
         <p className="tenue no-imprimir">

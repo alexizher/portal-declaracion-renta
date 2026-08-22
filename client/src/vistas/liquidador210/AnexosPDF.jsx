@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, StyleSheet } from '@react-pdf/renderer';
 
 export const FIRMA_ASESORA = 'Daniela Molina Foronda · Contadora Pública · Asesora Tributaria · 311 780 9709';
+const FIRMA_CORTA = 'Daniela Molina Foronda · Contadora Pública';
 
 const COLOR = {
   fondo: '#fbf8f6',
@@ -8,9 +9,12 @@ const COLOR = {
   texto: '#2b3440',
   tenue: '#7b8794',
   primario: '#152a45',
+  primarioOsc: '#0e1e33',
   acento: '#c39a3b',
   alertaFondo: '#fdf3d7',
   alertaTexto: '#8a6d1a',
+  sobrePrimario: 'rgba(255, 255, 255, 0.72)', // texto tenue sobre fondo azul marino
+  panelPrimario: 'rgba(255, 255, 255, 0.07)', // panel "Contenido" de la portada
 };
 
 function formatoPesos(v) {
@@ -23,27 +27,32 @@ function formatoFecha(fecha) {
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 46,
+    paddingTop: 72,
     paddingBottom: 46,
     paddingHorizontal: 40,
     fontSize: 9,
     fontFamily: 'Helvetica',
     color: COLOR.texto,
   },
+  // Franja azul marino a todo el ancho (ignora el padding de la página
+  // porque es absoluta respecto al Page, no a su caja de contenido) con la
+  // barra dorada justo debajo, igual que la portada.
   headerFixed: {
     position: 'absolute',
-    top: 22,
-    left: 40,
-    right: 40,
+    top: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLOR.primario,
+    borderBottomWidth: 4,
+    borderBottomColor: COLOR.acento,
+    paddingVertical: 11,
+    paddingHorizontal: 40,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    borderBottomWidth: 1.5,
-    borderBottomColor: COLOR.acento,
-    paddingBottom: 5,
+    alignItems: 'center',
   },
-  headerTitulo: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: COLOR.primario, letterSpacing: 0.3 },
-  headerCliente: { fontSize: 8.5, color: COLOR.primario },
+  headerTitulo: { fontSize: 8.5, fontFamily: 'Helvetica-Bold', color: '#fff', letterSpacing: 0.4 },
+  headerCliente: { fontSize: 8.5, color: COLOR.sobrePrimario },
   footerFixed: {
     position: 'absolute',
     bottom: 22,
@@ -56,6 +65,48 @@ const styles = StyleSheet.create({
     paddingTop: 5,
   },
   footerTexto: { fontSize: 7, color: COLOR.tenue },
+
+  // ---- Portada ----
+  portada: {
+    backgroundColor: COLOR.primario,
+    paddingHorizontal: 40,
+    paddingBottom: 40,
+    fontFamily: 'Helvetica',
+    height: '100%',
+    flexDirection: 'column',
+  },
+  portadaEspacio: { flexGrow: 1 },
+  portadaEtiqueta: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: COLOR.acento,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 10,
+  },
+  portadaBarra: { height: 6, backgroundColor: COLOR.acento, marginBottom: 22 },
+  portadaTitulo: { fontSize: 30, fontFamily: 'Helvetica-Bold', color: '#fff', marginBottom: 26 },
+  portadaPreparadoPara: { fontSize: 9, color: COLOR.sobrePrimario, marginBottom: 4 },
+  portadaNombre: { fontSize: 14, fontFamily: 'Helvetica-Bold', color: '#fff', marginBottom: 3 },
+  portadaCedula: { fontSize: 9.5, color: COLOR.sobrePrimario },
+  portadaPanel: {
+    backgroundColor: COLOR.panelPrimario,
+    borderRadius: 4,
+    padding: 14,
+    marginTop: 34,
+  },
+  portadaPanelTitulo: {
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: COLOR.acento,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 8,
+  },
+  portadaPanelItem: { fontSize: 9.5, color: '#fff', marginBottom: 5, lineHeight: 1.3 },
+  portadaPieLinea: { borderTopWidth: 0.5, borderTopColor: 'rgba(255,255,255,0.25)', marginTop: 30, paddingTop: 10 },
+  portadaPieFila: { flexDirection: 'row', justifyContent: 'space-between' },
+  portadaPieTexto: { fontSize: 8, color: COLOR.sobrePrimario },
 
   tituloDoc: { fontSize: 15, fontFamily: 'Helvetica-Bold', color: COLOR.primario, marginBottom: 2 },
   subTexto: { fontSize: 8.5, color: COLOR.tenue, marginBottom: 10, lineHeight: 1.4 },
@@ -81,18 +132,21 @@ const styles = StyleSheet.create({
   resumenRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 },
   stat: {
     flexGrow: 1,
-    flexBasis: 110,
-    borderWidth: 1,
-    borderColor: COLOR.borde,
-    borderTopWidth: 3,
-    borderTopColor: COLOR.primario,
-    borderRadius: 5,
-    backgroundColor: COLOR.fondo,
-    padding: 7,
+    flexBasis: 150,
+    borderRadius: 4,
+    backgroundColor: COLOR.acento,
+    padding: 9,
   },
-  statEnfasis: { borderColor: COLOR.acento, borderTopColor: COLOR.acento },
-  statLabel: { fontSize: 6.3, fontFamily: 'Helvetica-Bold', color: COLOR.tenue, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 3 },
-  statValor: { fontSize: 10.5, fontFamily: 'Helvetica-Bold', color: COLOR.primario },
+  statEnfasis: { backgroundColor: COLOR.primario },
+  statLabel: {
+    fontSize: 6.5,
+    fontFamily: 'Helvetica-Bold',
+    color: 'rgba(255,255,255,0.85)',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  statValor: { fontSize: 11.5, fontFamily: 'Helvetica-Bold', color: '#fff' },
 
   seccion: { borderTopWidth: 1, borderTopColor: COLOR.borde, paddingTop: 14, marginTop: 16 },
   seccionDestacada: {
@@ -117,26 +171,27 @@ const styles = StyleSheet.create({
   },
   seccionParrafo: { fontSize: 8.3, color: COLOR.tenue, lineHeight: 1.4 },
 
-  bloque: { marginTop: 9 },
-  bloqueEtiqueta: {
-    fontSize: 6.3,
+  bloque: { marginTop: 10 },
+  bloqueCabecera: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: COLOR.acento,
+    borderTopLeftRadius: 3,
+    borderTopRightRadius: 3,
+    paddingVertical: 4.5,
+    paddingHorizontal: 8,
+  },
+  bloqueCabeceraTexto: {
+    fontSize: 7.5,
     fontFamily: 'Helvetica-Bold',
-    color: COLOR.alertaTexto,
-    backgroundColor: COLOR.alertaFondo,
+    color: '#fff',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    borderRadius: 7,
-    alignSelf: 'flex-start',
-    marginBottom: 3,
   },
   fila: {
     flexDirection: 'row',
-    borderBottomWidth: 0.5,
-    borderBottomColor: COLOR.borde,
-    borderBottomStyle: 'dashed',
-    paddingVertical: 3,
+    paddingVertical: 3.5,
+    paddingHorizontal: 8,
   },
   filaPar: { backgroundColor: COLOR.fondo },
   filaEtiqueta: { flex: 1, fontSize: 8.3, paddingRight: 8 },
@@ -157,9 +212,17 @@ const styles = StyleSheet.create({
   resumenFinalValor: { fontSize: 13, fontFamily: 'Helvetica-Bold', color: COLOR.primario },
 
   glosarioSeccion: { marginTop: 18 },
-  glosarioItem: { marginTop: 8 },
-  glosarioTermino: { fontSize: 9, fontFamily: 'Helvetica-Bold', color: COLOR.primario },
-  glosarioDefinicion: { fontSize: 8.3, color: COLOR.texto, marginTop: 1, lineHeight: 1.4 },
+  conclusionParrafo: { fontSize: 8.8, color: COLOR.texto, lineHeight: 1.5, marginTop: 9 },
+  conclusionNota: {
+    fontSize: 7.8,
+    fontFamily: 'Helvetica-Oblique',
+    color: COLOR.tenue,
+    lineHeight: 1.4,
+    marginTop: 16,
+    borderTopWidth: 0.5,
+    borderTopColor: COLOR.borde,
+    paddingTop: 10,
+  },
 });
 
 // Espacio mínimo (pt) que debe quedar debajo de un encabezado para que valga
@@ -178,13 +241,18 @@ function TablaBloque({ etiqueta, items }) {
   if (!items || items.length === 0) return null;
   return (
     <View style={styles.bloque} wrap={false}>
-      <Text style={styles.bloqueEtiqueta}>{etiqueta}</Text>
-      {items.map((item, i) => (
-        <View key={i} style={i % 2 === 1 ? { ...styles.fila, ...styles.filaPar } : styles.fila}>
-          <Text style={styles.filaEtiqueta}>{item.etiqueta}</Text>
-          <Text style={styles.filaValor}>{formatoPesos(item.valor)}</Text>
-        </View>
-      ))}
+      <View style={styles.bloqueCabecera}>
+        <Text style={styles.bloqueCabeceraTexto}>{etiqueta}</Text>
+        <Text style={styles.bloqueCabeceraTexto}>Valor</Text>
+      </View>
+      <View style={{ borderWidth: 1, borderTopWidth: 0, borderColor: COLOR.borde }}>
+        {items.map((item, i) => (
+          <View key={i} style={i % 2 === 1 ? { ...styles.fila, ...styles.filaPar } : styles.fila}>
+            <Text style={styles.filaEtiqueta}>{item.etiqueta}</Text>
+            <Text style={styles.filaValor}>{formatoPesos(item.valor)}</Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -217,6 +285,43 @@ function Seccion({ s }) {
   );
 }
 
+// Portada de color completo, en su propia página: no comparte header/footer
+// con las páginas de contenido (esas sí lo llevan fijo via `fixed`).
+function Portada({ anexos, cliente }) {
+  return (
+    <Page size="A4" style={{ padding: 0 }}>
+      <View style={styles.portada}>
+        <View style={styles.portadaEspacio} />
+
+        <Text style={styles.portadaEtiqueta}>Anexo declaración de renta</Text>
+        <View style={styles.portadaBarra} />
+        <Text style={styles.portadaTitulo}>AÑO GRAVABLE {cliente.anioGravable}</Text>
+
+        <Text style={styles.portadaPreparadoPara}>Preparado para:</Text>
+        <Text style={styles.portadaNombre}>{cliente.nombre || 'Cliente'}</Text>
+        <Text style={styles.portadaCedula}>C.C. {cliente.cedula || 'sin cédula'}</Text>
+
+        <View style={styles.portadaPanel}>
+          <Text style={styles.portadaPanelTitulo}>Contenido</Text>
+          {anexos.secciones.map((s) => (
+            <Text key={s.id} style={styles.portadaPanelItem}>• {s.titulo}</Text>
+          ))}
+          <Text style={styles.portadaPanelItem}>• Conclusiones de la renta</Text>
+        </View>
+
+        <View style={styles.portadaEspacio} />
+
+        <View style={styles.portadaPieLinea}>
+          <View style={styles.portadaPieFila}>
+            <Text style={styles.portadaPieTexto}>{FIRMA_CORTA}</Text>
+            <Text style={styles.portadaPieTexto}>Elaborado el {formatoFecha(anexos.generado)}</Text>
+          </View>
+        </View>
+      </View>
+    </Page>
+  );
+}
+
 export default function AnexosPDF({ anexos, cliente }) {
   const encabezadoIzquierda = `ANEXOS DECLARACIÓN DE RENTA ${cliente.anioGravable}`;
   const encabezadoDerecha = cliente.nombre || 'Cliente';
@@ -228,6 +333,7 @@ export default function AnexosPDF({ anexos, cliente }) {
       author="Daniela Molina Foronda"
       creator="Daniela Molina Foronda — Contadora Pública"
     >
+      <Portada anexos={anexos} cliente={cliente} />
       <Page size="A4" style={styles.page} wrap>
         <View style={styles.headerFixed} fixed>
           <Text style={styles.headerTitulo}>{encabezadoIzquierda}</Text>
@@ -239,10 +345,9 @@ export default function AnexosPDF({ anexos, cliente }) {
         </View>
 
         <View wrap={false}>
-          <Text style={styles.tituloDoc}>Anexos de la declaración de renta</Text>
+          <Text style={styles.tituloDoc}>Resumen ejecutivo</Text>
           <Text style={styles.subTexto}>
-            {cliente.nombre || 'Cliente'} · {cliente.cedula || 'sin cédula'} · Año gravable {cliente.anioGravable} · Generado el{' '}
-            {formatoFecha(anexos.generado)}
+            Cifras principales de la declaración de renta — año gravable {cliente.anioGravable}
           </Text>
         </View>
 
@@ -275,17 +380,18 @@ export default function AnexosPDF({ anexos, cliente }) {
           <Text style={styles.resumenFinalValor}>{formatoPesos(anexos.resumenFinal.valor)}</Text>
         </View>
 
-        {/* El glosario cierra el documento y entra completo en una página:
-            wrap={false} lo mantiene entero en vez de dejar dos o tres
-            términos sueltos como única cosa en la última hoja. */}
+        {/* Las conclusiones cierran el documento y entran completas en una
+            página: wrap={false} las mantiene enteras en vez de dejar un
+            párrafo suelto como única cosa en la última hoja. */}
         <View style={styles.glosarioSeccion} wrap={false}>
-          <Text style={styles.seccionTitulo}>Notas y términos</Text>
-          {anexos.glosario.map((g) => (
-            <View key={g.termino} style={styles.glosarioItem} wrap={false}>
-              <Text style={styles.glosarioTermino}>{g.termino}</Text>
-              <Text style={styles.glosarioDefinicion}>{g.definicion}</Text>
-            </View>
+          <Text style={styles.seccionTitulo}>Conclusiones de la renta</Text>
+          <Text style={styles.seccionParrafo}>
+            Cierre de la declaración de renta persona natural — año gravable {cliente.anioGravable}
+          </Text>
+          {anexos.conclusiones.map((parrafo, i) => (
+            <Text key={i} style={styles.conclusionParrafo}>{parrafo}</Text>
           ))}
+          <Text style={styles.conclusionNota}>{anexos.notaConclusiones}</Text>
         </View>
       </Page>
     </Document>

@@ -158,6 +158,10 @@ function Cascaron({ children }) {
           Contadora Pública · Asesora Tributaria
         </p>
         <p>Tel. 311 780 9709 · Año gravable 2025</p>
+        <p className="portal-pie-legal">
+          <a href="/terminos">Términos y condiciones</a> ·{' '}
+          <a href="/privacidad">Política de tratamiento de datos</a>
+        </p>
       </footer>
     </div>
   );
