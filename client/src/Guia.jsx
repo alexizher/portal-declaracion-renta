@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Recorrido guiado por los módulos: una tarjeta flotante avanza paso a paso
 // mientras el panel muestra detrás la vista real de cada módulo. Se abre solo

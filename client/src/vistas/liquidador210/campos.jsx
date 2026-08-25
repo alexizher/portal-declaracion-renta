@@ -1,5 +1,3 @@
-import React from 'react';
-
 function formatearPesos(valor) {
   if (!valor) return '';
   // Redondeo SOLO de presentación (Math.round, no redondearMiles) — algunos

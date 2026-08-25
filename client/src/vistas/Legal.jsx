@@ -1,5 +1,3 @@
-import React from 'react';
-
 // Páginas públicas de Términos y Condiciones y Política de tratamiento de
 // datos personales. Sin login (igual que /portal): cualquiera con el enlace
 // las puede leer, incluso antes de tener un token de portal.

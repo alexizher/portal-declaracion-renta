@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import * as XLSX from 'xlsx';
 import { parsearReporteExogena, clasificarFilasExogena, agruparSugerencias } from '../../motor210/clasificarExogena.js';
 

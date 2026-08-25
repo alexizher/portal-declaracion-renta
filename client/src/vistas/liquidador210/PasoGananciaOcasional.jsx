@@ -1,4 +1,3 @@
-import React from 'react';
 import { SeccionConceptos, CampoDinero, TotalSeccion } from './campos.jsx';
 import { CONCEPTOS_INGRESOS_GANANCIA_OCASIONAL, CONCEPTOS_COSTOS_GANANCIA_OCASIONAL, CONCEPTOS_EXENTAS_GANANCIA_OCASIONAL } from './conceptos.js';
 

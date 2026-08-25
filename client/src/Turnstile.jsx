@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 
 // Widget de Cloudflare Turnstile para los formularios públicos (login del
 // panel y recuperación del enlace del portal). Solo se pinta si el servidor

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { pdf } from '@react-pdf/renderer';
 import { construirAnexos } from './anexos.js';
 import AnexosPDF, { FIRMA_ASESORA } from './AnexosPDF.jsx';

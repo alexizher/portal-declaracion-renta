@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, apiArchivo, apiFormulario } from '../api.js';
 
 // Revisión de los documentos subidos por los clientes: ver cada archivo,

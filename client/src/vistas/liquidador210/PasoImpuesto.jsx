@@ -1,4 +1,3 @@
-import React from 'react';
 import { detalleImpuestoArt241 } from '../../motor210/constantes/tablaImpuesto241.js';
 
 function formatoPesos(v) {

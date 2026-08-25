@@ -1,4 +1,3 @@
-import React from 'react';
 import { SECCIONES_FORMULARIO_210 } from '../../motor210/etiquetasCasillas.js';
 
 const CASILLAS_NO_MONETARIAS = new Set([1, 5, 6, 7, 8, 9, 10, 12, 24]);

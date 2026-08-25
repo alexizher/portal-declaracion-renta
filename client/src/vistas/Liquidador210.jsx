@@ -1,4 +1,3 @@
-import React from 'react';
 import Wizard from './liquidador210/Wizard.jsx';
 
 // Liquidador del Formulario 210 (renta personas naturales) — solo lo usa

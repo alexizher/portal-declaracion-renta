@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { hayToken, setToken } from './api.js';
 import Guia, { GUIA_VISTA_KEY } from './Guia.jsx';
 import Login from './vistas/Login.jsx';

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Turnstile, { configPublica } from '../Turnstile.jsx';
 
 // Página de los clientes: llega por el enlace del correo, sin login.

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, setToken } from '../api.js';
 import Turnstile, { configPublica } from '../Turnstile.jsx';
 

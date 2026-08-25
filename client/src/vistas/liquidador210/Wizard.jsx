@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { crearEstadoInicial, fusionarConEstadoInicial } from './estadoInicial.js';
 import PasoExogena from './PasoExogena.jsx';
 import PasoCedulas from './PasoCedulas.jsx';

@@ -1,5 +1,3 @@
-import React from 'react';
-
 const ETIQUETA_ANTIGUEDAD = {
   primerAnio: 'Primer año',
   segundoAnio: 'Segundo año',

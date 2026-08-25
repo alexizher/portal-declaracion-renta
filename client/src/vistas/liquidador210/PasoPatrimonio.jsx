@@ -1,4 +1,3 @@
-import React from 'react';
 import { CampoDinero, SeccionConceptos } from './campos.jsx';
 import { CATEGORIAS_PATRIMONIO } from './conceptos.js';
 import { calcularValorActivoConReajuste } from '../../motor210/reajusteFiscal.js';

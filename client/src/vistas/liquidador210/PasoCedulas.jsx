@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SeccionConceptos, CampoDinero, TotalSeccion } from './campos.jsx';
 import {
   CONCEPTOS_INGRESOS_TRABAJO,

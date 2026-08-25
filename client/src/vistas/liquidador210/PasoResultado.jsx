@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { generarPapelTrabajo } from '../../motor210/papelTrabajo.js';
 import AnexosDeclaracion from './AnexosDeclaracion.jsx';
 
