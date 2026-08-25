@@ -12,6 +12,7 @@ liquidador del Formulario 210.
 | **[Arquitectura](docs/ARQUITECTURA.md)** | Desarrolladores | Diagramas, patrones de diseño, modelo de datos y flujos. **Empieza aquí si es tu primer día** |
 | **[Manual técnico](docs/MANUAL-TECNICO.md)** | Desarrolladores | Endpoints, variables de entorno, despliegue y cómo extender |
 | **[Reglas tributarias AG2025](docs/reglas-tributarias-AG2025.md)** | Desarrolladores y contadores | Fundamentación normativa del Liquidador, artículo por artículo del ET |
+| **[Plan multi-tenant](docs/PLAN-MULTITENANT.md)** | Desarrolladores | Cómo pasar de una contadora a varias con suscripción. **Diseñado, no implementado** |
 | **[Changelog](CHANGELOG.md)** | Todos | Historial de cambios |
 
 ## Vista rápida

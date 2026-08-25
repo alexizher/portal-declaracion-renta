@@ -6,6 +6,7 @@ de entorno, despliegue y cómo extender cada pieza.
 - **[ARQUITECTURA.md](ARQUITECTURA.md)** — diagramas, patrones de diseño,
   modelo de datos y flujos. **Empieza por ahí si es tu primer día en el proyecto.**
 - [MANUAL-USUARIO.md](MANUAL-USUARIO.md) — cómo se usa el sistema
+- [PLAN-MULTITENANT.md](PLAN-MULTITENANT.md) — migración a varios contadores (diseñado, no implementado)
 - [reglas-tributarias-AG2025.md](reglas-tributarias-AG2025.md) — fundamentación normativa del Liquidador
 - [README](../README.md) · [CHANGELOG](../CHANGELOG.md)
 

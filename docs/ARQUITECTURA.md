@@ -69,6 +69,12 @@ graph TB
     style S fill:#123a63,color:#fff,stroke:#c9a227,stroke-width:2px
 ```
 
+> **Alcance actual: un solo inquilino.** El sistema está construido para una
+> contadora: no hay tabla de usuarios y ninguna tabla tiene columna de dueño.
+> El plan para pasar a varios contadores con suscripción está diseñado en
+> [PLAN-MULTITENANT.md](PLAN-MULTITENANT.md) — incluye los tres bloqueadores de
+> esquema que hay que cerrar antes de abrir el registro.
+
 ### Los tres subsistemas
 
 | Subsistema | Quién lo usa | Autenticación | Dónde corre la lógica |
