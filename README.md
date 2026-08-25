@@ -1,9 +1,40 @@
 # Portal Declaración de Renta
 
-Sistema para gestión de clientes de declaración de renta (Colombia).
+Sistema para gestión de clientes de declaración de renta de personas naturales
+(Colombia): recordatorios automáticos, portal de documentos por cliente y
+liquidador del Formulario 210.
 
-> 📗 [Manual técnico](docs/MANUAL-TECNICO.md) (arquitectura, seguridad,
-> endpoints y cómo extender) · 📜 [Changelog](CHANGELOG.md)
+## 📚 Documentación
+
+| Documento | Para quién | Qué contiene |
+|---|---|---|
+| **[Manual de usuario](docs/MANUAL-USUARIO.md)** | Contadora y clientes | Cómo se usa el sistema, sin tecnicismos |
+| **[Arquitectura](docs/ARQUITECTURA.md)** | Desarrolladores | Diagramas, patrones de diseño, modelo de datos y flujos. **Empieza aquí si es tu primer día** |
+| **[Manual técnico](docs/MANUAL-TECNICO.md)** | Desarrolladores | Endpoints, variables de entorno, despliegue y cómo extender |
+| **[Reglas tributarias AG2025](docs/reglas-tributarias-AG2025.md)** | Desarrolladores y contadores | Fundamentación normativa del Liquidador, artículo por artículo del ET |
+| **[Changelog](CHANGELOG.md)** | Todos | Historial de cambios |
+
+## Vista rápida
+
+```
+┌─ Panel de administración ──── contadora, con contraseña
+│    Clientes · Correos · Revisión · Documentos · Calendario DIAN · Liquidador 210
+│
+├─ Portal del cliente ───────── enlace personal, sin contraseña
+│    sube documentos · deja su clave DIAN · descarga su declaración
+│
+└─ Liquidador 210 ──────────── 100 % en el navegador
+     9 pasos · 156 pruebas · el servidor nunca ve los datos tributarios
+```
+
+| Capa | Tecnología |
+|---|---|
+| Backend | Node.js 20 · Express 4 · MySQL/MariaDB · multer · nodemailer |
+| Frontend | React 18 · Vite · CSS propio · Vitest |
+| Hosting | cPanel compartido (LiteSpeed + Passenger) |
+| Correo | Brevo API HTTPS (producción) › SMTP › Gmail (desarrollo) |
+
+## Fases
 
 **Fase 1 — Notificador:** panel de administración para importar la lista de
 clientes (Excel/CSV), calcular la fecha de vencimiento DIAN según los dos últimos
@@ -16,16 +47,31 @@ administrador los revisa desde la pestaña **Revisión** (aprobar / rechazar con
 motivo) y, al terminar, envía con un botón el resumen por correo: qué quedó
 aprobado y qué debe volver a subir.
 
+**Fase 3 — Avisos internos:** el sistema le escribe a la contadora cuando un
+cliente sube documentos y le manda una alerta diaria con quiénes se acercan a
+su vencimiento (15, 8, 3 días u hoy).
+
+**Fase 4 — Liquidador 210:** asistente de 9 pasos que arma el borrador del
+Formulario 210 a partir de la exógena y los soportes del cliente. Reemplaza el
+archivo `.xlsm` que se usaba antes. **El cálculo corre íntegro en el
+navegador**: el servidor solo guarda una copia cifrada del avance para poder
+continuar desde otro computador. 156 pruebas automáticas sobre el motor de
+cálculo. Ver [docs/ARQUITECTURA.md §6](docs/ARQUITECTURA.md#6-motor-de-cálculo-motor210).
+
 ## Estructura
 
 ```
 server/   API Express (Node 20) + sirve el frontend compilado desde server/public
-client/   Panel de administración y portal de clientes en React + Vite
+client/   Panel de administración, portal de clientes y Liquidador 210 (React + Vite)
+docs/     Documentación (ver la tabla de arriba)
 ```
 
-Los datos viven en **MySQL/MariaDB** (tablas: clientes, plantillas, calendario,
-config, envios, documentos). Las tablas se crean y se precargan solas al primer
-arranque (incluidas las migraciones de columnas nuevas sobre tablas existentes).
+Los datos viven en **MySQL/MariaDB** (tablas: `clientes`, `plantillas`,
+`calendario`, `config`, `envios`, `documentos`, `entregas`, `liquidaciones210`).
+Las tablas se crean y se precargan solas al primer arranque, incluidas las
+migraciones de columnas nuevas sobre tablas existentes — no hay archivos de
+migración ni ORM. Diagrama entidad-relación en
+[docs/ARQUITECTURA.md §5](docs/ARQUITECTURA.md#5-modelo-de-datos).
 
 ## Portal de documentos (Fase 2)
 
@@ -160,24 +206,61 @@ perfil se editan desde el panel y viven en la base de datos, no en el código.
 
 ## Despliegue en el hosting (cPanel + Node.js Selector)
 
+El servidor tiene **shell SSH completo** (alias `repolite`). Comandos concretos,
+respaldos y operación en
+[docs/MANUAL-TECNICO.md §9](docs/MANUAL-TECNICO.md#9-desarrollo-local-y-despliegue).
+
+### Instalación inicial
+
 1. Crear la base de datos en cPanel → **MySQL Databases**: una DB, un usuario y
    asignarle todos los privilegios (cPanel antepone el prefijo de la cuenta,
    ej. `repolite_renta`).
-2. Compilar el frontend: `cd client && npm run build` (queda en `server/public/`).
-3. En cPanel → **Setup Node.js App**: crear la app con Node **20.20.2**, application
-   root apuntando a la carpeta del proyecto, startup file `server.js`.
-4. Subir por SFTP el contenido de `server/` (incluido `public/`, sin `node_modules`).
-5. Subir por SFTP un archivo **`.env`** a la raíz de la app con: `ADMIN_PASSWORD`,
+2. En cPanel → **Setup Node.js App**: crear la app con Node **20.20.2**,
+   application root apuntando a la carpeta del proyecto, startup file
+   `server.js`.
+3. Compilar el frontend: `cd client && npm run build` (queda en `server/public/`).
+4. Copiar el contenido de `server/` al app root con `scp` (incluido `public/`,
+   **sin** `node_modules`).
+5. Crear el **`.env`** en la raíz de la app con: `ADMIN_PASSWORD`,
    `DB_HOST=localhost`, `DB_PORT=3306`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`,
-   `BASE_URL` (URL pública, para los enlaces `{{portal}}`) y el
-   canal de correo (ver sección anterior). **No** usar las "Environment variables"
-   del panel: su editor no siempre guarda y LiteSpeed altera valores con caracteres
-   especiales (`server.js` carga el `.env` con `override: true`). Por lo mismo,
-   usar contraseñas **solo alfanuméricas** para la DB. Cuidado al editar con el
-   File Manager: un salto de línea después del `=` deja la variable vacía.
-6. Botón **Run NPM Install** (dependencias livianas: express, mysql2, nodemailer,
-   multer, dotenv) y luego **Restart**. Las tablas se crean solas al arrancar.
-7. Reinicios posteriores sin panel: subir cualquier archivo a `tmp/restart.txt`.
+   `BASE_URL` (URL pública, para los enlaces `{{portal}}`), `DATA_SECRET` y el
+   canal de correo (ver sección anterior).
+6. Instalar dependencias y arrancar:
+   ```bash
+   ssh repolite "source ~/nodevenv/declaraciones-renta-pn.repolite.link/20/bin/activate \
+     && cd ~/declaraciones-renta-pn.repolite.link && npm install --omit=dev"
+   ```
+   Las tablas se crean y se precargan solas al arrancar.
+
+> ⚠️ **No** usar las "Environment variables" del panel de cPanel: su editor no
+> siempre guarda y LiteSpeed altera los valores con caracteres especiales (por
+> eso `server.js` carga el `.env` con `override: true`). Por lo mismo, usar
+> contraseñas **solo alfanuméricas** para la DB. Cuidado al editar con el File
+> Manager: un salto de línea después del `=` deja la variable vacía.
+
+### Despliegues posteriores
+
+```bash
+APP=~/declaraciones-renta-pn.repolite.link
+
+cd client && npm run build && cd ..                 # 1. compilar
+scp server/server.js repolite:$APP/                 # 2. subir lo que cambió
+scp server/src/*.js  repolite:$APP/src/
+scp -r server/public/. repolite:$APP/public/
+ssh repolite "touch $APP/tmp/restart.txt"           # 3. reiniciar Passenger
+
+# 4. verificar (20–30 s después) — contra el API, NUNCA contra un estático
+curl -s -o /dev/null -w '%{http_code}\n' \
+  https://declaraciones-renta-pn.repolite.link/api/portal/publico/config
+```
+
+Acuérdate de **borrar los bundles viejos** de `public/assets/`: cada build de
+Vite genera un hash nuevo y se van acumulando. Y de correr `npm install` en el
+servidor solo si cambiaron las dependencias.
+
+> `node` y `npm` **no están en el `PATH`**: hay que activar el virtualenv de
+> CloudLinux en cada sesión SSH. El servidor tiene `git`, `mysql`, `mysqldump`,
+> `crontab`, `curl` y `zip`; **no tiene `rsync`**.
 
 Si existían datos de la versión JSON (`server/data/*.json`), migrarlos con
 `npm run migrar-json`.

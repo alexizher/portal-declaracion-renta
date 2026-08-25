@@ -1,6 +1,9 @@
 // Cabeceras de seguridad, control de caché y limitador de peticiones.
-// Sin dependencias externas a propósito: el hosting se actualiza por SFTP y
-// no queremos depender de un `npm install` remoto para desplegar.
+// Sin dependencias externas a propósito: nació de que el hosting no tenía
+// shell y todo se subía por SFTP. Ya hay SSH y `npm install` corre en el
+// servidor, así que la restricción no aplica — se mantiene porque son ~90
+// líneas que hacen exactamente lo que se necesita (helmet + express-rate-limit
+// traerían mucho más de lo que se usa).
 
 const TURNSTILE = 'https://challenges.cloudflare.com';
 
