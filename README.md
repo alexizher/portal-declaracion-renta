@@ -4,7 +4,7 @@ Sistema para gestión de clientes de declaración de renta de personas naturales
 (Colombia): recordatorios automáticos, portal de documentos por cliente y
 liquidador del Formulario 210.
 
-## 📚 Documentación
+## Documentación
 
 | Documento | Para quién | Qué contiene |
 |---|---|---|
@@ -232,7 +232,7 @@ respaldos y operación en
    ```
    Las tablas se crean y se precargan solas al arrancar.
 
-> ⚠️ **No** usar las "Environment variables" del panel de cPanel: su editor no
+> **No** usar las "Environment variables" del panel de cPanel: su editor no
 > siempre guarda y LiteSpeed altera los valores con caracteres especiales (por
 > eso `server.js` carga el `.env` con `override: true`). Por lo mismo, usar
 > contraseñas **solo alfanuméricas** para la DB. Cuidado al editar con el File

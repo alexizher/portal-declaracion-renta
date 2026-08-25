@@ -39,8 +39,8 @@ documentos y **liquidar** el Formulario 210.
 ```mermaid
 graph TB
     subgraph Personas
-        A["👩‍💼 Contadora<br/>(administradora)"]
-        B["🧑 Cliente<br/>(persona natural)"]
+        A["Contadora<br/>(administradora)"]
+        B["Cliente<br/>(persona natural)"]
     end
 
     S["<b>Portal Declaración de Renta</b><br/>Panel + Portal + Liquidador 210"]
@@ -90,7 +90,7 @@ Esa plataforma explica buena parte del diseño: procesos que se reciclan solos,
 el app root que es también el document root, y un filtro de correo saliente
 agresivo.
 
-> 📌 **Nota histórica.** El proyecto se construyó cuando este hosting **no tenía
+> **Nota histórica.** El proyecto se construyó cuando este hosting **no tenía
 > shell** y todo se desplegaba por SFTP. Varias decisiones nacieron de esa
 > restricción, que **ya está levantada**. Se conservan porque siguen siendo
 > razonables, no porque sigan siendo obligatorias — están marcadas abajo y en
@@ -734,7 +734,7 @@ de mantener a mano una tabla de códigos DIAN que envejece cada año. Lo que no
 reconoce con confianza queda en **"sin clasificar"** para digitar a mano:
 **nunca adivina**.
 
-> ⚠️ Los exports reales del MUISCA a veces traen el rango `!ref` de la hoja
+> Los exports reales del MUISCA a veces traen el rango `!ref` de la hoja
 > dañado. `PasoExogena.jsx` lo recalcula desde las celdas reales antes de
 > convertir a filas; sin eso, SheetJS trunca los datos **en silencio**.
 
@@ -822,7 +822,7 @@ sequenceDiagram
             Note over AV: freno para no mandar<br/>un correo por archivo
         else
             AV->>B: correo a config.correo_avisos
-            B->>CO: 📧 "Un cliente subió documentos"
+            B->>CO: correo "Un cliente subió documentos"
             AV->>D: registra en envios
         end
         API-->>P: 201 + checklist actualizado
@@ -865,7 +865,7 @@ sequenceDiagram
         AV->>D: clientesEnHitos() — 15 / 8 / 3 / 0 días
         Note over AV: excluye los marcados "ya declaró"
         AV->>B: correo con colores por urgencia
-        B->>CO: 📧 alerta del día
+        B->>CO: alerta del día
         AV->>D: INSERT en envios → cierra el candado
     end
 ```
@@ -921,7 +921,7 @@ sequenceDiagram
     Note over W: si falla, el indicador dice "error"<br/>pero <b>nunca bloquea</b>:<br/>el caso sigue en localStorage
     end
 
-    Note over API,DB: 🔒 El servidor guarda un blob que<br/>no puede interpretar. Los ingresos y<br/>el patrimonio nunca existen en claro<br/>fuera del navegador de la contadora.
+    Note over API,DB: El servidor guarda un blob que<br/>no puede interpretar. Los ingresos y<br/>el patrimonio nunca existen en claro<br/>fuera del navegador de la contadora.
 ```
 
 ### 7.5 Revisión y notificación de resultado
@@ -956,7 +956,7 @@ sequenceDiagram
     API->>CR: enviarRevision(clienteId)
     CR->>CR: renderCorreoRevision — HTML en código,<br/>paleta de marca inline
     CR->>B: envía
-    B->>CL: 📧 aprobados · por corregir · sin subir
+    B->>CL: aprobados · por corregir · sin subir
     CR->>D: registra en envios tipo "revision"
 ```
 
@@ -1145,7 +1145,7 @@ allá del widget de Turnstile.
 | Secreto | Firma / cifra | Si se rota |
 |---|---|---|
 | `ADMIN_PASSWORD` | Token del panel **y** todos los enlaces del portal | Se invalidan todas las sesiones y **todos los enlaces de clientes** |
-| `DATA_SECRET` | Clave DIAN y liquidaciones del 210 | ⚠️ **Lo cifrado queda ilegible para siempre.** No rotar |
+| `DATA_SECRET` | Clave DIAN y liquidaciones del 210 | **Lo cifrado queda ilegible para siempre.** No rotar |
 
 Están separados a propósito: rotar la contraseña del panel es una operación
 razonable de seguridad; perder los datos cifrados no lo es.
@@ -1175,7 +1175,7 @@ Esa es exactamente la razón de haberlo mantenido puro.
 React y los envíos de correo. Se validan a mano; `GET /api/correos/verificar`
 diagnostica el canal de correo sin enviar nada.
 
-> 🚧 **Gate pendiente antes de usar el Liquidador con clientes reales**: validar
+> **Gate pendiente antes de usar el Liquidador con clientes reales**: validar
 > 2–3 declaraciones de la temporada en paralelo contra el proceso anterior de la
 > contadora, casilla por casilla.
 

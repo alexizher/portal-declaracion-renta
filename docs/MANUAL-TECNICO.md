@@ -3,11 +3,11 @@
 Referencia operativa para quien mantiene la aplicación: endpoints, variables
 de entorno, despliegue y cómo extender cada pieza.
 
-- 🏗️ **[ARQUITECTURA.md](ARQUITECTURA.md)** — diagramas, patrones de diseño,
+- **[ARQUITECTURA.md](ARQUITECTURA.md)** — diagramas, patrones de diseño,
   modelo de datos y flujos. **Empieza por ahí si es tu primer día en el proyecto.**
-- 👤 [MANUAL-USUARIO.md](MANUAL-USUARIO.md) — cómo se usa el sistema
-- 📗 [reglas-tributarias-AG2025.md](reglas-tributarias-AG2025.md) — fundamentación normativa del Liquidador
-- 📜 [README](../README.md) · [CHANGELOG](../CHANGELOG.md)
+- [MANUAL-USUARIO.md](MANUAL-USUARIO.md) — cómo se usa el sistema
+- [reglas-tributarias-AG2025.md](reglas-tributarias-AG2025.md) — fundamentación normativa del Liquidador
+- [README](../README.md) · [CHANGELOG](../CHANGELOG.md)
 
 ## 1. Visión general
 
@@ -306,7 +306,7 @@ curl -s -o /dev/null -w '%{http_code}\n' \
   https://declaraciones-renta-pn.repolite.link/api/portal/publico/config
 ```
 
-> ⚠️ **Verificar siempre contra un endpoint del API, nunca contra un
+> **Verificar siempre contra un endpoint del API, nunca contra un
 > estático.** LiteSpeed sirve los archivos que existen en el app root sin
 > pasar por Node: un `index.html` que responde 200 no prueba que la app
 > reinició.
@@ -528,7 +528,7 @@ palabras clave del "Detalle" para el campo específico. Es **conservador a
 propósito**: lo que no reconoce con confianza queda en "sin clasificar" para
 digitar a mano, nunca adivina.
 
-> ⚠️ Los exports reales del MUISCA pueden traer el `!ref` (rango) de la hoja
+> Los exports reales del MUISCA pueden traer el `!ref` (rango) de la hoja
 > dañado o desactualizado. `PasoExogena.jsx` lo recalcula desde las celdas
 > reales antes de convertir a filas; sin eso, SheetJS **trunca los datos en
 > silencio**.
@@ -578,6 +578,6 @@ escribir su prueba** — es la única red de seguridad que tiene este motor.
 
 ### Gate pendiente
 
-🚧 **Antes de usar con clientes reales**: validar 2-3 declaraciones de la
+**Antes de usar con clientes reales**: validar 2-3 declaraciones de la
 temporada en paralelo contra el proceso anterior de la contadora, casilla por
 casilla. Un error de cálculo tiene consecuencias reales frente a la DIAN.

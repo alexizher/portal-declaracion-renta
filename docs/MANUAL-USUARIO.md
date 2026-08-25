@@ -30,14 +30,14 @@ ya estás adentro.
 
 ```mermaid
 flowchart LR
-    A["📧 Te llega un correo<br/>de tu contadora"] --> B["Tocas el enlace"]
-    B --> C["🔓 Entras directo<br/>sin contraseña"]
+    A["Te llega un correo<br/>de tu contadora"] --> B["Tocas el enlace"]
+    B --> C["Entras directo<br/>sin contraseña"]
     C --> D["Ves tu lista<br/>de documentos"]
 
     style C fill:#2d5016,color:#fff
 ```
 
-> 💡 **Guárdalo en favoritos** la primera vez. Es el mismo enlace durante toda la
+> **Guárdalo en favoritos** la primera vez. Es el mismo enlace durante toda la
 > temporada: puedes entrar y salir las veces que quieras.
 
 ### ¿Perdiste el enlace?
@@ -57,10 +57,10 @@ cuántos hay:
 
 | Grupo | Qué significa | Qué hacer |
 |---|---|---|
-| 🔴 **Necesitan corrección** | Tu contadora los revisó y hay algo mal | Léelo, corrige y sube el archivo otra vez |
-| ⬜ **Por subir** | Todavía no los has enviado | Tócalos y sube el archivo |
-| 🟡 **En revisión** | Ya los subiste, tu contadora los está mirando | Nada, solo esperar |
-| 🟢 **Aprobados** | Listos, no hay que hacer nada más | Nada 🎉 |
+| **Necesitan corrección** | Tu contadora los revisó y hay algo mal | Léelo, corrige y sube el archivo otra vez |
+| **Por subir** | Todavía no los has enviado | Tócalos y sube el archivo |
+| **En revisión** | Ya los subiste, tu contadora los está mirando | Nada, solo esperar |
+| **Aprobados** | Listos, no hay que hacer nada más | Nada |
 
 **Empieza siempre por "Necesitan corrección"**: ahí te aparece escrito el motivo
 exacto por el que se devolvió.
@@ -73,7 +73,7 @@ exacto por el que se devolvió.
 
 ### Qué archivos se aceptan
 
-| ✅ Sirven | ❌ No sirven |
+| Sirven | No sirven |
 |---|---|
 | PDF | Videos |
 | Fotos: JPG, PNG, WebP, HEIC (iPhone) | Archivos comprimidos ZIP o RAR |
@@ -117,10 +117,10 @@ presentar la declaración a tu nombre.
 
 ```mermaid
 flowchart LR
-    A["Escribes tu clave"] --> B["🔒 Se cifra apenas llega<br/>al servidor"]
+    A["Escribes tu clave"] --> B["Se cifra apenas llega<br/>al servidor"]
     B --> C[("Guardada cifrada")]
-    C -->|"solo con la contraseña<br/>del panel"| D["👩‍💼 Tu contadora<br/>la puede ver"]
-    C -.->|"❌ nunca"| E["Tu propio portal<br/>no la muestra de vuelta"]
+    C -->|"solo con la contraseña<br/>del panel"| D["Tu contadora<br/>la puede ver"]
+    C -.->|"nunca"| E["Tu propio portal<br/>no la muestra de vuelta"]
 
     style B fill:#123a63,color:#fff
     style E fill:#7a1f1f,color:#fff
@@ -137,7 +137,7 @@ Y cuando ya presentó tu declaración, ella puede borrarla del sistema.
 
 ## Mantener tus datos al día
 
-Toca el **lápiz** ✏️ junto a tu nombre para corregir tu **correo** y tu
+Toca el **lápiz** junto a tu nombre para corregir tu **correo** y tu
 **celular**. Es importante: si tu correo está mal, no te llegan ni los
 recordatorios ni el enlace cuando lo pidas.
 
@@ -149,7 +149,7 @@ error ahí.
 Aparece una **tarjeta verde** en tu portal con el botón **"Descargar mi
 declaración"**. Ahí también quedan, cuando aplican, el anexo y el recibo de pago.
 
-> 📥 **Descárgalos y guárdalos.** Son tus soportes ante la DIAN y te los pueden
+> **Descárgalos y guárdalos.** Son tus soportes ante la DIAN y te los pueden
 > pedir después.
 
 ## Preguntas frecuentes
@@ -209,7 +209,7 @@ En el celular, el menú de pestañas se abre con el botón **☰**.
 
 ---
 
-## 📋 Pestaña Clientes
+## Pestaña Clientes
 
 Tu lista de trabajo.
 
@@ -230,12 +230,12 @@ La columna **Vence** se pinta según la urgencia:
 
 | Color | Faltan | |
 |---|---|---|
-| ⬜ Sin color | Más de 15 días | Tranquila |
-| 🟡 Amarillo | 15 días o menos | Ojo |
-| 🟠 Naranja | 8 días o menos | Hay que moverse |
-| 🔴 Rojo | 3 días o menos | Urgente |
-| 🔴 Rojo pleno | **Vence hoy** | 🚨 |
-| ✅ "Declaró ✓" | Ya presentó | Fuera de alertas |
+| Sin color | Más de 15 días | Tranquila |
+| Amarillo | 15 días o menos | Ojo |
+| Naranja | 8 días o menos | Hay que moverse |
+| Rojo | 3 días o menos | Urgente |
+| Rojo pleno | **Vence hoy** | Es el último día |
+| "Declaró ✓" | Ya presentó | Fuera de alertas |
 
 ### Otras acciones
 
@@ -244,13 +244,13 @@ La columna **Vence** se pinta según la urgencia:
   **"ya declaró"**.
 - **Último envío**: cuándo le escribiste por última vez.
 
-> ⚠️ **Marcar "ya declaró"** saca al cliente de las alertas de vencimiento y de
+> **Marcar "ya declaró"** saca al cliente de las alertas de vencimiento y de
 > los envíos masivos. Se marca **solo** cuando subes su declaración desde
 > Revisión, pero también puedes hacerlo a mano.
 
 ---
 
-## ✉️ Pestaña Correos
+## Pestaña Correos
 
 Tres mensajes masivos, cada uno con su plantilla editable:
 
@@ -290,9 +290,9 @@ entre llaves y se reemplazan solas por los datos de cada cliente:
 
 Abajo de todo configuras **a qué correo tuyo** te llegan los avisos automáticos:
 
-- 📤 **Cuando un cliente sube documentos** — con un freno de 30 minutos, para que
+- **Cuando un cliente sube documentos** — con un freno de 30 minutos, para que
   no te llegue un correo por cada archivo.
-- 📅 **Alerta diaria de vencimientos** — quiénes llegan a los 15, 8, 3 días o
+- **Alerta diaria de vencimientos** — quiénes llegan a los 15, 8, 3 días o
   vencen hoy, con colores por urgencia. Llega **una sola vez al día**.
 
 > Si dejas el campo vacío, los avisos se apagan.
@@ -304,7 +304,7 @@ falló. Ahí también ves los avisos internos y los reenvíos de enlace.
 
 ---
 
-## ✅ Pestaña Revisión
+## Pestaña Revisión
 
 El día a día de la temporada.
 
@@ -315,7 +315,7 @@ Empieza por los que tienen número.
 
 Botones **Ver** (lo abres) → **Aprobar** o **Rechazar**.
 
-> ✍️ **Al rechazar, escribe el motivo con detalle.** El cliente lo lee tal cual en
+> **Al rechazar, escribe el motivo con detalle.** El cliente lo lee tal cual en
 > su portal. *"La foto está cortada, falta la parte de abajo"* le sirve;
 > *"mal"* lo deja igual de perdido.
 
@@ -338,7 +338,7 @@ Si el cliente la registró, aparece la tarjeta **"Clave DIAN"** con tres botones
 - **Copiar** — al portapapeles, para pegarla en la DIAN
 - **Borrar** — la elimina del sistema
 
-> 🔒 **Bórrala cuando ya presentaste la declaración.** Es el dato más sensible que
+> **Bórrala cuando ya presentaste la declaración.** Es el dato más sensible que
 > guarda el sistema; si no está, no hay nada que proteger.
 
 ### Copiar el enlace del cliente
@@ -359,12 +359,12 @@ Sección **"Documentos para el cliente"**, con tres espacios:
 Subes cada uno con **Subir** (o **Reemplazar** si ya había uno) y el cliente lo
 ve al instante en su portal.
 
-> ⚡ **Subir la declaración marca al cliente como "ya declaró" automáticamente.**
+> **Subir la declaración marca al cliente como "ya declaró" automáticamente.**
 > Sale de las alertas de vencimiento y le aparece la tarjeta verde de descarga.
 
 ---
 
-## 📄 Pestaña Documentos
+## Pestaña Documentos
 
 Aquí defines las **listas de documentos por perfil**: empleado, independiente,
 con inversiones, etc.
@@ -373,26 +373,26 @@ Lo que escribas aquí es lo que ve el cliente en su correo **y** en su portal, a
 que escribe los nombres como se los dirías a él: *"Certificado de ingresos y
 retenciones 2025"*, no *"Cert. ing. y ret."*.
 
-> 💡 Editar una lista actualiza al instante el portal de **todos** los clientes
+> Editar una lista actualiza al instante el portal de **todos** los clientes
 > que la tengan asignada. Si agregas un documento a mitad de temporada, a todos
 > les aparece como "por subir".
 
 ---
 
-## 📅 Pestaña Calendario DIAN
+## Pestaña Calendario DIAN
 
 Los vencimientos por pares de dígitos. **Ya viene cargado** con el calendario
 oficial (año gravable 2025: del 12 de agosto al 26 de octubre de 2026).
 
 Solo tienes que tocarlo si la DIAN mueve fechas. Recuerda **Guardar cambios**.
 
-> ⚠️ Verifica siempre contra el
+> Verifica siempre contra el
 > [calendario oficial de la DIAN](https://www.dian.gov.co/Calendarios/Calendario_Tributario_2026.pdf).
 > De esta tabla salen todas las fechas y todas las alertas del sistema.
 
 ---
 
-## 🧮 Pestaña Liquidador 210
+## Pestaña Liquidador 210
 
 Un asistente que arma el borrador del **Formulario 210** paso a paso. Reemplaza
 el archivo de Excel que usabas antes.
@@ -435,7 +435,7 @@ Como también queda en el servidor, **puedes seguir la misma declaración desde
 otro computador**. Y si se cae internet, sigues trabajando: queda en este
 navegador y sube después.
 
-> 🔒 Todo lo que digitas aquí — ingresos, patrimonio, exógena — **se calcula en
+> Todo lo que digitas aquí — ingresos, patrimonio, exógena — **se calcula en
 > tu propio navegador**. El servidor solo guarda una copia cifrada que no puede
 > leer.
 
@@ -459,7 +459,7 @@ si se incluye.
 | **Formulario 210** (Excel) | Casilla por casilla, para pasarlo al MUISCA |
 | **Anexos** (PDF) | Documento presentable para entregarle al cliente |
 
-> 🚧 **Antes de usarlo con clientes reales**, liquida 2 o 3 declaraciones **en
+> **Antes de usarlo con clientes reales**, liquida 2 o 3 declaraciones **en
 > paralelo** con tu método anterior y compara casilla por casilla. Un error de
 > cálculo tiene consecuencias reales frente a la DIAN.
 
