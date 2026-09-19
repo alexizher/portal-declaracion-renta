@@ -7,7 +7,8 @@
 // un iframe, así su <style> no se mezcla con los estilos del panel.
 //
 // Variables: {{saludo}} ("Hola Ana," o "Hola," si no hay nombre),
-// {{vencimiento}}, {{dias}} ("faltan 12 días"), {{digitos}}, {{baja}}.
+// {{fechas}} (tabla de los plazos que aún no vencen), {{ultimo_plazo}}
+// ("26 de octubre") y {{baja}}.
 
 const ASUNTO = '¿Ya presentó su declaración de renta?';
 
@@ -32,7 +33,7 @@ const CUERPO = `<!DOCTYPE html>
 <body style="margin:0;padding:0;background:#fbf8f6;">
 
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#fbf8f6;font-size:1px;line-height:1px;">
-  Su plazo vence el {{vencimiento}}. Revise en 1 minuto si le toca declarar y déjenos el resto a nosotros.
+  Los plazos van hasta el {{ultimo_plazo}}. Revise en 1 minuto si le toca declarar y déjenos el resto a nosotros.
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fbf8f6;">
@@ -64,28 +65,13 @@ const CUERPO = `<!DOCTYPE html>
     <td class="cap-relleno" style="padding:16px 40px 0;font-size:16px;line-height:1.6;">
       <p style="margin:0 0 14px;">{{saludo}}</p>
       <p style="margin:0 0 14px;">
-        La DIAN ya está recibiendo las declaraciones de renta del año gravable 2025. Según los
-        dos últimos dígitos de su cédula, su plazo vence el <strong>{{vencimiento}}</strong>.
+        La DIAN ya está recibiendo las declaraciones de renta del año gravable 2025 y los plazos
+        van <strong>hasta el {{ultimo_plazo}}</strong>, según los dos últimos dígitos de su cédula.
       </p>
       <p style="margin:0;">
         Si le toca declarar, nosotros nos encargamos: usted nos envía sus documentos
         y le entregamos la declaración lista y presentada ante la DIAN.
       </p>
-    </td>
-  </tr>
-
-  <tr>
-    <td class="cap-relleno" style="padding:22px 40px 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-             style="background:#152a45;border-radius:8px;">
-        <tr>
-          <td align="center" style="padding:18px 16px;color:#ffffff;">
-            <p style="margin:0;font-size:13px;letter-spacing:.5px;color:#c39a3b;"><strong>SU FECHA LÍMITE · DÍGITOS {{digitos}}</strong></p>
-            <p style="margin:6px 0 0;font-size:24px;line-height:1.2;"><strong>{{vencimiento}}</strong></p>
-            <p style="margin:6px 0 0;font-size:14px;color:#d6dde8;">{{dias}}</p>
-          </td>
-        </tr>
-      </table>
     </td>
   </tr>
 
@@ -155,6 +141,15 @@ const CUERPO = `<!DOCTYPE html>
           </td>
         </tr>
       </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td class="cap-relleno" style="padding:26px 40px 0;">
+      <p style="margin:0 0 4px;font-size:17px;color:#152a45;"><strong>Fechas que quedan</strong></p>
+      <p style="margin:0 0 12px;font-size:14px;color:#5b6573;">Busque los dos últimos dígitos de su cédula.</p>
+      {{fechas}}
+      <p style="margin:10px 0 0;font-size:13px;color:#7b8794;">¿Su fecha ya pasó? Todavía podemos ayudarle a presentarla con la menor sanción posible.</p>
     </td>
   </tr>
 

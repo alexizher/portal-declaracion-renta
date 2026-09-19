@@ -598,13 +598,10 @@ api.delete('/clientes/:id/entrega/:tipo', validarTipoEntrega, ruta(async (req, r
 // ---------- Prospectos (captación) ----------
 
 api.get('/prospectos', ruta(async (req, res) => {
-  const [prospectos, calendario] = await Promise.all([
-    datos.listarProspectos(),
-    datos.obtenerCalendario(),
-  ]);
+  const prospectos = await datos.listarProspectos();
   const ahora = datos.ahoraBogota();
   res.json({
-    prospectos: prospectos.map((p) => ({ ...p, vencimiento: vencimientoDe(p.nit, calendario) })),
+    prospectos,
     horario: puedeContactar(ahora),
     limiteDiario: LIMITE_DIARIO_CAPTACION,
     enviadosHoy: await datos.contarEnviosDesde('captacion', `${ahora.slice(0, 10)} 00:00:00`),
@@ -622,6 +619,7 @@ api.post('/prospectos/importar', ruta(async (req, res) => {
 api.put('/prospectos/:id', ruta(async (req, res) => {
   const prospecto = await datos.actualizarProspecto(req.params.id, req.body);
   if (!prospecto) return res.status(404).json({ error: 'Prospecto no encontrado.' });
+  if (prospecto.error) return res.status(400).json(prospecto);
   res.json(prospecto);
 }));
 
@@ -632,7 +630,10 @@ api.delete('/prospectos/:id', ruta(async (req, res) => {
 }));
 
 api.post('/prospectos/:id/convertir', ruta(async (req, res) => {
-  const r = await datos.convertirProspecto(req.params.id, req.body.plantillaId || null);
+  const r = await datos.convertirProspecto(req.params.id, {
+    cedula: req.body.cedula,
+    plantillaId: req.body.plantillaId || null,
+  });
   if (r.error) return res.status(r.status).json({ error: r.error });
   res.json(r);
 }));

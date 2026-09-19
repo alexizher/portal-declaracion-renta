@@ -312,38 +312,39 @@ documentos hasta que aceptan.
 
 ### Importar la lista
 
-**Importar CSV/Excel** reconoce las columnas *NIT/cédula* (obligatoria),
-*nombre*, *correo*, *celular* y *actividad*. Al terminar te dice cuántos
-agregó y cuántos omitió:
+**Importar CSV/Excel** solo guarda el *nombre* y el *correo* (obligatorio). Las
+demás columnas que traiga la base (NIT, ingresos, fechas…) se ignoran. Al
+terminar te dice cuántos agregó y cuántos omitió:
 
-- **Repetidos**: el mismo NIT dos veces, o ya importado antes.
-- **Ya son clientes**: se cruzan por cédula y no se duplican.
+- **Repetidos**: el mismo correo dos veces, o ya importado antes.
+- **Nombre cortado**: nombres que terminan en "de", "del", "la"… porque la
+  base los cortó ("ANA TULIA TREJO DE"). Saludarlos así queda mal.
+- **Ya son clientes**: se cruzan por correo y no se duplican.
+- **Sin correo válido**.
 
-Los ingresos y las fechas que traiga la base **no se guardan**. La fecha límite
-se calcula siempre con el calendario DIAN a partir del NIT, igual que con los
-clientes. Si la base trae "N/A" como nombre, queda vacío y el correo saluda con
-un "Hola," a secas.
+El correo saluda solo con el primer nombre ("Hola Adela,"), aunque la base lo
+traiga completo y en mayúsculas. Si no hay nombre, dice "Hola," a secas.
 
 ### Revisar el correo
 
-**Ver correo** muestra el mensaje tal como le llegaría a esa persona, con su
-propia fecha límite y los días que le faltan. Puedes verlo al ancho de un
-celular o de un computador. Con **Editar mensaje** cambias el asunto y el
+**Ver correo** muestra el mensaje tal como le llegaría a esa persona. La tabla
+de fechas solo muestra los plazos que todavía no vencen, así que el correo
+nunca queda desactualizado. Puedes verlo al ancho de un celular o de un
+computador. Con **Editar mensaje** cambias el asunto y el
 cuerpo. Estas son las palabras que se reemplazan solas:
 
 | Escribe | Sale |
 |---|---|
-| `{{saludo}}` | "Hola Ana," o "Hola," si no hay nombre |
-| `{{vencimiento}}` | Su fecha límite |
-| `{{dias}}` | "Faltan 12 días", "Vence mañana" o "Vence hoy" |
-| `{{digitos}}` | Los dos últimos dígitos de su NIT |
+| `{{saludo}}` | "Hola Adela," o "Hola," si no hay nombre |
+| `{{fechas}}` | La tabla de los plazos que aún no vencen |
+| `{{ultimo_plazo}}` | El último día de la temporada, p. ej. "26 de octubre" |
 | `{{baja}}` | El enlace para darse de baja (no lo quites) |
 
 ### Enviar
 
 1. Filtra **Por contactar** (la opción por defecto).
-2. Marca los prospectos. Solo se pueden marcar los que tienen correo y cuyo
-   plazo no ha vencido.
+2. Marca los prospectos. No se pueden marcar los dados de baja, descartados
+   ni los que ya son clientes.
 3. **Enviar correo de captación**.
 
 El sistema te protege de tres errores comunes:
@@ -370,8 +371,8 @@ El sistema te protege de tres errores comunes:
 
 ### Cuando alguien acepta
 
-En **Editar**, escribe su nombre (es obligatorio para ser cliente), elige su
-lista de documentos (se sugiere según la actividad) y toca **Pasar a
+En **Editar**, revisa su nombre, escribe su **cédula** (no se guarda en
+prospectos, se pide recién aquí), elige su lista de documentos y toca **Pasar a
 Clientes**. Desde ahí sigue el camino normal: invitación al portal, documentos
 y revisión.
 

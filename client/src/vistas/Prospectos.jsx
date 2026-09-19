@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { api } from '../api.js';
-import { claseVencimiento } from './Clientes.jsx';
 import { normalizar } from './ImportarExcel.jsx';
 
 const ESTADOS = [
@@ -17,39 +16,9 @@ const estadoDe = (id) => ESTADOS.find((e) => e.id === id) || ESTADOS[0];
 // Estados a los que todavía se les puede escribir.
 const CONTACTABLES = ['nuevo', 'contactado', 'respondio'];
 
-function diasHasta(fechaIso) {
-  const [y, m, d] = fechaIso.split('-').map(Number);
-  const hoy = new Date();
-  return Math.round(
-    (Date.UTC(y, m - 1, d) - Date.UTC(hoy.getFullYear(), hoy.getMonth(), hoy.getDate())) / 86400000
-  );
-}
-
-// Listo para el correo de captación: tiene correo, sigue contactable y su
-// plazo no ha vencido. El servidor vuelve a validar todo al enviar.
-function listoParaEnvio(p) {
-  return Boolean(
-    p.email && CONTACTABLES.includes(p.estado) && p.vencimiento && diasHasta(p.vencimiento.fecha) >= 0
-  );
-}
-
-function motivoNoListo(p) {
-  if (!CONTACTABLES.includes(p.estado)) return null; // el estado ya lo dice
-  if (!p.email) return 'sin correo';
-  if (!p.vencimiento) return 'sin fecha';
-  return 'vencido';
-}
-
-// Lista de documentos sugerida al convertir, según la actividad del CSV.
-function plantillaSugerida(actividad, plantillas) {
-  const a = normalizar(actividad);
-  const id = a.includes('independ')
-    ? 'independiente'
-    : a.includes('invers') || a.includes('rentista')
-      ? 'inversionista'
-      : 'empleado';
-  return plantillas.some((p) => p.id === id) ? id : '';
-}
+// Listo para el correo de captación: tiene correo y sigue contactable. El
+// servidor vuelve a validar todo al enviar.
+const listoParaEnvio = (p) => Boolean(p.email && CONTACTABLES.includes(p.estado));
 
 const FILTROS = [
   { id: 'activos', texto: 'Por contactar' },
@@ -92,19 +61,13 @@ export default function Prospectos() {
       )
       .filter(
         (p) =>
-          !q ||
-          p.nit.includes(q) ||
-          p.nombre.toLowerCase().includes(q) ||
-          p.email.includes(q) ||
-          p.actividad.toLowerCase().includes(q)
+          !q || p.nombre.toLowerCase().includes(q) || p.email.includes(q)
       )
-      .sort((a, b) =>
-        (a.vencimiento?.fecha || '9999').localeCompare(b.vencimiento?.fecha || '9999')
-      );
+      .sort((a, b) => (a.nombre || a.email).localeCompare(b.nombre || b.email, 'es'));
   }, [prospectos, busqueda, filtro]);
 
   const listos = useMemo(() => visibles.filter(listoParaEnvio), [visibles]);
-  const conCorreo = prospectos.filter((p) => p.email).length;
+  const contactados = prospectos.filter((p) => p.ultimoEnvio).length;
 
   function alternar(id) {
     const s = new Set(seleccion);
@@ -156,7 +119,7 @@ export default function Prospectos() {
       <div className="fila-acciones">
         <input
           className="buscador"
-          placeholder="Buscar por NIT, nombre, correo o actividad…"
+          placeholder="Buscar por nombre o correo…"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
         />
@@ -177,8 +140,8 @@ export default function Prospectos() {
       {!horario.ok && <div className="aviso">Envío pausado: {horario.motivo}</div>}
 
       <p className="tenue">
-        {prospectos.length} prospecto(s) · {conCorreo} con correo · enviados hoy {enviadosHoy} de{' '}
-        {limiteDiario}
+        {prospectos.length} prospecto(s) · {contactados} ya contactado(s) · enviados hoy{' '}
+        {enviadosHoy} de {limiteDiario}
       </p>
 
       <div className="tabla-scroll">
@@ -194,49 +157,39 @@ export default function Prospectos() {
                   onChange={seleccionarTodos}
                 />
               </th>
-              <th>NIT / nombre</th>
-              <th className="oculta-movil">Actividad</th>
-              <th>Vence</th>
-              <th className="oculta-movil">Correo</th>
+              <th>Nombre / correo</th>
               <th>Estado</th>
+              <th className="oculta-movil">Último envío</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {visibles.map((p) => {
               const listo = listoParaEnvio(p);
-              const motivo = !listo && motivoNoListo(p);
               const estado = estadoDe(p.estado);
               return (
                 <tr key={p.id} className={listo ? '' : 'fila-tenue'}>
                   <td>
                     <input
                       type="checkbox"
-                      aria-label={`Seleccionar ${p.nit}`}
+                      aria-label={`Seleccionar ${p.nombre || p.email}`}
                       disabled={!listo}
                       checked={seleccion.has(p.id)}
                       onChange={() => alternar(p.id)}
                     />
                   </td>
                   <td>
-                    {p.nit}
-                    <div className="tenue">{p.nombre || 'sin nombre'}</div>
+                    {p.nombre || <span className="tenue">sin nombre</span>}
+                    <div className="tenue">{p.email}</div>
                   </td>
-                  <td className="oculta-movil">{p.actividad || '—'}</td>
-                  <td>
-                    {p.vencimiento ? (
-                      <span className={claseVencimiento(p.vencimiento.fecha)}>{p.vencimiento.fecha}</span>
-                    ) : (
-                      <span className="pill alerta">sin fecha</span>
-                    )}
-                  </td>
-                  <td className="oculta-movil">{p.email || <span className="tenue">sin correo</span>}</td>
                   <td>
                     <span className={estado.clase}>{estado.texto}</span>
-                    {motivo && (
-                      <div>
-                        <span className="pill alerta">{motivo}</span>
-                      </div>
+                  </td>
+                  <td className="oculta-movil">
+                    {p.ultimoEnvio ? (
+                      new Date(p.ultimoEnvio).toLocaleDateString('es-CO')
+                    ) : (
+                      <span className="tenue">nunca</span>
                     )}
                   </td>
                   <td className="acciones">
@@ -248,7 +201,7 @@ export default function Prospectos() {
             })}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={7} className="tenue centrado">
+                <td colSpan={5} className="tenue centrado">
                   {prospectos.length === 0
                     ? 'Aún no hay prospectos. Importa la lista desde CSV o Excel.'
                     : 'Ningún prospecto coincide con el filtro.'}
@@ -305,8 +258,9 @@ export default function Prospectos() {
           onImportado={(r) => {
             setImportando(false);
             setMensaje(
-              `Importación: ${r.agregados} agregados, ${r.duplicados} repetidos omitidos, ` +
-                `${r.yaClientes} que ya son clientes omitidos, ${r.invalidos} filas sin NIT válido.`
+              `Importación: ${r.agregados} agregados. Omitidos: ${r.duplicados} repetidos, ` +
+                `${r.cortados} con el nombre cortado, ${r.yaClientes} que ya son clientes y ` +
+                `${r.invalidos} sin correo válido.`
             );
             cargar();
           }}
@@ -364,7 +318,8 @@ function VistaPrevia({ preview, setPreview }) {
 
 function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
   const [datos, setDatos] = useState({ ...prospecto });
-  const [plantillaId, setPlantillaId] = useState(plantillaSugerida(prospecto.actividad, plantillas));
+  const [cedula, setCedula] = useState('');
+  const [plantillaId, setPlantillaId] = useState('');
   const [error, setError] = useState(null);
 
   function campo(nombre) {
@@ -393,7 +348,7 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
       await api(`/prospectos/${prospecto.id}`, { method: 'PUT', body: datos });
       const r = await api(`/prospectos/${prospecto.id}/convertir`, {
         method: 'POST',
-        body: { plantillaId: plantillaId || null },
+        body: { cedula, plantillaId: plantillaId || null },
       });
       onGuardado(`${r.cliente.nombre} ya está en Clientes. Desde Correos puedes enviarle la invitación al portal.`);
     } catch (err) {
@@ -402,7 +357,7 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
   }
 
   async function eliminar() {
-    if (!window.confirm(`¿Eliminar el prospecto ${prospecto.nit}?`)) return;
+    if (!window.confirm(`¿Eliminar a ${prospecto.nombre || prospecto.email}?`)) return;
     try {
       await api(`/prospectos/${prospecto.id}`, { method: 'DELETE' });
       onGuardado();
@@ -416,23 +371,15 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
   return (
     <div className="modal-fondo" onClick={onCerrar}>
       <form className="tarjeta modal" onClick={(e) => e.stopPropagation()} onSubmit={guardar}>
-        <h2>Prospecto {prospecto.nit}</h2>
+        <h2>{prospecto.nombre || 'Prospecto'}</h2>
         {prospecto.origen && <p className="tenue">Importado de {prospecto.origen}</p>}
         <label>
           Nombre
           <input {...campo('nombre')} placeholder="Si lo conoces" />
         </label>
         <label>
-          Correo electrónico
-          <input type="email" {...campo('email')} />
-        </label>
-        <label>
-          Celular
-          <input {...campo('telefono')} />
-        </label>
-        <label>
-          Actividad
-          <input {...campo('actividad')} />
+          Correo electrónico *
+          <input type="email" {...campo('email')} required />
         </label>
         <label>
           Estado
@@ -455,6 +402,10 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
         {!convertido && (
           <fieldset className="convertir">
             <legend>Convertir en cliente</legend>
+            <label>
+              Cédula (sin dígito de verificación)
+              <input value={cedula} onChange={(e) => setCedula(e.target.value)} inputMode="numeric" />
+            </label>
             <label>
               Lista de documentos
               <select value={plantillaId} onChange={(e) => setPlantillaId(e.target.value)}>
@@ -489,15 +440,11 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
   );
 }
 
-// Columnas que se leen de la base. Ingresos y fechas de vencimiento se
-// ignoran a propósito: la fecha se calcula con el calendario DIAN a partir
-// del NIT.
+// Solo se leen nombre y correo: el resto de columnas de la base (NIT,
+// ingresos, fechas…) se ignora a propósito (minimización, Ley 1581).
 const ALIAS = {
-  nit: ['nit', 'cedula', 'cc', 'documento', 'identificacion', 'numero de documento', 'no documento'],
   nombre: ['nombre', 'nombres', 'nombre completo', 'razon social'],
   email: ['email', 'correo', 'correo electronico', 'e-mail', 'mail'],
-  telefono: ['telefono', 'celular', 'movil', 'tel', 'whatsapp'],
-  actividad: ['actividad', 'ocupacion', 'perfil', 'tipo'],
 };
 
 function ImportarProspectos({ onCerrar, onImportado }) {
@@ -525,21 +472,15 @@ function ImportarProspectos({ onCerrar, onImportado }) {
           const idx = encabezados.findIndex((h) => alias.includes(h));
           if (idx >= 0) col[campo] = idx;
         }
-        if (col.nit === undefined) {
-          throw new Error('No encontré la columna del NIT o cédula. Encabezados leídos: ' + matriz[0].join(', '));
+        if (col.email === undefined) {
+          throw new Error('No encontré la columna del correo. Encabezados leídos: ' + matriz[0].join(', '));
         }
         const valor = (fila, campo) => (col[campo] !== undefined ? String(fila[col[campo]] ?? '').trim() : '');
         const datos = matriz
           .slice(1)
-          .map((fila) => ({
-            nit: valor(fila, 'nit'),
-            nombre: valor(fila, 'nombre'),
-            email: valor(fila, 'email'),
-            telefono: valor(fila, 'telefono'),
-            actividad: valor(fila, 'actividad'),
-          }))
-          .filter((f) => f.nit);
-        if (!datos.length) throw new Error('No se encontraron filas con NIT.');
+          .map((fila) => ({ nombre: valor(fila, 'nombre'), email: valor(fila, 'email') }))
+          .filter((f) => f.email);
+        if (!datos.length) throw new Error('No se encontraron filas con correo.');
         setFilas(datos);
       } catch (err) {
         setError(err.message);
@@ -562,17 +503,14 @@ function ImportarProspectos({ onCerrar, onImportado }) {
     }
   }
 
-  const sinCorreo = filas ? filas.filter((f) => !f.email).length : 0;
-
   return (
     <div className="modal-fondo" onClick={onCerrar}>
       <div className="tarjeta modal ancho" onClick={(e) => e.stopPropagation()}>
         <h2>Importar prospectos desde CSV/Excel</h2>
         <p className="tenue">
-          Se reconocen columnas como <em>NIT/cédula</em> (obligatoria), <em>nombre</em>,{' '}
-          <em>correo</em>, <em>celular</em> y <em>actividad</em>. Los ingresos y las fechas de la
-          base no se guardan: el vencimiento se calcula con el calendario DIAN. Los repetidos y
-          quienes ya son clientes se omiten.
+          Solo se guardan el <em>nombre</em> y el <em>correo</em> (obligatorio); las demás
+          columnas se ignoran. Se omiten los correos repetidos, los nombres cortados (que
+          terminan en «de», «del», «la»…) y quienes ya son clientes.
         </p>
         <input type="file" accept=".xlsx,.xls,.csv" onChange={leerArchivo} />
 
@@ -581,31 +519,21 @@ function ImportarProspectos({ onCerrar, onImportado }) {
         {filas && (
           <>
             <p>
-              <strong>{filas.length}</strong> filas leídas de <em>{nombreArchivo}</em>.
-              {sinCorreo > 0 && (
-                <>
-                  {' '}
-                  <strong>{sinCorreo}</strong> sin correo: quedan guardadas, pero no se les puede
-                  enviar hasta agregarlo.
-                </>
-              )}
+              <strong>{filas.length}</strong> filas leídas de <em>{nombreArchivo}</em>. Vista
+              previa:
             </p>
             <div className="tabla-scroll" style={{ maxHeight: 240 }}>
               <table>
                 <thead>
                   <tr>
-                    <th>NIT</th>
                     <th>Nombre</th>
-                    <th>Actividad</th>
                     <th>Correo</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filas.slice(0, 10).map((f, i) => (
                     <tr key={i}>
-                      <td>{f.nit}</td>
                       <td>{f.nombre}</td>
-                      <td>{f.actividad}</td>
                       <td>{f.email}</td>
                     </tr>
                   ))}
@@ -656,9 +584,9 @@ function EditorMensaje({ onCerrar }) {
       <div className="tarjeta modal ancho" onClick={(e) => e.stopPropagation()}>
         <h2>Mensaje de captación</h2>
         <p className="tenue">
-          Variables: {'{{saludo}}'} («Hola Ana,» o «Hola,» si no hay nombre), {'{{vencimiento}}'},{' '}
-          {'{{dias}}'}, {'{{digitos}}'} y {'{{baja}}'} (enlace para darse de baja, obligatorio). Usa
-          «Ver correo» en la lista para revisar cómo queda.
+          Variables: {'{{saludo}}'} («Hola Ana,» o «Hola,» si no hay nombre), {'{{fechas}}'} (tabla
+          de los plazos que aún no vencen), {'{{ultimo_plazo}}'} y {'{{baja}}'} (enlace para darse
+          de baja, obligatorio). Usa «Ver correo» en la lista para revisar cómo queda.
         </p>
         {!config ? (
           <p className="tenue">Cargando…</p>

@@ -114,18 +114,15 @@ const TABLAS = [
   // aún no son clientes formales del portal.
   // Posibles clientes a los que se les ofrece el servicio (correo de
   // captación). Tabla aparte de clientes: no tienen portal, plantilla ni
-  // clave DIAN, y el nombre puede faltar. Al convertirse pasan a clientes y
-  // aquí queda cliente_id. estado: nuevo | contactado | respondio |
-  // convertido | descartado | baja (pidió no recibir más correos; nunca se
-  // le vuelve a escribir).
+  // clave DIAN. Solo se guarda lo necesario para escribirles (nombre y
+  // correo); el correo es la clave. Al convertirse pasan a clientes y aquí
+  // queda cliente_id. estado: nuevo | contactado | respondio | convertido |
+  // descartado | baja (pidió no recibir más correos; nunca se le vuelve a
+  // escribir).
   `CREATE TABLE IF NOT EXISTS prospectos (
     id VARCHAR(20) PRIMARY KEY,
-    nit VARCHAR(50) NOT NULL,
-    nit_norm VARCHAR(50) NOT NULL,
     nombre VARCHAR(255) NOT NULL DEFAULT '',
-    email VARCHAR(255) NOT NULL DEFAULT '',
-    telefono VARCHAR(50) NOT NULL DEFAULT '',
-    actividad VARCHAR(40) NOT NULL DEFAULT '',
+    email VARCHAR(255) NOT NULL,
     origen VARCHAR(255) NOT NULL DEFAULT '',
     estado VARCHAR(20) NOT NULL DEFAULT 'nuevo',
     notas TEXT NULL,
@@ -133,7 +130,7 @@ const TABLAS = [
     baja_en DATETIME NULL,
     ultimo_envio DATETIME NULL,
     creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE KEY uq_nit_norm (nit_norm)
+    UNIQUE KEY uq_email (email)
   ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
 
   `CREATE TABLE IF NOT EXISTS liquidaciones210 (

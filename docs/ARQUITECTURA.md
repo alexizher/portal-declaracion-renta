@@ -506,10 +506,8 @@ erDiagram
 
     PROSPECTOS {
         varchar id PK
-        varchar nit_norm UK "solo dígitos"
+        varchar email UK "clave natural"
         varchar nombre "puede ir vacío"
-        varchar email
-        varchar actividad "sugiere la plantilla al convertir"
         varchar estado "nuevo · contactado · respondio · convertido · descartado · baja"
         varchar cliente_id "lógica, al convertirse"
         datetime baja_en
@@ -528,7 +526,7 @@ erDiagram
 | Fechas en **hora de Bogotá**, no UTC | `ahoraBogota()` con formato `sv-SE`. El historial se muestra tal cual, sin conversiones que confundan a la usuaria |
 | `cedula_norm` `UNIQUE` | Clave natural del negocio: evita duplicados al importar el mismo Excel dos veces |
 | `prospectos` es tabla **aparte** de `clientes` | Un prospecto no tiene portal, plantilla, clave DIAN ni alertas, y el nombre puede faltar. Mezclarlos habría obligado a filtrar en cada consulta de clientes. Al convertirse se crea el cliente y queda `cliente_id` |
-| Sin ingresos ni vencimientos guardados en `prospectos` | El vencimiento se deriva del NIT con el calendario (las bases externas traen fechas desactualizadas) y los ingresos no se usan: minimización de datos, Ley 1581 |
+| `prospectos` guarda **solo nombre y correo** | Minimización de datos (Ley 1581): es lo único necesario para escribirles. La cédula se pide al convertir en cliente. Como no hay NIT, el correo muestra la tabla de plazos pendientes (`tablaFechas()`, derivada del calendario) en vez de una fecha personal |
 | `envios.cliente_id` guarda también ids de prospecto | Los ids son aleatorios y no chocan; `tipo = 'captacion'` distingue. El tope diario de captación se cuenta sobre esta misma tabla |
 
 ### El checklist es derivado, no almacenado

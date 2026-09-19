@@ -162,18 +162,23 @@ const ESTADOS_PROSPECTO = ['nuevo', 'contactado', 'respondio', 'convertido', 'de
 // Las bases compartidas suelen traer "N/A", "-" o "sin nombre" donde no hay
 // dato: se guardan vacíos para que el correo salude con "Hola," a secas.
 function limpiarNombre(nombre) {
-  const n = String(nombre || '').trim();
+  const n = String(nombre || '').trim().replace(/\s+/g, ' ');
   return /^(n\/?a|na|-+|sin nombre|ninguno|null)$/i.test(n) ? '' : n;
 }
+
+// Nombre cortado por el ancho de la columna de origen: termina en una
+// partícula ("ANA TULIA TREJO DE"). Saludar así queda mal, se omite.
+function nombreCortado(nombre) {
+  return /\s(de|del|la|las|los|y)$/i.test(nombre);
+}
+
+const correoValido = (email) => /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email);
 
 function mapProspecto(r) {
   return {
     id: r.id,
-    nit: r.nit,
     nombre: r.nombre,
     email: r.email,
-    telefono: r.telefono,
-    actividad: r.actividad,
     origen: r.origen,
     estado: r.estado,
     notas: r.notas || '',
@@ -185,7 +190,7 @@ function mapProspecto(r) {
 }
 
 async function listarProspectos() {
-  const filas = await q('SELECT * FROM prospectos ORDER BY creado DESC, nit');
+  const filas = await q('SELECT * FROM prospectos ORDER BY creado DESC, nombre');
   return filas.map(mapProspecto);
 }
 
@@ -194,42 +199,38 @@ async function obtenerProspecto(id) {
   return filas.length ? mapProspecto(filas[0]) : null;
 }
 
-// Importación masiva. No se guardan ingresos ni fechas de vencimiento de la
-// base original: la fecha se calcula siempre con el calendario a partir del
-// NIT. Quien ya es cliente no se importa (ya tiene su propio canal).
+// Importación masiva: solo nombre y correo (minimización, Ley 1581). Quien
+// ya es cliente (mismo correo) no se importa: ya tiene su propio canal.
 async function importarProspectos(filas, origen) {
   let agregados = 0;
   let duplicados = 0;
   let yaClientes = 0;
+  let cortados = 0;
   let invalidos = 0;
 
   for (const fila of filas) {
-    const nit = String(fila.nit || '').trim();
-    const nitNorm = normalizarCedula(nit);
-    if (nitNorm.length < 5) {
+    const email = String(fila.email || '').trim().toLowerCase();
+    const nombre = limpiarNombre(fila.nombre);
+    if (!correoValido(email)) {
       invalidos += 1;
       continue;
     }
-    const [{ n: esCliente }] = await q('SELECT COUNT(*) AS n FROM clientes WHERE cedula_norm = ?', [nitNorm]);
+    if (nombreCortado(nombre)) {
+      cortados += 1;
+      continue;
+    }
+    const [{ n: esCliente }] = await q('SELECT COUNT(*) AS n FROM clientes WHERE LOWER(email) = ?', [email]);
     if (esCliente) {
       yaClientes += 1;
       continue;
     }
     try {
-      await q(
-        `INSERT INTO prospectos (id, nit, nit_norm, nombre, email, telefono, actividad, origen)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          nuevoId(),
-          nit,
-          nitNorm,
-          limpiarNombre(fila.nombre),
-          String(fila.email || '').trim().toLowerCase(),
-          String(fila.telefono || '').trim(),
-          String(fila.actividad || '').trim().slice(0, 40),
-          String(origen || '').trim().slice(0, 255),
-        ]
-      );
+      await q('INSERT INTO prospectos (id, nombre, email, origen) VALUES (?, ?, ?, ?)', [
+        nuevoId(),
+        nombre,
+        email,
+        String(origen || '').trim().slice(0, 255),
+      ]);
       agregados += 1;
     } catch (err) {
       if (err.code === 'ER_DUP_ENTRY') duplicados += 1;
@@ -238,23 +239,21 @@ async function importarProspectos(filas, origen) {
   }
 
   const [{ n: total }] = await q('SELECT COUNT(*) AS n FROM prospectos');
-  return { agregados, duplicados, yaClientes, invalidos, total };
+  return { agregados, duplicados, yaClientes, cortados, invalidos, total };
 }
 
 async function actualizarProspecto(id, campos) {
   const p = await obtenerProspecto(id);
   if (!p) return null;
-  const { nombre, email, telefono, actividad, estado, notas } = campos;
+  const { nombre, email, estado, notas } = campos;
+  const nuevoEmail = email !== undefined ? String(email).trim().toLowerCase() : p.email;
+  if (!correoValido(nuevoEmail)) return { error: 'El correo no es válido.' };
   const nuevoEstado = ESTADOS_PROSPECTO.includes(estado) ? estado : p.estado;
   await q(
-    `UPDATE prospectos SET nombre = ?, email = ?, telefono = ?, actividad = ?, estado = ?, notas = ?,
-       baja_en = ?
-     WHERE id = ?`,
+    `UPDATE prospectos SET nombre = ?, email = ?, estado = ?, notas = ?, baja_en = ? WHERE id = ?`,
     [
       nombre !== undefined ? limpiarNombre(nombre) : p.nombre,
-      email !== undefined ? String(email).trim().toLowerCase() : p.email,
-      telefono !== undefined ? String(telefono).trim() : p.telefono,
-      actividad !== undefined ? String(actividad).trim().slice(0, 40) : p.actividad,
+      nuevoEmail,
       nuevoEstado,
       notas !== undefined ? notas : p.notas,
       nuevoEstado === 'baja' ? p.bajaEn || ahoraBogota() : null,
@@ -287,24 +286,27 @@ async function marcarProspectoContactado(id, fecha) {
 }
 
 // Pasa el prospecto a la tabla de clientes (con su lista de documentos) y lo
-// deja marcado como convertido con el enlace al cliente creado.
-async function convertirProspecto(id, plantillaId) {
+// deja marcado como convertido con el enlace al cliente creado. La cédula no
+// vive en prospectos: se pide al convertir, cuando la persona ya aceptó.
+async function convertirProspecto(id, { cedula, plantillaId }) {
   const p = await obtenerProspecto(id);
   if (!p) return { error: 'Prospecto no encontrado.', status: 404 };
   if (p.clienteId) return { error: 'Este prospecto ya se convirtió en cliente.', status: 409 };
   if (!p.nombre) return { error: 'Agrega el nombre del prospecto antes de convertirlo en cliente.', status: 400 };
+  if (normalizarCedula(cedula).length < 5) {
+    return { error: 'Escribe la cédula del cliente para crearlo.', status: 400 };
+  }
   let cliente;
   try {
     cliente = await crearCliente({
       nombre: p.nombre,
       email: p.email,
-      cedula: p.nit,
-      telefono: p.telefono,
+      cedula: String(cedula).trim(),
       plantillaId,
       notas: p.notas,
     });
   } catch (err) {
-    if (err.code === 'ER_DUP_ENTRY') return { error: 'Ya existe un cliente con ese NIT.', status: 409 };
+    if (err.code === 'ER_DUP_ENTRY') return { error: 'Ya existe un cliente con esa cédula.', status: 409 };
     throw err;
   }
   await q(`UPDATE prospectos SET estado = 'convertido', cliente_id = ? WHERE id = ?`, [cliente.id, id]);

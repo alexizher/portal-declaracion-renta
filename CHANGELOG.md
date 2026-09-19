@@ -3,6 +3,16 @@
 Historial de cambios del portal de declaración de renta. Fechas en hora de
 Colombia; los hashes referencian los commits en `main`.
 
+## 2026-09-19 — Prospectos: solo nombre y correo
+
+- La tabla `prospectos` guarda solo nombre y correo (clave única); se quitaron
+  NIT, celular y actividad. La cédula se pide al convertir en cliente.
+- El correo de captación muestra la tabla de plazos pendientes (`{{fechas}}`,
+  generada del calendario, sin fechas vencidas) y `{{ultimo_plazo}}`, en vez
+  de la fecha personal por NIT. El saludo usa el primer nombre capitalizado.
+- La importación omite los nombres cortados (terminan en "de", "del"…), los
+  correos repetidos o inválidos y a quienes ya son clientes (por correo).
+
 ## 2026-09-18 — Prospectos y correo de captación
 
 - **Tabla `prospectos`** separada de `clientes` (NIT, nombre opcional, correo,

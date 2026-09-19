@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 const datos = require('./datos');
-const { vencimientoDe } = require('./vencimientos');
+const { vencimientoDe, fechaLarga } = require('./vencimientos');
 const { tokenPortal, tokenBaja } = require('./auth');
 const { puedeContactar } = require('./horarioContacto');
 
@@ -266,29 +266,60 @@ const urlBajaUnClic = (prospectoId) => `${baseUrl()}/api/portal/baja/${tokenBaja
 // reputación del remitente, que es el mismo de los correos a clientes.
 const LIMITE_DIARIO_CAPTACION = Number(process.env.CAPTACION_LIMITE_DIARIO || 50);
 
-function diasHasta(fechaIso, hoyIso) {
-  const [y1, m1, d1] = hoyIso.split('-').map(Number);
-  const [y2, m2, d2] = fechaIso.split('-').map(Number);
-  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+const MESES_CORTO = [
+  'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+  'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE',
+];
+
+// Tabla "dígitos → día" solo con los plazos que aún no vencen, agrupada por
+// mes y en filas de 5 (legible en celular). Sale del calendario, así el
+// correo nunca muestra fechas pasadas aunque se envíe semanas después.
+function tablaFechas(calendario, hoyIso) {
+  const pendientes = (calendario || []).filter((e) => e.fecha >= hoyIso);
+  if (!pendientes.length) return '';
+  const celda = (e) => {
+    const dig = e.digitos.map((d) => String(d).padStart(2, '0')).join('-');
+    const dia = Number(e.fecha.slice(8, 10));
+    return `<td width="20%" style="padding:8px 2px;border:1px solid #e3ddd4;"><span style="color:#7b8794;">${dig}</span><br><strong style="font-size:17px;color:#152a45;">${dia}</strong></td>`;
+  };
+  const porMes = new Map();
+  for (const e of pendientes) {
+    const mes = e.fecha.slice(0, 7);
+    if (!porMes.has(mes)) porMes.set(mes, []);
+    porMes.get(mes).push(e);
+  }
+  let filas = '';
+  for (const [mes, entradas] of porMes) {
+    filas += `<tr style="background:#152a45;color:#ffffff;"><td colspan="5" style="padding:7px;font-weight:700;letter-spacing:.3px;">${MESES_CORTO[Number(mes.slice(5, 7)) - 1]}</td></tr>`;
+    for (let k = 0; k < entradas.length; k += 5) {
+      const grupo = entradas.slice(k, k + 5);
+      const relleno = grupo.length < 5
+        ? `<td colspan="${5 - grupo.length}" style="border:1px solid #e3ddd4;background:#fbf8f6;"></td>`
+        : '';
+      filas += `<tr>${grupo.map(celda).join('')}${relleno}</tr>`;
+    }
+  }
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;font-size:13px;text-align:center;">${filas}</table>`;
 }
 
-function textoDias(dias) {
-  if (dias === 0) return 'Vence hoy';
-  if (dias === 1) return 'Vence mañana';
-  return `Faltan ${dias} días`;
+// Las bases suelen traer el nombre completo en mayúsculas ("ADELA DEL
+// SOCORRO MILLAN"): el saludo usa solo el primer nombre, capitalizado.
+function primerNombre(nombre) {
+  const primero = String(nombre || '').trim().split(/\s+/)[0] || '';
+  return primero ? primero.charAt(0).toLocaleUpperCase('es') + primero.slice(1).toLocaleLowerCase('es') : '';
 }
 
 function renderCorreoCaptacion(prospecto, config, calendario, hoyIso = ahoraBogota().slice(0, 10)) {
-  const venc = vencimientoDe(prospecto.nit, calendario);
-  const dias = venc ? diasHasta(venc.fecha, hoyIso) : null;
   const nombre = (prospecto.nombre || '').trim();
+  const saludo = primerNombre(nombre);
+  const fechas = tablaFechas(calendario, hoyIso);
+  const ultima = (calendario || []).reduce((max, e) => (e.fecha > max ? e.fecha : max), '');
 
   const reemplazos = {
-    '{{saludo}}': nombre ? `Hola ${escapeHtml(nombre)},` : 'Hola,',
+    '{{saludo}}': saludo ? `Hola ${escapeHtml(saludo)},` : 'Hola,',
     '{{nombre}}': escapeHtml(nombre),
-    '{{vencimiento}}': venc ? venc.fechaTexto : '(sin fecha)',
-    '{{digitos}}': venc ? venc.digitos : '--',
-    '{{dias}}': dias !== null && dias >= 0 ? textoDias(dias) : '',
+    '{{fechas}}': fechas,
+    '{{ultimo_plazo}}': ultima ? fechaLarga(ultima).replace(/ de \d{4}$/, '') : '',
     '{{baja}}': urlBaja(prospecto.id),
     '{{remitente}}': config.remitente || '',
   };
@@ -300,15 +331,12 @@ function renderCorreoCaptacion(prospecto, config, calendario, hoyIso = ahoraBogo
     asunto: aplicar(config.asunto_captacion),
     html,
     texto: htmlAtexto(html.replace(/<(style|title)[\s\S]*?<\/\1>/gi, '')),
-    vencimiento: venc,
-    dias,
     advertencias: [
       prospecto.estado === 'baja' && 'Pidió no recibir más correos.',
       prospecto.estado === 'convertido' && 'Ya es cliente.',
       prospecto.estado === 'descartado' && 'Está marcado como descartado.',
       !prospecto.email && 'No tiene correo electrónico.',
-      !venc && 'No se pudo calcular el vencimiento (NIT inválido).',
-      dias !== null && dias < 0 && 'Su plazo ya venció.',
+      !fechas && 'Ya vencieron todos los plazos del calendario: la temporada terminó.',
       !process.env.BASE_URL && 'Falta BASE_URL en el .env: el enlace de baja quedaría roto.',
     ].filter(Boolean),
   };
@@ -333,7 +361,7 @@ async function enviarLoteCaptacion(prospectoIds) {
     const registro = {
       id: datos.nuevoId(),
       clienteId: prospecto.id,
-      nombre: prospecto.nombre || `NIT ${prospecto.nit}`,
+      nombre: prospecto.nombre || prospecto.email,
       email: prospecto.email,
       fecha: ahoraBogota(),
       estado: 'enviado',

@@ -23,7 +23,7 @@ const PASOS = [
     id: 'prospectos',
     titulo: 'Prospectos',
     texto:
-      'Posibles clientes a los que les ofreces el servicio. Importa la lista (con NIT y correo), revisa el correo de captación con la fecha límite de cada uno y envíalo en tandas. Quien se da de baja no vuelve a recibir nada, y cuando alguien acepta lo pasas a Clientes con un botón.',
+      'Posibles clientes a los que les ofreces el servicio. Importa la lista (nombre y correo), revisa el correo de captación y envíalo en tandas. Quien se da de baja no vuelve a recibir nada, y cuando alguien acepta lo pasas a Clientes con un botón.',
   },
   {
     id: 'revision',
