@@ -1,0 +1,31 @@
+@startuml c4-1-contexto
+' Debe ir antes del include de C4 (la librería lo define con ?=).
+!$LEGEND_TITLE_TEXT = "Leyenda"
+!include <C4/C4_Context>
+!include _estilo.puml
+title Nivel 1 · Contexto del sistema — Portal de Declaración de Renta
+
+Person(contadora, "Contadora", "Administra clientes, revisa documentos, liquida el Formulario 210 y capta nuevos clientes.")
+Person(cliente, "Cliente", "Persona natural que declara renta. Entra con su enlace personal, sin contraseña.")
+Person(prospecto, "Prospecto", "Posible cliente. Solo recibe el correo de captación y puede darse de baja.")
+
+System(portal, "Portal de Declaración de Renta", "Panel de administración, portal del cliente, captación de prospectos y Liquidador 210.")
+
+System_Ext(brevo, "Brevo", "API HTTPS de correo transaccional.")
+System_Ext(turnstile, "Cloudflare Turnstile", "Verificación anti-robots del login y de la recuperación de enlace.")
+System_Ext(cron, "Cron de cPanel", "Dispara la alerta diaria de vencimientos a las 7:00 a. m.")
+System_Ext(dian, "DIAN", "Reporte de exógena (MUISCA) y calendario tributario.")
+
+Rel(contadora, portal, "Gestiona", "HTTPS, contraseña")
+Rel(cliente, portal, "Sube documentos y descarga soportes", "HTTPS, magic link")
+Rel(prospecto, portal, "Se da de baja", "HTTPS, enlace firmado")
+Rel(portal, brevo, "Envía recordatorios, avisos y captación", "HTTPS")
+Rel(brevo, cliente, "Entrega correos")
+Rel(brevo, prospecto, "Entrega el correo de captación")
+Rel(brevo, contadora, "Entrega avisos internos")
+Rel(portal, turnstile, "Verifica el token del formulario", "HTTPS")
+Rel(cron, portal, "GET /api/cron/alertas", "HTTPS", $tags="async")
+Rel_U(contadora, dian, "Descarga exógena y consulta el calendario")
+
+SHOW_LEGEND()
+@enduml

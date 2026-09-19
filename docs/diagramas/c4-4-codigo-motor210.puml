@@ -1,0 +1,177 @@
+@startuml c4-4-codigo-motor210
+!include _estilo-codigo.puml
+skinparam nodesep 25
+skinparam ranksep 45
+title Nivel 4 · Código — motor210 (componente "motor210/" de la aplicación web)
+
+package "motor210/ — lógica pura, sin I/O" {
+
+  class "index.js" as index <<orquestador>> {
+    +liquidar(entrada) : Resultado
+    ..
+    pasadas: trabajo → honorarios(tope 0)
+    → dependientes Art. 387 → trabajo (2ª)
+    → cascada de topes → cédulas propias
+    → patrimonio → Formulario 210
+  }
+
+  interface "Cédula" as Cedula <<contrato>> {
+    +calcular…(input, ctx) : SalidaCedula
+  }
+
+  class SalidaCedula <<tipo de retorno>> {
+    +ingresosBrutos : number
+    +incrngo : number
+    +rentaLiquida : number
+    +baseExentasYDeduccionesLimitadas : number
+    +medicinaLimitada : number
+    +viviendaLimitada : number
+    +icetexLimitado : number
+    +advertencias : string[]
+  }
+
+  package "cedulas/" {
+    class "trabajo.js" as trabajo {
+      +calcularCedulaTrabajo(input, ctx)
+      renta exenta 25 % (Art. 206-10)
+    }
+    class "honorariosServicios.js" as honorarios {
+      +calcularCedulaHonorariosServicios(input, ctx)
+    }
+    class "capital.js" as capital {
+      +calcularCedulaCapital(input, ctx)
+      componente inflacionario
+    }
+    class "noLaboral.js" as noLaboral {
+      +calcularCedulaNoLaboral(input, ctx)
+    }
+    class "pensiones.js" as pensiones {
+      +calcularCedulaPensiones(input, ctx)
+      tope propio, fuera de la cascada
+    }
+    class "dividendos.js" as dividendos {
+      +calcularCedulaDividendos(input)
+      tarifa propia
+    }
+  }
+
+  class "dependientes.js" as dependientes {
+    +deduccionDependientesArt387(…)
+    +adicionDependientesArt336(n, uvt)
+  }
+  class "cascada.js" as cascada <<regla de referencia>> {
+    +limitarConTopeCompartido(valores, tope) : number[]
+    medicina 192 · vivienda 1.200 · ICETEX 100 UVT
+  }
+  class "patrimonio.js" as patrimonio {
+    +calcularPatrimonio(activos, deudas, reajuste)
+  }
+  class "reajusteFiscal.js" as reajuste <<Art. 70/73 ET>> {
+    +totalActivosConReajuste(activos, ctx)
+  }
+  class "comparacionPatrimonial.js" as comparacion <<Art. 236-239 ET>> {
+    +calcularRentaPorComparacionPatrimonial(params)
+  }
+  class "gananciaOcasional.js" as ganancia {
+    +calcularGananciaOcasional(input, ctx)
+  }
+
+  class "formulario210.js" as f210 <<ensamblador>> {
+    +calcularFormulario210(entrada)
+    redondeo a miles (Art. 577 ET)
+  }
+  class "exencionesDeducciones.js" as exenciones <<Art. 336 ET>> {
+    +aplicarTopeCombinado(cedulas, uvt)
+    tope 40 % / 1.340 UVT
+  }
+  class "impuesto.js" as impuesto <<Art. 241 ET>> {
+    +calcularImpuestoNeto(basico, descuentos)
+  }
+  class "impuestoDividendos.js" as impDiv {
+    +calcularImpuestoDividendos(div, uvt)
+  }
+  class "descuentos.js" as descuentos {
+    +calcularDescuentos(digitados, basico)
+  }
+  class "anticipo.js" as anticipo <<Art. 807 ET>> {
+    +calcularAnticipo(…)
+  }
+  class "identificacion.js" as ident {
+    +calcularDigitoVerificacion(doc)
+    +dividirNombreCompleto(nombre)
+  }
+  class "redondeo.js" as redondeo {
+    +redondearMiles(v)
+    +noNegativo(v)
+  }
+
+  package "constantes/" {
+    class "uvt.js" as uvt {
+      +UVT_POR_ANIO
+      +uvt(anioGravable)
+    }
+    class "tablaImpuesto241.js" as tabla241 {
+      +impuestoArt241(baseUvt)
+    }
+  }
+
+  package "entradas y salidas" {
+    class "clasificarExogena.js" as exogena <<entrada>> {
+      +parsearReporteExogena(filas)
+      +clasificarFilasExogena(detalle)
+      +agruparSugerencias(sugerencias)
+    }
+    class "retenciones.js" as retenciones <<entrada>> {
+      +totalRetenciones(filas)
+    }
+    class "papelTrabajo.js" as papel <<salida>> {
+      +generarPapelTrabajo(resultado, cliente)
+    }
+    class "formularioDianExcel.js" as dianExcel <<salida>> {
+      +construirHojaFormulario210(resultado, cliente)
+    }
+  }
+}
+
+Cedula <|.. trabajo
+Cedula <|.. honorarios
+Cedula <|.. capital
+Cedula <|.. noLaboral
+Cedula <|.. pensiones
+Cedula <|.. dividendos
+Cedula ..> SalidaCedula : devuelve
+
+index --> Cedula : invoca las 6 cédulas\n(trabajo en 2 pasadas)
+index --> dependientes : Art. 387
+index ..> cascada : aplica la regla en línea\n(saldo disponible vía ctx)
+index --> ganancia
+index --> patrimonio
+index --> reajuste
+index --> comparacion
+index --> f210
+
+f210 --> exenciones
+f210 --> impuesto
+f210 --> impDiv
+f210 --> descuentos
+f210 --> anticipo
+f210 --> ident
+f210 --> redondeo
+f210 --> dependientes : Art. 336
+f210 --> tabla241
+trabajo --> uvt
+
+' Distribución vertical: las cédulas debajo de su contrato y las entradas
+' y salidas en la última fila, para que el diagrama no crezca a lo ancho.
+SalidaCedula -[hidden]down- trabajo
+f210 -[hidden]down- exogena
+dependientes -[hidden]down- papel
+
+note right of cascada
+  Probada por sus tests, pero hoy no la
+  importa ningún módulo: liquidar() hace
+  la misma cascada en línea pasando
+  medicinaDisponible / viviendaDisponible /
+  icetexDisponible a cada cédula.
+end note
+@enduml

@@ -1,0 +1,38 @@
+@startuml c4-2-contenedores
+' Debe ir antes del include de C4 (la librería lo define con ?=).
+!$LEGEND_TITLE_TEXT = "Leyenda"
+!include <C4/C4_Container>
+!include _estilo.puml
+title Nivel 2 · Contenedores
+
+Person(contadora, "Contadora")
+Person(cliente, "Cliente")
+Person(prospecto, "Prospecto")
+
+Boundary(sis, "Portal de Declaración de Renta", "sistema") {
+  Container(spa, "Aplicación web", "React 18 + Vite, en el navegador", "Panel (con el Liquidador 210 corriendo 100 % en el navegador), portal del cliente y página de baja.")
+  Container(web, "Servidor web", "LiteSpeed + .htaccess", "Sirve el bundle estático, replica las cabeceras de seguridad y bloquea rutas internas con [F].")
+  Container(api, "API", "Node.js 20 + Express 4 sobre Passenger", "Autenticación sin estado, reglas de negocio, correo, alertas y captación.")
+  ContainerDb(db, "Base de datos", "MariaDB", "Clientes, prospectos, documentos, entregas, envíos, configuración y liquidaciones cifradas.")
+  Container(archivos, "Almacén de archivos", "Disco, fuera del document root", "Soportes que suben los clientes y documentos finales que entrega la contadora.")
+}
+
+System_Ext(brevo, "Brevo", "API de correo")
+System_Ext(turnstile, "Cloudflare Turnstile")
+System_Ext(cron, "Cron de cPanel")
+
+Rel(contadora, spa, "Usa", "HTTPS")
+Rel(cliente, spa, "Usa", "HTTPS")
+Rel(prospecto, spa, "Abre /baja/{token}", "HTTPS")
+Rel(spa, web, "Descarga el bundle", "HTTPS")
+Rel(spa, api, "Llama", "JSON/HTTPS, Bearer o token de enlace")
+Rel(web, api, "Reenvía /api/*", "Passenger")
+Rel(api, db, "Lee y escribe", "mysql2, pool de 4")
+Rel(api, archivos, "Guarda y lee", "fs")
+Rel(api, brevo, "Envía correos", "HTTPS")
+Rel(api, turnstile, "Verifica tokens", "HTTPS")
+Rel(cron, api, "Alerta diaria", "HTTPS", $tags="async")
+Rel(brevo, prospecto, "Correo de captación con List-Unsubscribe")
+
+SHOW_LEGEND()
+@enduml

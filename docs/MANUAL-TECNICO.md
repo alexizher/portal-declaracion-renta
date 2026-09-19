@@ -36,10 +36,13 @@ server/
   server.js            arranque: dotenv (override:true), db.init(), scheduler de alertas
   src/
     app.js             TODAS las rutas Express (portal, api admin, cron, estáticos)
-    auth.js            login del panel + tokens HMAC (panel y portal)
+    auth.js            login del panel + tokens HMAC (panel, portal y baja)
     db.js              pool MySQL, DDL de tablas y migraciones automáticas
     datos.js           capa de acceso a datos (todo el SQL vive aquí)
     correo.js          canales de envío, render de plantillas, envíos masivos
+                       y captación de prospectos (tope diario, List-Unsubscribe)
+    horarioContacto.js horario de la Ley 2300 + festivos de Colombia calculados
+    plantillaCaptacion.js  correo de captación inicial (siembra la config)
     avisos.js          avisos internos a la contadora (subidas y vencimientos)
     archivos.js        multer: subida, borrado y rutas de archivos en disco
     cifrado.js         AES-256-GCM para la clave DIAN (DATA_SECRET)
@@ -47,31 +50,37 @@ server/
     seed.js            datos iniciales: calendario DIAN, plantillas, config
     seguridad.js       cabeceras HTTP + limitador de peticiones (sin dependencias)
     vencimientos.js    cédula → fecha DIAN según el calendario
+  test/                pruebas del backend (node --test): captacion.test.js
   scripts/             db-local.sh (MariaDB en podman), migrar-json.js
   public/              frontend compilado (gitignored; se copia con scp)
   uploads/{clienteId}/ archivos subidos (gitignored, fuera de public; en prod
                        viven en UPLOADS_DIR, fuera del document root)
 client/
-  src/main.jsx         enrutado mínimo: /portal[/token] → Portal, resto → App
+  src/main.jsx         enrutado mínimo: /portal[/token] → Portal,
+                       /baja/:token → Baja, /terminos, /privacidad; resto → App
   src/App.jsx          panel: barra, pestañas, guía
   src/api.js           fetch con Bearer token: api(), apiArchivo(), apiFormulario()
   src/Turnstile.jsx    widget + configPublica()
-  src/vistas/          Clientes, Correos, Revision, Plantillas, Calendario,
-                       Liquidador210, Login, ImportarExcel, Portal (página del cliente)
+  src/vistas/          Clientes, Correos, Prospectos, Revision, Plantillas,
+                       Calendario, Liquidador210, Login, ImportarExcel,
+                       Portal (página del cliente), Baja (baja de la captación)
   src/vistas/Legal.jsx páginas públicas /terminos y /privacidad
   src/vistas/liquidador210/  wizard del liquidador (Wizard, los 9 Paso*.jsx,
                        conceptos.js, estadoInicial.js, campos.jsx) + los Anexos
                        en PDF (anexos.js, AnexosDeclaracion.jsx, AnexosPDF.jsx)
   src/motor210/        motor de cálculo del Formulario 210 (ver §11)
   src/styles.css       todos los estilos (paleta DM en :root)
+docs/
+  diagramas/           fuentes C4-PlantUML (*.puml), SVG generados y render.sh
 ```
 
 **Convención**: código y comentarios en español; los comentarios explican el
 "por qué" (restricciones del hosting, decisiones de diseño).
 
-Los diagramas de esta arquitectura — capas del backend, árbol de componentes
-del frontend, cadena de middleware — están en
-[ARQUITECTURA.md §3 y §4](ARQUITECTURA.md#3-backend).
+Los diagramas C4 (contexto, contenedores, despliegue, componentes de la API y
+de la aplicación web, y código del motor210 y de la captación) están en
+[ARQUITECTURA.md](ARQUITECTURA.md#cómo-están-hechos-los-diagramas); sus fuentes
+viven en `docs/diagramas/` y se regeneran con `docs/diagramas/render.sh`.
 
 ## 3. Base de datos
 
@@ -87,7 +96,8 @@ Sin ORM ni archivos de migración: `db.init()` crea las tablas con
 | `config` | clave→valor | plantillas de correo, remitente, `correo_avisos`; las claves nuevas de `seed.js` llegan solas con INSERT IGNORE |
 | `documentos` | subidas del cliente | UNIQUE (cliente, sha1(nombre)); estados `subido→aprobado/rechazado`; los nombres fuera de la plantilla son "adicionales" |
 | `entregas` | archivos que sube el panel PARA el cliente | PK (cliente_id, tipo); tipos `declaracion\|anexo\|recibo` |
-| `envios` | historial de correos | `tipo`: recordatorio, portal, novedades, revision, aviso-subida, alerta-vencimiento, recuperacion; también sirve de **candado anti-duplicados** (`hayEnvioDesde`) |
+| `envios` | historial de correos | `tipo`: recordatorio, portal, novedades, revision, aviso-subida, alerta-vencimiento, recuperacion, captacion; también sirve de **candado anti-duplicados** (`hayEnvioDesde`) y de contador del tope diario de captación (`contarEnviosDesde`). En `captacion`, `cliente_id` guarda el id del prospecto |
+| `prospectos` | posibles clientes (captación) | **Solo nombre y correo** (`email` UNIQUE). `estado`: nuevo, contactado, respondio, convertido, descartado, baja; `cliente_id` al convertirse; `baja_en` |
 | `liquidaciones210` | estado completo del Liquidador | PK `cedula_norm` (**no** `clientes.id`: se liquida también para cédulas que aún no son clientes del portal); `datos_cifrados` es el estado del Wizard en AES-256-GCM (§11) |
 
 Las fechas se guardan en hora de Bogotá (`ahoraBogota()`, formato sv-SE),
@@ -158,6 +168,16 @@ saliente rechaza todo SMTP local y bloquea SMTP externo; ver README).
   {{portal}} {{recuperar}}`. `enviarLote` va en serie con pausa de 1.5 s y
   omite clientes con advertencias (sin correo, sin plantilla, sin fecha o
   marcados "ya declaró").
+- **Captación de prospectos** (pestaña Prospectos, plantilla editable en
+  `asunto_captacion` / `cuerpo_captacion`, sembrada desde
+  `plantillaCaptacion.js`). Variables: `{{saludo}}` (primer nombre
+  capitalizado o "Hola,"), `{{fechas}}` (tabla de plazos que aún no vencen),
+  `{{ultimo_plazo}}` y `{{baja}}`. `enviarLoteCaptacion` rechaza el lote
+  fuera del horario de la Ley 2300 (`horarioContacto.js`), respeta el tope
+  diario (`CAPTACION_LIMITE_DIARIO`, 20 por defecto, contado en `envios`),
+  omite prospectos dados de baja, convertidos o descartados, y agrega
+  `List-Unsubscribe` + `List-Unsubscribe-Post` (RFC 8058). Detalle y
+  secuencia en [ARQUITECTURA.md §7.7](ARQUITECTURA.md#77-captación-de-prospectos--envío-y-baja).
 - **Generados en código** (paleta DM inline): resultado de revisión
   (`renderCorreoRevision`), reenvío de enlace (`enviarEnlacePortal`) y los
   avisos internos (`avisos.js`).
@@ -200,6 +220,7 @@ Públicos (sin login del panel):
 | `POST /api/portal/:token/dian` | guardar clave DIAN (se cifra) |
 | `GET /api/portal/:token/entrega/:tipo` | descargar documento final |
 | `GET /api/cron/alertas?clave=…` | dispara la alerta diaria |
+| `POST /api/portal/baja/:token` | baja de la captación (token HMAC `baja:`; lo usan `/baja/{token}` y `List-Unsubscribe`) |
 
 Del panel (Bearer token en todo `/api/*`):
 
@@ -222,6 +243,13 @@ Del panel (Bearer token en todo `/api/*`):
 | `GET /api/correos/verificar` | diagnostica el canal de correo **sin enviar** |
 | `POST /api/correos/enviar` | envío masivo por lote |
 | `GET /api/correos/historial` | historial de la tabla `envios` |
+| `GET /api/prospectos` | lista + estado del horario, tope diario y enviados hoy |
+| `POST /api/prospectos` | alta manual (no omite a quien ya es cliente) |
+| `POST /api/prospectos/importar` | importación CSV/Excel: solo nombre y correo |
+| `PUT\|DELETE /api/prospectos/:id` | editar (nombre, correo, estado, notas) / eliminar |
+| `POST /api/prospectos/:id/convertir` | pasa a `clientes` (`cedula`, `plantillaId`) |
+| `GET /api/prospectos/:id/previsualizar` | correo de captación con sus advertencias |
+| `POST /api/prospectos/enviar` | envío de captación (`ids`); 400 fuera de horario |
 
 Los diagramas de secuencia de los flujos críticos (login, subida de un
 documento, alerta diaria, autoguardado del Liquidador, revisión, recuperación
@@ -243,6 +271,7 @@ Ver `server/.env.example` (comentado). Resumen:
 | `TURNSTILE_SITE_KEY/SECRET` | anti-robots en login y recuperación |
 | `DATA_SECRET` | cifrado de la clave DIAN (no rotar) |
 | `TRUST_PROXY` | saltos de proxy confiables (defecto 1 = Passenger; 2 si Cloudflare proxy) |
+| `CAPTACION_LIMITE_DIARIO` | tope de correos de captación por día (defecto 20) |
 | `UPLOADS_DIR`, `PORT` | opcionales |
 
 ## 9. Desarrollo local y despliegue
@@ -419,6 +448,15 @@ ssh repolite "cd ~/declaraciones-renta-pn.repolite.link \
 - **Nuevo endpoint**: definirlo en `app.js` (validación y orquestación) y el
   SQL en `datos.js`. **Nunca escribir SQL fuera de `datos.js`.** Si va bajo
   `/api/portal`, recordar que ese router se registra ANTES que `/api`.
+- **Nuevo correo de captación o nueva variable**: la plantilla inicial vive en
+  `plantillaCaptacion.js` (solo siembra: en producción se edita desde el
+  panel); las variables, en `renderCorreoCaptacion`. Toda regla nueva con
+  efecto legal (horario, baja, tope) va con su prueba en `server/test/`.
+- **Nuevo token firmado**: seguir el patrón de `auth.js` con un **prefijo
+  propio** en el HMAC (`portal:`, `baja:`), para que un token nunca sirva para
+  otro propósito.
+- **Nuevo diagrama o cambio de estructura**: editar el `.puml` en
+  `docs/diagramas/` y correr `render.sh` en el mismo commit.
 - **Nuevo dato sensible**: cifrarlo con `cifrado.js` y decidir explícitamente
   quién lo puede descifrar (el patrón de la clave DIAN: el portal nunca la
   devuelve; solo el panel autenticado).

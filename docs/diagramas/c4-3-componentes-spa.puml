@@ -1,0 +1,59 @@
+@startuml c4-3-componentes-spa
+' Debe ir antes del include de C4 (la librería lo define con ?=).
+!$LEGEND_TITLE_TEXT = "Leyenda"
+!include <C4/C4_Component>
+!include _estilo.puml
+LAYOUT_TOP_DOWN()
+title Nivel 3 · Componentes de la aplicación web (client/src)
+
+Person(contadora, "Contadora")
+Person(cliente, "Cliente")
+Person(prospecto, "Prospecto")
+Container(api, "API", "Express")
+
+Boundary(spa, "Aplicación web — React 18", "contenedor") {
+  Component(main, "main.jsx", "Enrutado por regex", "Decide la vista por window.location.pathname, sin router externo.")
+  Component(app, "App.jsx", "Shell del panel", "Login o panel; barra, drawer móvil, pestañas declarativas (PESTANAS) y guía.")
+  Component(login, "Login.jsx + Turnstile.jsx", "Vista", "Contraseña con widget anti-robots.")
+  Component(clientes, "Clientes + ImportarExcel", "Vista", "Lista ordenable, alta, importación CSV/Excel.")
+  Component(correos, "Correos.jsx", "Vista", "Recordatorio, invitación y novedades; historial de envíos.")
+  Component(prospectos, "Prospectos.jsx", "Vista", "Importación, paginación de 20, vista previa en iframe, envío con cupo diario, conversión a cliente.", $tags="nuevo")
+  Component(revision, "Revision.jsx", "Vista", "Aprobar/rechazar documentos, clave DIAN, entregas al cliente.")
+  Component(config, "Plantillas + Calendario", "Vistas", "Listas de documentos y calendario DIAN editables.")
+  Component(liquidador, "Liquidador210 + Wizard", "Vista", "9 pasos; persistencia local-first con sincronía cifrada.")
+  Component(motor, "motor210/", "Lógica pura", "Cédulas, cascada de topes, impuesto y Formulario 210. Sin I/O.")
+  Component(portal, "Portal.jsx", "Vista pública", "Checklist del cliente, subidas, clave DIAN, datos y descargas.")
+  Component(baja, "Baja.jsx", "Vista pública", "Confirmación de baja de la captación (botón, no automática).", $tags="nuevo")
+  Component(legal, "Legal.jsx", "Vistas públicas", "Términos, privacidad y el cascarón común de las páginas públicas.")
+  Component(apiJs, "api.js", "Cliente HTTP", "api(), apiFormulario(), apiArchivo(); token y evento 'sesion-expirada'.")
+}
+
+Rel(contadora, main, "Abre el panel")
+Rel(cliente, main, "Abre /portal/{token}")
+Rel(prospecto, main, "Abre /baja/{token}")
+Rel(main, app, "resto de rutas")
+Rel(main, portal, "/portal")
+Rel(main, baja, "/baja/:token")
+Rel(main, legal, "/terminos, /privacidad")
+Rel(app, login, "sin token")
+Rel(app, clientes, "pestaña")
+Rel(app, correos, "pestaña")
+Rel(app, prospectos, "pestaña")
+Rel(app, revision, "pestaña")
+Rel(app, config, "pestañas")
+Rel(app, liquidador, "pestaña")
+Rel(liquidador, motor, "liquidar() en cada render")
+Rel(baja, legal, "usa CascaronLegal")
+Rel(prospectos, clientes, "reutiliza ThOrdenable")
+Rel(clientes, apiJs, "")
+Rel(correos, apiJs, "")
+Rel(prospectos, apiJs, "")
+Rel(revision, apiJs, "")
+Rel(config, apiJs, "")
+Rel(liquidador, apiJs, "blob cifrado")
+Rel(portal, api, "fetch /api/portal/*", "JSON/HTTPS")
+Rel(baja, api, "POST /api/portal/baja/:token", "JSON/HTTPS")
+Rel(apiJs, api, "Bearer", "JSON/HTTPS")
+
+SHOW_LEGEND()
+@enduml

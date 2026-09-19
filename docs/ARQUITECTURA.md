@@ -8,8 +8,41 @@ flujos críticos, con diagramas.
 - Manual de uso (para la contadora y sus clientes): [MANUAL-USUARIO.md](MANUAL-USUARIO.md)
 - Fundamentación tributaria del Liquidador: [reglas-tributarias-AG2025.md](reglas-tributarias-AG2025.md)
 
-> Los diagramas están en Mermaid y se renderizan solos en GitHub, GitLab y en
-> VS Code con la extensión *Markdown Preview Mermaid Support*.
+### Cómo están hechos los diagramas
+
+La vista **estructural** sigue el [modelo C4](https://c4model.com) de Simon
+Brown, del contexto al código, y se dibuja con
+[C4-PlantUML](https://github.com/plantuml-stdlib/C4-PlantUML). La vista
+**dinámica** (secuencias, estados, flujos y el modelo entidad-relación) usa
+Mermaid, que GitHub muestra sin pasos extra.
+
+| Nivel C4 | Pregunta que responde | Diagrama | Sección |
+|---|---|---|---|
+| 1 · Contexto | ¿Quién usa el sistema y con qué sistemas externos habla? | `c4-1-contexto` | [§1](#1-contexto-del-sistema) |
+| 2 · Contenedores | ¿Qué piezas desplegables lo forman y cómo se comunican? | `c4-2-contenedores` | [§2](#2-infraestructura-y-despliegue) |
+| Despliegue | ¿Dónde corre cada contenedor? | `c4-despliegue` | [§2](#2-infraestructura-y-despliegue) |
+| 3 · Componentes | ¿Qué módulos tiene cada contenedor y qué responsabilidad tiene cada uno? | `c4-3-componentes-api`, `c4-3-componentes-spa` | [§3](#3-backend), [§4](#4-frontend) |
+| 4 · Código | ¿Cómo está implementado un componente crítico? | `c4-4-codigo-motor210`, `c4-4-codigo-captacion` | [§6](#6-motor-de-cálculo-motor210), [§7.7](#77-captación-de-prospectos--envío-y-baja) |
+
+**Por qué C4-PlantUML y no Mermaid para la estructura.** El soporte C4 de
+Mermaid sigue siendo experimental: no respeta la distribución de los
+elementos y mezcla los límites. C4-PlantUML es la implementación de referencia
+de la notación (persona, sistema, contenedor, componente, límites y leyenda
+automática) y está en la librería estándar de PlantUML, así que se genera sin
+conexión.
+
+**Diagramas como código.** Las fuentes (`docs/diagramas/*.puml`) están
+versionadas junto al código y comparten un estilo con la paleta de la marca
+(`_estilo.puml`, `_estilo-codigo.puml`). Los SVG se regeneran con un comando,
+sin instalar Java:
+
+```bash
+docs/diagramas/render.sh     # usa la imagen oficial de PlantUML en podman o docker
+```
+
+> **Regla del proyecto:** si un cambio agrega, quita o renombra un módulo, una
+> ruta o una tabla, se actualiza su `.puml` y se regenera el SVG **en el mismo
+> commit**. Un diagrama desactualizado es peor que no tener diagrama.
 
 ---
 
@@ -27,47 +60,28 @@ flujos críticos, con diagramas.
 10. [Seguridad transversal](#10-seguridad-transversal)
 11. [Pruebas](#11-pruebas)
 12. [Decisiones de arquitectura y sus porqués](#12-decisiones-de-arquitectura-y-sus-porqués)
+13. [Buenas prácticas y estándares aplicados](#13-buenas-prácticas-y-estándares-aplicados)
 
 ---
 
 ## 1. Contexto del sistema
 
 Una contadora gestiona declaraciones de renta de personas naturales en Colombia.
-El sistema cubre tres necesidades: **avisar** a los clientes, **recibir** sus
-documentos y **liquidar** el Formulario 210.
+El sistema cubre cuatro necesidades: **captar** nuevos clientes, **avisar** a
+los clientes, **recibir** sus documentos y **liquidar** el Formulario 210.
 
-```mermaid
-graph TB
-    subgraph Personas
-        A["Contadora<br/>(administradora)"]
-        B["Cliente<br/>(persona natural)"]
-    end
+![C4 nivel 1: contexto del sistema](diagramas/c4-1-contexto.svg)
 
-    S["<b>Portal Declaración de Renta</b><br/>Panel + Portal + Liquidador 210"]
+*Fuente: [`diagramas/c4-1-contexto.puml`](diagramas/c4-1-contexto.puml)*
 
-    subgraph Servicios externos
-        E1["Brevo<br/>API HTTPS de correo"]
-        E2["Cloudflare Turnstile<br/>anti-robots"]
-        E3["Cron de cPanel<br/>disparador diario"]
-    end
+Tres personas con niveles de confianza distintos, y cada una entra por una
+puerta diferente:
 
-    subgraph Fuentes de datos
-        F1["Reporte de exógena<br/>.xlsx del MUISCA"]
-        F2["Calendario tributario<br/>DIAN"]
-    end
-
-    A -->|"login con contraseña"| S
-    B -->|"enlace personal sin contraseña"| S
-    S -->|"envía correos"| E1
-    E1 -->|"entrega"| B
-    E1 -->|"avisos internos"| A
-    S <-->|"verifica token"| E2
-    E3 -->|"GET /api/cron/alertas"| S
-    F1 -.->|"la contadora lo carga"| S
-    F2 -.->|"precargado y editable"| S
-
-    style S fill:#123a63,color:#fff,stroke:#c9a227,stroke-width:2px
-```
+| Persona | Cómo se identifica | Qué puede hacer |
+|---|---|---|
+| **Contadora** | Contraseña + Turnstile → token HMAC de 12 h | Todo el panel |
+| **Cliente** | *Magic link* permanente, firmado con HMAC | Solo su propio portal |
+| **Prospecto** | Enlace de baja firmado con HMAC (otro dominio de firma) | Solo darse de baja |
 
 > **Alcance actual: un solo inquilino.** El sistema está construido para una
 > contadora: no hay tabla de usuarios y ninguna tabla tiene columna de dueño.
@@ -82,6 +96,7 @@ graph TB
 | **Panel de administración** | La contadora | Contraseña → token HMAC de 12 h | Servidor + navegador |
 | **Portal del cliente** | Cada cliente | *Magic link* permanente por correo | Servidor + navegador |
 | **Liquidador 210** | La contadora | El mismo token del panel | **100 % navegador** |
+| **Captación de prospectos** | La contadora envía; el prospecto solo recibe | Token del panel; la baja usa un enlace firmado | Servidor |
 
 El Liquidador merece énfasis: el servidor **nunca calcula ni ve** ingresos,
 patrimonio ni exógena. Solo guarda un blob cifrado que no puede interpretar
@@ -96,6 +111,26 @@ Esa plataforma explica buena parte del diseño: procesos que se reciclan solos,
 el app root que es también el document root, y un filtro de correo saliente
 agresivo.
 
+### Contenedores (C4 nivel 2)
+
+![C4 nivel 2: contenedores](diagramas/c4-2-contenedores.svg)
+
+*Fuente: [`diagramas/c4-2-contenedores.puml`](diagramas/c4-2-contenedores.puml)*
+
+| Contenedor | Tecnología | Responsabilidad | Estado propio |
+|---|---|---|---|
+| Aplicación web | React 18 + Vite | Panel, portal, página de baja y **todo el cálculo del Liquidador** | `localStorage` (token y borradores del Liquidador) |
+| Servidor web | LiteSpeed + `.htaccess` | Estáticos, cabeceras de seguridad replicadas, bloqueo `[F]` de rutas internas | Ninguno |
+| API | Node 20 + Express 4 sobre Passenger | Autenticación sin estado, reglas de negocio, correo, alertas, captación | **Ninguno en memoria** (por diseño: Passenger recicla procesos) |
+| Base de datos | MariaDB | Única fuente de verdad, incluido el candado anti-duplicados (`envios`) | Todo el estado del negocio |
+| Almacén de archivos | Disco fuera del document root | Soportes de clientes y documentos finales | Archivos con nombre aleatorio |
+
+### Despliegue
+
+![Diagrama de despliegue](diagramas/c4-despliegue.svg)
+
+*Fuente: [`diagramas/c4-despliegue.puml`](diagramas/c4-despliegue.puml)*
+
 > **Nota histórica.** El proyecto se construyó cuando este hosting **no tenía
 > shell** y todo se desplegaba por SFTP. Varias decisiones nacieron de esa
 > restricción, que **ya está levantada**. Se conservan porque siguen siendo
@@ -103,48 +138,6 @@ agresivo.
 > [§12](#12-decisiones-de-arquitectura-y-sus-porqués) para que nadie herede una
 > restricción que ya no existe.
 
-```mermaid
-graph TB
-    subgraph Internet
-        NAV["Navegador<br/>Chrome / Safari móvil"]
-        CRON["Cron Job de cPanel<br/>curl diario 7:00 am"]
-    end
-
-    subgraph "Servidor repolite — cPanel"
-        subgraph "Document root = App root"
-            LS["LiteSpeed<br/>+ .htaccess"]
-            EST["public/<br/>index.html + assets Vite"]
-            HTA["mod_rewrite [F]<br/>bloquea src, uploads,<br/>*.log, *.env, server.js"]
-        end
-
-        subgraph "Passenger — Node.js 20"
-            P1["Proceso 1<br/>server.js"]
-            P2["Proceso 2<br/>server.js"]
-            PN["Proceso N…"]
-        end
-
-        DB[("MariaDB<br/>repolite_renta")]
-        UP["/home/repolite/renta-uploads/<br/><b>fuera</b> del document root"]
-    end
-
-    BREVO["Brevo API<br/>api.brevo.com"]
-
-    NAV -->|HTTPS| LS
-    CRON -->|HTTPS| LS
-    LS -->|"archivo existe"| EST
-    LS -.->|"filtra"| HTA
-    LS -->|"/api/*"| P1
-    LS --> P2
-    LS --> PN
-    P1 --> DB
-    P2 --> DB
-    PN --> DB
-    P1 -->|"fs.read / fs.write"| UP
-    P1 -->|HTTPS| BREVO
-
-    style UP fill:#2d5016,color:#fff
-    style HTA fill:#7a1f1f,color:#fff
-```
 
 ### Consecuencias de esta infraestructura
 
@@ -194,60 +187,10 @@ El servidor tiene `git`, `mysql`, `mysqldump`, `crontab`, `curl` y `zip`;
 Express 4 sobre Node 20. Arquitectura **en capas**, con una regla dura: *todo
 el SQL vive en `datos.js`*.
 
-```mermaid
-graph TD
-    subgraph "Capa HTTP"
-        SRV["server.js<br/>bootstrap · dotenv · scheduler"]
-        APP["app.js<br/>rutas · validación · orquestación"]
-    end
+![C4 nivel 3: componentes de la API](diagramas/c4-3-componentes-api.svg)
 
-    subgraph "Capa de seguridad"
-        SEG["seguridad.js<br/>cabeceras · rate limit"]
-        AUT["auth.js<br/>login · HMAC · magic link"]
-        TUR["turnstile.js<br/>verificación externa"]
-        CIF["cifrado.js<br/>AES-256-GCM"]
-    end
-
-    subgraph "Capa de dominio"
-        COR["correo.js<br/>canales · render · lotes"]
-        AVI["avisos.js<br/>alertas internas"]
-        VEN["vencimientos.js<br/>cédula → fecha DIAN"]
-        ARC["archivos.js<br/>multer · magic bytes"]
-    end
-
-    subgraph "Capa de datos"
-        DAT["datos.js<br/><b>único lugar con SQL</b>"]
-        DB["db.js<br/>pool · DDL · migraciones"]
-        SEED["seed.js<br/>datos iniciales"]
-    end
-
-    MYSQL[("MariaDB")]
-    DISCO["Disco<br/>uploads/"]
-
-    SRV --> APP
-    SRV --> DB
-    SRV -->|"setInterval 30 min"| AVI
-    APP --> SEG
-    APP --> AUT
-    APP --> TUR
-    APP --> CIF
-    APP --> COR
-    APP --> AVI
-    APP --> VEN
-    APP --> ARC
-    APP --> DAT
-    COR --> DAT
-    AVI --> DAT
-    AVI --> COR
-    AVI --> VEN
-    DAT --> DB
-    DB --> SEED
-    DB --> MYSQL
-    ARC --> DISCO
-
-    style DAT fill:#123a63,color:#fff
-    style SEG fill:#7a1f1f,color:#fff
-```
+*Fuente: [`diagramas/c4-3-componentes-api.puml`](diagramas/c4-3-componentes-api.puml).
+En rojo, los componentes de seguridad; en azul oscuro, el único con acceso a SQL.*
 
 ### Responsabilidad de cada módulo
 
@@ -257,8 +200,10 @@ graph TD
 | `app.js` | Definir rutas, validar entrada, componer servicios | Nada de SQL |
 | `datos.js` | Todo el SQL + mapeo fila → objeto de dominio | No conoce HTTP ni `req`/`res` |
 | `db.js` | Pool, DDL idempotente, migraciones | No sabe de negocio |
-| `auth.js` | Emitir/validar tokens, bloquear fuerza bruta | No toca la base de datos |
-| `correo.js` | Elegir canal, renderizar plantillas, enviar en lote | No decide *cuándo* enviar |
+| `auth.js` | Emitir/validar tokens (sesión, portal, baja), bloquear fuerza bruta | No toca la base de datos |
+| `correo.js` | Elegir canal, renderizar plantillas, enviar en lote; en captación aplica el tope diario | No decide *cuándo* enviar |
+| `horarioContacto.js` | Regla pura: ¿se puede contactar con publicidad ahora? (Ley 2300 + festivos) | No envía ni consulta la base |
+| `plantillaCaptacion.js` | Plantilla inicial del correo de captación | No se usa en caliente: siembra `config` una vez |
 | `avisos.js` | Decidir *cuándo* avisar a la contadora + *dedupe* | No renderiza correos de clientes |
 | `archivos.js` | Guardar, validar y borrar archivos en disco | No sabe qué representa el archivo |
 | `cifrado.js` | Cifrar/descifrar un string | No sabe qué está cifrando |
@@ -319,53 +264,15 @@ expresión regular sobre `window.location.pathname`. Sin framework de CSS: un
 solo `styles.css` con la paleta de marca en `:root`. Sin gestor de estado
 global: `useState` local y props.
 
-```mermaid
-graph TD
-    MAIN["main.jsx<br/>enrutado por regex"]
+![C4 nivel 3: componentes de la aplicación web](diagramas/c4-3-componentes-spa.svg)
 
-    MAIN -->|"/portal/:token<br/>o /portal"| PORTAL["Portal.jsx<br/><i>vista del cliente</i>"]
-    MAIN -->|"/terminos"| TER["Legal.jsx → Terminos"]
-    MAIN -->|"/privacidad"| PRI["Legal.jsx → Privacidad"]
-    MAIN -->|"cualquier otra"| APP["App.jsx<br/><i>panel</i>"]
+*Fuente: [`diagramas/c4-3-componentes-spa.puml`](diagramas/c4-3-componentes-spa.puml)*
 
-    APP -->|"sin token"| LOGIN["Login.jsx<br/>+ Turnstile.jsx"]
-    APP -->|"con token"| SHELL["Shell: barra · drawer móvil · guía"]
-    SHELL --> GUIA["Guia.jsx<br/>tour de primer ingreso"]
-
-    SHELL --> T1["Clientes.jsx<br/>+ ImportarExcel.jsx"]
-    SHELL --> T2["Correos.jsx"]
-    SHELL --> T3["Revision.jsx"]
-    SHELL --> T4["Plantillas.jsx"]
-    SHELL --> T5["Calendario.jsx"]
-    SHELL --> T6["Liquidador210.jsx"]
-
-    T6 --> WIZ["liquidador210/Wizard.jsx"]
-
-    subgraph "Wizard — 9 pasos"
-        WIZ --> P1["PasoExogena"]
-        WIZ --> P2["PasoCedulas"]
-        WIZ --> P3["PasoGananciaOcasional"]
-        WIZ --> P4["PasoPatrimonio"]
-        WIZ --> P5["PasoAnticipo"]
-        WIZ --> P6["PasoImpuesto"]
-        WIZ --> P7["PasoFormulario210"]
-        WIZ --> P8["PasoResultado"]
-        P8 --> ANX["AnexosDeclaracion<br/>+ AnexosPDF"]
-    end
-
-    WIZ ==>|"llama en cada render"| MOTOR["motor210/<br/><b>lógica pura</b>"]
-
-    ALL["api.js<br/>api&#40;&#41; · apiFormulario&#40;&#41; · apiArchivo&#40;&#41;"]
-    T1 -.-> ALL
-    T2 -.-> ALL
-    T3 -.-> ALL
-    T4 -.-> ALL
-    T5 -.-> ALL
-    WIZ -.-> ALL
-
-    style MOTOR fill:#123a63,color:#fff
-    style PORTAL fill:#2d5016,color:#fff
-```
+El Liquidador es un asistente de 9 pasos (`PasoExogena` → `PasoCedulas` →
+`PasoGananciaOcasional` → `PasoPatrimonio` → `PasoAnticipo` → `PasoImpuesto`
+→ `PasoFormulario210` → `PasoResultado`, con los anexos en PDF) que llama a
+`motor210/liquidar()` en cada render. Su nivel de código está en
+[§6](#6-motor-de-cálculo-motor210).
 
 ### La capa `api.js`
 
@@ -562,145 +469,23 @@ Tres propiedades que definen su diseño:
    implementa; la fundamentación completa está en
    [reglas-tributarias-AG2025.md](reglas-tributarias-AG2025.md).
 
-### Estructura de módulos (UML de componentes)
+### Estructura del código (C4 nivel 4)
 
-```mermaid
-classDiagram
-    direction LR
+![C4 nivel 4: código de motor210](diagramas/c4-4-codigo-motor210.svg)
 
-    class liquidar {
-        <<orquestador — index.js>>
-        +liquidar(entrada) Resultado
-    }
+*Fuente: [`diagramas/c4-4-codigo-motor210.puml`](diagramas/c4-4-codigo-motor210.puml)*
 
-    class Cedula {
-        <<interface>>
-        +calcular(input, ctx) SalidaCedula
-    }
+Las seis cédulas cumplen el mismo **contrato** (`calcular…(input, ctx)` →
+`SalidaCedula`), así que el orquestador las trata de forma uniforme y cada una
+se prueba por separado.
 
-    class SalidaCedula {
-        <<tipo de retorno>>
-        +number ingresosBrutos
-        +number incrngo
-        +number rentaLiquida
-        +number baseExentasYDeduccionesLimitadas
-        +number medicinaLimitada
-        +number viviendaLimitada
-        +number icetexLimitado
-        +string[] advertencias
-    }
-
-    class trabajo {
-        +calcularCedulaTrabajo()
-        +rentaExenta25 : Art. 206-10
-    }
-    class honorariosServicios {
-        +calcularCedulaHonorariosServicios()
-        +2+ trabajadores contratados
-    }
-    class capital {
-        +calcularCedulaCapital()
-        +componenteInflacionario
-    }
-    class noLaboral {
-        +calcularCedulaNoLaboral()
-    }
-    class pensiones {
-        +calcularCedulaPensiones()
-        +tope propio, fuera de cascada
-    }
-    class dividendos {
-        +calcularCedulaDividendos()
-        +tarifa plana propia
-    }
-
-    class cascada {
-        <<topes compartidos>>
-        +medicina 192 UVT
-        +vivienda 1200 UVT
-        +ICETEX 100 UVT
-    }
-    class exencionesDeducciones {
-        <<Art. 336 ET>>
-        +tope combinado 1340 UVT
-        +reparto en cascada
-    }
-    class dependientes {
-        +deduccionDependientesArt387()
-        +prorrateo trabajo/honorarios
-    }
-    class patrimonio {
-        +calcularPatrimonio()
-    }
-    class reajusteFiscal {
-        <<Art. 70/73 ET>>
-        +totalActivosConReajuste()
-    }
-    class comparacionPatrimonial {
-        <<Art. 236-239 ET>>
-        +diagnóstico, no automático
-    }
-    class gananciaOcasional {
-        +calcularGananciaOcasional()
-    }
-    class impuesto {
-        <<Art. 241 ET>>
-    }
-    class descuentos
-    class retenciones
-    class anticipo {
-        <<Art. 807 ET>>
-    }
-    class formulario210 {
-        <<ensamblador>>
-        +calcularFormulario210()
-        +redondeo Art. 577 ET
-    }
-
-    class papelTrabajo {
-        <<salida>>
-        +genera Excel de memoria
-    }
-    class formularioDianExcel {
-        <<salida>>
-    }
-    class clasificarExogena {
-        <<entrada>>
-        +sugiere cédula por fila
-    }
-
-    Cedula <|.. trabajo
-    Cedula <|.. honorariosServicios
-    Cedula <|.. capital
-    Cedula <|.. noLaboral
-    Cedula <|.. pensiones
-    Cedula <|.. dividendos
-    Cedula ..> SalidaCedula : devuelve
-
-    liquidar --> trabajo
-    liquidar --> honorariosServicios
-    liquidar --> capital
-    liquidar --> noLaboral
-    liquidar --> pensiones
-    liquidar --> dividendos
-    liquidar --> dependientes
-    liquidar --> patrimonio
-    liquidar --> reajusteFiscal
-    liquidar --> comparacionPatrimonial
-    liquidar --> gananciaOcasional
-    liquidar --> formulario210
-
-    trabajo ..> cascada : consume tope
-    honorariosServicios ..> cascada
-    capital ..> cascada
-    noLaboral ..> cascada
-
-    formulario210 --> exencionesDeducciones
-    formulario210 --> impuesto
-    formulario210 --> descuentos
-    formulario210 --> retenciones
-    formulario210 --> anticipo
-```
+> **Hallazgo documentado.** `cascada.js > limitarConTopeCompartido()` describe y
+> prueba la regla de los topes compartidos, pero hoy **ningún módulo lo
+> importa**: `liquidar()` aplica la misma cascada en línea, pasando a cada
+> cédula el saldo disponible (`medicinaDisponible`, `viviendaDisponible`,
+> `icetexDisponible`) por `ctx`. Los resultados coinciden (los tests de ambos
+> pasan), pero hay dos implementaciones de la misma regla. Pendiente:
+> hacer que `liquidar()` use `cascada.js` o eliminarlo.
 
 ### El orden de `liquidar()` no es arbitrario
 
@@ -1002,6 +787,68 @@ flowchart TD
 Dos propiedades a la vez: nunca confirma si una cédula existe, y **nunca envía a
 un correo que el visitante escriba** — solo al que ya está en la base de datos.
 
+### 7.7 Captación de prospectos — envío y baja
+
+La contadora escribe a posibles clientes. Es el único flujo del sistema
+dirigido a personas que **no** tienen relación contractual con ella, así que
+lleva tres controles que los demás correos no necesitan: horario legal, tope
+diario y baja.
+
+![C4 nivel 4: código de la captación](diagramas/c4-4-codigo-captacion.svg)
+
+*Fuente: [`diagramas/c4-4-codigo-captacion.puml`](diagramas/c4-4-codigo-captacion.puml)*
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor C as Contadora
+    participant V as Prospectos.jsx
+    participant A as app.js
+    participant H as horarioContacto.js
+    participant M as correo.js
+    participant D as datos.js
+    participant B as Brevo
+    actor P as Prospecto
+
+    C->>V: marca hasta el cupo del día (páginas de 20)
+    V->>A: POST /api/prospectos/enviar {ids}
+    A->>M: enviarLoteCaptacion(ids)
+    M->>H: puedeContactar(ahoraBogota())
+    alt fuera del horario de la Ley 2300
+        H-->>M: {ok:false, motivo}
+        M-->>A: {error}
+        A-->>V: 400 + motivo (no sale nada)
+    else horario permitido
+        M->>D: contarEnviosDesde('captacion', hoy)
+        loop por cada prospecto, con pausa de 1,5 s
+            M->>M: renderCorreoCaptacion() — advertencias bloquean
+            M->>B: HTML + texto + List-Unsubscribe (RFC 8058)
+            M->>D: marcarProspectoContactado() + registrarEnvio()
+        end
+        A-->>V: resultados por prospecto
+    end
+
+    B-->>P: correo
+    alt baja desde el cliente de correo (un clic)
+        P->>A: POST /api/portal/baja/{token} (Gmail/Outlook)
+    else baja desde el enlace del correo
+        P->>V: abre /baja/{token} → botón "Confirmar baja"
+        V->>A: POST /api/portal/baja/{token}
+    end
+    A->>A: prospectoIdDeBaja(token) — HMAC, prefijo "baja:"
+    A->>D: darDeBajaProspecto() — nunca más se le escribe
+```
+
+| Control | Dónde | Por qué |
+|---|---|---|
+| Horario de la Ley 2300 de 2023 | `horarioContacto.js`, validado en el servidor | La restricción es legal; no puede depender de que la interfaz esconda el botón |
+| Festivos calculados, no tabulados | `festivosColombia()` (Pascua de Meeus + Ley Emiliani) | Una lista fija caduca cada año sin que nadie lo note |
+| Tope diario (20) | `LIMITE_DIARIO_CAPTACION` + selección limitada en la vista | Una base fría enviada de golpe daña la reputación del remitente, que es el mismo de los correos a clientes |
+| Baja obligatoria | `{{baja}}` en la plantilla + cabeceras `List-Unsubscribe` | Ley 1581 de 2012 y requisito de Gmail/Yahoo para remitentes masivos |
+| Baja con confirmación | `Baja.jsx` pide un botón; no actúa al abrir la página | Los filtros de seguridad del correo abren los enlaces solos |
+| Token de baja con dominio propio | `auth.js > firmaBaja()` firma `baja:{id}` | Un token de baja nunca sirve como token de portal, ni al revés |
+| Minimización de datos | `prospectos` guarda solo nombre y correo | La cédula se pide cuando la persona ya aceptó ser cliente |
+
 ---
 
 ## 8. Máquinas de estado
@@ -1116,6 +963,10 @@ uno y el problema concreto que resuelve.
 | **Content-based validation** | `archivos.js > firmaValida()` | La extensión la falsea cualquiera; los *magic bytes* no |
 | **Anti-enumeration response** | `POST /api/portal/recuperar` | Impide usar el formulario como oráculo de cédulas registradas |
 | **Fail-open deliberado** | `turnstile.js` | Si Cloudflare cae, no dejar a la usuaria fuera de su propio sistema |
+| **Separación de dominio en firmas** | `auth.js`: prefijos `portal:` y `baja:` en el HMAC | Un token emitido para un propósito no es válido para otro |
+| **Regla de negocio como función pura** | `horarioContacto.js > puedeContactar()` | La regla legal se prueba sin reloj, red ni base de datos |
+| **Throttling de negocio** | `enviarLoteCaptacion()` + `contarEnviosDesde()` | El tope diario sobrevive a reinicios y a varios procesos porque se cuenta en `envios` |
+| **Guard clauses con advertencias** | `renderCorreoCaptacion().advertencias` | El mismo cálculo alimenta la vista previa ("no se le enviaría: …") y el envío |
 
 ### Frontend
 
@@ -1124,7 +975,7 @@ uno y el problema concreto que resuelve.
 | **Functional core / imperative shell** | `motor210/` vs. `vistas/` | La lógica tributaria es pura y testeable; React solo dibuja |
 | **Pipeline orchestrator** | `motor210/index.js > liquidar()` | Un único punto que resuelve el orden entre módulos acoplados |
 | **Two-pass calculation** | `liquidar()` pasos 2c y 8 | Rompe dependencias circulares reales del formulario |
-| **Cascading budget allocation** | `cascada.js` | Topes compartidos que se consumen en un orden normativo |
+| **Cascading budget allocation** | `liquidar()` (regla documentada y probada en `cascada.js`) | Topes compartidos que se consumen en un orden normativo |
 | **Wizard / multi-step form** | `Wizard.jsx` + 9 `Paso*.jsx` | Un formulario de cientos de campos, digerible por pasos |
 | **Local-first + debounced sync** | `Wizard.jsx` | Funciona sin conexión y sincroniza entre computadores sin bloquear nunca |
 | **Fallback chain** | `cargarCliente()` | servidor → localStorage → tabla clientes → en blanco |
@@ -1132,11 +983,14 @@ uno y el problema concreto que resuelve.
 | **Facade** | `api.js` | Un solo lugar decide qué pasa con el token y con un 401 |
 | **Event bus mínimo** | `window` + `'sesion-expirada'` | Logout global sin Context ni Redux |
 | **Derived state** | `useMemo` sobre `liquidar()` | El cálculo se rehace en cada render sin recalcular a mano: es aritmética pura y barata |
+| **Sandboxed preview** | `Prospectos.jsx > VistaPrevia`: `iframe srcDoc` con `sandbox=""` | El correo trae su propio `<style>`: aislado no altera el panel y no puede ejecutar nada |
+| **Paginación como unidad de trabajo** | `Prospectos.jsx`: `POR_PAGINA = 20` | Una página es exactamente una tanda de envío del día |
+| **Reutilización de componentes** | `ThOrdenable` (Clientes → Prospectos), `CascaronLegal` (Legal → Baja) | Un solo comportamiento de ordenar y un solo marco de página pública |
 
 ### Anti-patrones evitados a propósito
 
 - **Sin ORM**: el esquema es pequeño y estable; un ORM añadiría una capa de
-  indirección sobre 8 tablas sin ganar nada.
+  indirección sobre 9 tablas sin ganar nada.
 - **Sin gestor de estado global**: ninguna vista necesita el estado de otra. El
   único estado verdaderamente compartido es el token, y vive en `api.js`.
 - **Sin framework de CSS**: un `styles.css` con la paleta en `:root` pesa menos
@@ -1180,6 +1034,13 @@ graph TB
     style D1 fill:#123a63,color:#fff
 ```
 
+### Superficie nueva de la captación
+
+La única ruta pública que agregó la captación es `POST /api/portal/baja/:token`.
+Solo acepta un token HMAC válido con el prefijo `baja:` (404 en cualquier otro
+caso), queda bajo el limitador del portal y su único efecto es **reducir**
+permisos: marcar al prospecto como dado de baja. No devuelve datos personales.
+
 ### Por qué `Referrer-Policy: no-referrer` no es opcional
 
 El enlace del portal lleva el token **en la propia URL**. Sin esta cabecera,
@@ -1218,8 +1079,20 @@ error tiene consecuencias reales frente a la DIAN.
 El motor es puro, así que las pruebas no necesitan mocks, base de datos ni DOM.
 Esa es exactamente la razón de haberlo mantenido puro.
 
-**Lo que no está cubierto por pruebas automáticas**: el backend, las vistas de
-React y los envíos de correo. Se validan a mano; `GET /api/correos/verificar`
+### Backend
+
+```bash
+cd server && npm test        # node --test, sin dependencias
+```
+
+**12 pruebas** sobre las reglas de la captación, que tienen consecuencias
+legales: festivos de Colombia (2026 y el cálculo de la Pascua en otro año),
+todos los bordes del horario de la Ley 2300, el saludo, el escape de HTML en el
+nombre, que la tabla de fechas no muestre plazos vencidos, las advertencias que
+bloquean el envío y la separación de dominio de los tokens.
+
+**Lo que no está cubierto por pruebas automáticas**: el resto del backend (rutas
+y SQL), las vistas de React y los envíos de correo reales. Se validan a mano; `GET /api/correos/verificar`
 diagnostica el canal de correo sin enviar nada.
 
 > **Gate pendiente antes de usar el Liquidador con clientes reales**: validar
@@ -1237,7 +1110,7 @@ Resumen para quien llega nuevo y se pregunta *"¿por qué está hecho así?"*.
 | Autenticación HMAC sin estado | Sesiones en memoria o en Redis | Passenger recicla procesos → daba 401 intermitentes. Redis no existe en este hosting |
 | Correo por API HTTPS de Brevo | SMTP | El filtro saliente del proveedor marca el SMTP local como `550 SPAM` y bloquea el SMTP externo |
 | Migraciones en el arranque | Herramienta de migraciones | Originalmente, no había shell para correrlas. Se mantiene porque `db.init()` converge el esquema en cada `restart` sin un paso manual que se pueda olvidar |
-| Sin ORM | Sequelize / Prisma | 8 tablas estables; el SQL directo es más corto que la configuración del ORM |
+| Sin ORM | Sequelize / Prisma | 9 tablas estables; el SQL directo es más corto que la configuración del ORM |
 | `motor210` en el navegador | Calcular en el servidor | Los datos tributarios del cliente nunca salen del computador de la contadora |
 | Liquidaciones cifradas en el servidor | Solo `localStorage` | Poder continuar el mismo caso desde otro computador, sin que el servidor pueda leerlos |
 | `envios` como candado | Estado en memoria | Es el único estado compartido entre los procesos de Passenger |
@@ -1245,7 +1118,87 @@ Resumen para quien llega nuevo y se pregunta *"¿por qué está hecho así?"*.
 | Despliegue por `scp` + `ssh` | Git pull en el servidor, o CI/CD | El servidor **sí** tiene `git`, así que un `pull` es viable a futuro. Hoy el repo no está clonado allá y el build del frontend se hace en local |
 | Fechas en hora de Bogotá | UTC | La usuaria lee el historial directamente; convertir zonas solo introduce confusión |
 | `seguridad.js` sin dependencias | `helmet` + `express-rate-limit` | Originalmente, cada dependencia obligaba a subir `node_modules` por SFTP. **Esa restricción ya no existe** (`npm install` corre por SSH); se mantiene porque son ~90 líneas que hacen exactamente lo que se necesita |
+| C4-PlantUML para la estructura, Mermaid para lo dinámico | Todo en Mermaid | El C4 de Mermaid es experimental. Los SVG de PlantUML se generan con un comando y quedan versionados |
+| `prospectos` en tabla propia | Columna `tipo` en `clientes` | Un prospecto no tiene portal, plantilla, clave DIAN ni alertas; mezclarlos obliga a filtrar en cada consulta de clientes |
+| Prospecto = solo nombre y correo | Guardar NIT, actividad e ingresos de la base | Minimización (Ley 1581). Costo asumido: el correo muestra la tabla de plazos en vez de la fecha personal |
+| Festivos calculados | Lista fija por año | Una lista caduca en silencio el 1 de enero |
+| Baja con botón de confirmación | Baja al abrir el enlace | Los escáneres de enlaces del correo darían de baja a gente que no lo pidió |
+| Tope de 20 correos de captación al día | Enviar la base completa | Reputación del remitente compartido con los correos a clientes |
 | Español en el código | Inglés | Coincide con el dominio: `cedula`, `vencimiento`, `renta exenta` y `cédula general` no tienen traducción útil |
+
+---
+
+## 13. Buenas prácticas y estándares aplicados
+
+Cada fila apunta a dónde verificarla en el repositorio. Si una práctica deja de
+cumplirse, esta tabla debe corregirse en el mismo cambio.
+
+### Arquitectura y código
+
+| Práctica | Cómo se aplica | Evidencia |
+|---|---|---|
+| Modelo C4 + diagramas como código | Cinco niveles (contexto → código) con fuentes versionadas y render reproducible | `docs/diagramas/`, `render.sh` |
+| Registro de decisiones (estilo ADR) | Cada decisión con la alternativa descartada y la razón | [§12](#12-decisiones-de-arquitectura-y-sus-porqués) |
+| Separación en capas | HTTP → dominio → datos; el SQL vive en un solo archivo | `datos.js`; ningún `q(` fuera de él |
+| Núcleo funcional | Cálculo tributario y reglas legales como funciones puras | `motor210/`, `horarioContacto.js` |
+| Configuración por entorno ([12-factor](https://12factor.net/es/config)) | Secretos y parámetros en `.env`, nunca en el código | `server/.env.example` |
+| Procesos sin estado (12-factor) | Tokens HMAC y candados en la base; nada compartido en memoria | `auth.js`, `datos.hayEnvioDesde()` |
+| Migraciones idempotentes | El esquema converge en cada arranque | `db.js > init()` |
+| Dependencias mínimas | 5 dependencias de producción en el backend | `server/package.json` |
+| Comentarios que explican el porqué | Restricciones y decisiones, no narración del código | Todo `server/src/` |
+
+### Seguridad (referencia: [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/))
+
+| Práctica | Cómo se aplica | Evidencia |
+|---|---|---|
+| Consultas parametrizadas | Todo el SQL usa `?`; **cero** consultas armadas concatenando texto | `datos.js` |
+| Comparación en tiempo constante | `igualSeguro()` compara `Buffer`s por tamaño en bytes | `auth.js` |
+| Separación de dominio en tokens | Prefijos `portal:` y `baja:` en el HMAC | `auth.js`, prueba en `server/test/` |
+| Cifrado autenticado en reposo | AES-256-GCM con una llave distinta de la del login | `cifrado.js` |
+| Cabeceras de seguridad | CSP, HSTS, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer` | `seguridad.js` + `.htaccess` |
+| Limitación de peticiones | Cuatro perfiles por IP según la sensibilidad de la ruta | `seguridad.js > limitador()` |
+| Validación por contenido | Magic bytes, no extensión | `archivos.js > firmaValida()` |
+| Mínima exposición | Archivos fuera del document root + reglas `[F]` | [§2](#2-infraestructura-y-despliegue) |
+| Respuesta anti-enumeración | Misma respuesta exista o no la cédula | `POST /api/portal/recuperar` |
+| Escape de datos no confiables | Todo dato editable se escapa antes de ir al HTML de un correo | `correo.js > escapeHtml()`, prueba en `server/test/` |
+| Vista previa aislada | `iframe` con `sandbox=""` para el HTML del correo | `Prospectos.jsx` |
+
+### Privacidad y cumplimiento
+
+| Norma o estándar | Cómo se aplica | Evidencia |
+|---|---|---|
+| Ley 1581 de 2012 (habeas data) — minimización | Prospectos: solo nombre y correo; la importación ignora el resto de columnas | `datos.importarProspectos()` |
+| Ley 1581 — derecho a no ser contactado | Baja en cada correo; quien se da de baja queda excluido para siempre | `{{baja}}`, `darDeBajaProspecto()` |
+| Ley 2300 de 2023 — horarios de contacto | Validado en el servidor, con festivos calculados | `horarioContacto.js` + 12 pruebas |
+| RFC 2369 / RFC 8058 — baja en un clic | Cabeceras `List-Unsubscribe` y `List-Unsubscribe-Post` | `enviarLoteCaptacion()` |
+| Buenas prácticas de envío masivo | Tope diario, pausa entre correos, versión de texto plano | `correo.js` |
+| Estatuto Tributario | Cada módulo del motor cita el artículo que implementa | `motor210/`, [reglas-tributarias-AG2025.md](reglas-tributarias-AG2025.md) |
+
+### Experiencia de uso y accesibilidad
+
+| Práctica | Cómo se aplica | Evidencia |
+|---|---|---|
+| Diseño móvil primero | Cada vista se revisa a 390 px antes de desplegar; modales como hoja inferior | `styles.css` (`@media (max-width: 600px)`) |
+| Accesibilidad | `aria-label` en controles sin texto, `aria-live` en avisos, `focus-visible`, `prefers-reduced-motion` | `styles.css`, `Portal.jsx`, `Prospectos.jsx` |
+| Prevención de errores | Selección limitada al cupo del día, confirmación antes de enviar, vista previa con las razones de omisión | `Prospectos.jsx` |
+
+### Operación
+
+| Práctica | Cómo se aplica | Evidencia |
+|---|---|---|
+| Respaldo antes de cambiar el esquema en producción | `mysqldump` previo al despliegue | `~/respaldos-renta/` en el servidor |
+| Verificación posterior al despliegue | Contra un endpoint de la API, nunca contra un estático | [MANUAL-TECNICO §9](MANUAL-TECNICO.md#9-desarrollo-local-y-despliegue) |
+| Historial de cambios | Cada entrega con qué cambió y por qué | [CHANGELOG.md](../CHANGELOG.md) |
+| Sin datos personales en el historial de git | Los mensajes de commit nunca incluyen nombres ni datos de clientes | `git log` |
+
+### Deuda conocida (declarada, no escondida)
+
+| Pendiente | Riesgo | Plan |
+|---|---|---|
+| Sin integración continua | Las pruebas dependen de que alguien las corra | Workflow de GitHub Actions con `npm test` de cliente y servidor |
+| Rutas y SQL del backend sin pruebas automáticas | Una regresión en una ruta se detecta a mano | Pruebas de integración contra MariaDB en contenedor |
+| `cascada.js` duplicado en `liquidar()` | Dos implementaciones de la misma regla | Unificar ([§6](#6-motor-de-cálculo-motor210)) |
+| `nodemailer` con avisos de `npm audit` | Bajo: producción envía por la API de Brevo, no por `sendMail` | Actualizar o retirar el canal SMTP |
 
 ---
 
@@ -1263,7 +1216,8 @@ npm install && npm run dev            # http://localhost:3001
 cd client && npm install && npm run dev   # http://localhost:5173
 
 # 4. Pruebas
-cd client && npm test
+cd client && npm test     # motor210 (Vitest)
+cd server && npm test     # reglas del backend (node --test)
 ```
 
 ### Por dónde entrar según lo que vayas a tocar
@@ -1274,6 +1228,8 @@ cd client && npm test
 | Cambiar el esquema | `server/src/db.js` — patrón de migración con `information_schema` |
 | Tocar un cálculo tributario | `docs/reglas-tributarias-AG2025.md` → el módulo en `motor210/` → **su test** |
 | Cambiar un correo masivo | `server/src/seed.js` (plantilla) + `client/src/vistas/Correos.jsx` |
+| Tocar la captación | `server/src/correo.js` (captación) + `horarioContacto.js` + **`server/test/`** |
+| Cambiar un diagrama | `docs/diagramas/*.puml` → `docs/diagramas/render.sh` |
 | Agregar una pestaña al panel | `client/src/App.jsx > PESTANAS` |
 | Agregar un paso al Wizard | `client/src/vistas/liquidador210/Wizard.jsx > PASOS` |
 | Entender qué ve el cliente | `client/src/vistas/Portal.jsx` |

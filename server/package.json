@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "node --watch server.js",
+    "test": "node --test",
     "start": "node server.js",
     "db:local": "bash scripts/db-local.sh",
     "migrar-json": "node scripts/migrar-json.js"

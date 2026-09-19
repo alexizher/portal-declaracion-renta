@@ -1,0 +1,124 @@
+@startuml c4-4-codigo-captacion
+!include _estilo-codigo.puml
+left to right direction
+title Nivel 4 · Código — captación de prospectos (de punta a punta)
+
+package "client/src/vistas" {
+  class "Prospectos.jsx" as vista <<vista React>> {
+    -POR_PAGINA = 20
+    -EXTRACTORES_ORDEN
+    -listoParaEnvio(p) : boolean
+    -seleccionarPagina()   // hasta el cupo del día
+    -enviar()
+  }
+  class VistaPrevia <<componente>> {
+    iframe srcDoc + sandbox="" (celular / escritorio)
+  }
+  class FormularioProspecto <<componente>> {
+    alta, edición, conversión (pide cédula)
+  }
+  class ImportarProspectos <<componente>> {
+    lee CSV/Excel → solo nombre y correo
+  }
+  class EditorMensaje <<componente>>
+  class "Baja.jsx" as bajaVista <<vista pública>> {
+    -confirmar() : POST, nunca al abrir
+  }
+}
+
+package "server/src" {
+  class "app.js" as rutas <<rutas>> {
+    GET    /api/prospectos
+    POST   /api/prospectos
+    POST   /api/prospectos/importar
+    PUT    /api/prospectos/:id
+    DELETE /api/prospectos/:id
+    POST   /api/prospectos/:id/convertir
+    GET    /api/prospectos/:id/previsualizar
+    POST   /api/prospectos/enviar
+    POST   /api/portal/baja/:token  (sin login)
+  }
+
+  class "correo.js" as correo <<servicio>> {
+    +LIMITE_DIARIO_CAPTACION = 20
+    +renderCorreoCaptacion(p, config, calendario, hoy)
+    +enviarLoteCaptacion(ids) : {resultados} | {error}
+    -tablaFechas(calendario, hoy) : html
+    -primerNombre(nombre) : string
+    -urlBaja(id) / urlBajaUnClic(id)
+    +enviarCorreo({…, headers})
+  }
+
+  class "horarioContacto.js" as horario <<reglas Ley 2300>> {
+    +puedeContactar(ahora) : {ok, motivo}
+    +festivosColombia(anio) : Set
+    -pascua(anio)
+    -aLunes(ms)   // Ley Emiliani
+  }
+
+  class "auth.js" as auth <<tokens HMAC>> {
+    +tokenBaja(id) : string
+    +prospectoIdDeBaja(token) : id | null
+    -firmaBaja(id)   // prefijo "baja:"
+    +igualSeguro(a, b)
+  }
+
+  class "datos.js" as datos <<repositorio>> {
+    +ESTADOS_PROSPECTO
+    +listarProspectos()
+    +crearProspecto({nombre, email, notas})
+    +importarProspectos(filas, origen)
+    +actualizarProspecto(id, campos)
+    +darDeBajaProspecto(id)
+    +marcarProspectoContactado(id, fecha)
+    +convertirProspecto(id, {cedula, plantillaId})
+    +contarEnviosDesde(tipo, desde)
+    -limpiarNombre() / nombreCortado() / correoValido()
+  }
+
+  class "plantillaCaptacion.js" as plantilla <<plantilla inicial>> {
+    +ASUNTO
+    +CUERPO   // {{saludo}} {{fechas}} {{ultimo_plazo}} {{baja}}
+  }
+}
+
+database "MariaDB" as db {
+  class prospectos <<tabla>> {
+    id PK
+    email UNIQUE
+    nombre · estado · notas · origen
+    cliente_id · baja_en · ultimo_envio
+  }
+  class envios <<tabla>> {
+    tipo = 'captacion'
+  }
+  class config <<tabla>> {
+    asunto_captacion · cuerpo_captacion
+  }
+}
+
+vista *-- VistaPrevia
+vista *-- FormularioProspecto
+vista *-- ImportarProspectos
+vista *-- EditorMensaje
+vista ..> rutas : api() Bearer
+bajaVista ..> rutas : fetch sin login
+
+rutas --> datos
+rutas --> correo
+rutas --> horario : estado del botón
+rutas --> auth : prospectoIdDeBaja()
+correo --> horario : puedeContactar()
+correo --> auth : tokenBaja()
+correo --> datos : config, cupo, contactado
+plantilla ..> config : siembra (INSERT IGNORE)
+datos --> prospectos
+datos --> envios
+datos --> config
+
+note bottom of correo
+  Cabeceras de cada envío:
+  List-Unsubscribe: <…/api/portal/baja/{token}>
+  List-Unsubscribe-Post: List-Unsubscribe=One-Click  (RFC 8058)
+end note
+@enduml

@@ -1,0 +1,41 @@
+@startuml c4-despliegue
+' Debe ir antes del include de C4 (la librería lo define con ?=).
+!$LEGEND_TITLE_TEXT = "Leyenda"
+!include <C4/C4_Deployment>
+!include _estilo.puml
+UpdateElementStyle("node", $legendText="nodo de despliegue")
+title Despliegue — hosting compartido cPanel (repolite)
+
+Deployment_Node(navegador, "Navegador", "Chrome / Safari móvil") {
+  Container(spa, "Aplicación web", "React 18", "Panel, portal y Liquidador 210")
+}
+
+Deployment_Node(servidor, "Servidor repolite", "cPanel, CloudLinux, acceso SSH") {
+  Deployment_Node(docroot, "Document root = app root", "LiteSpeed") {
+    Container(web, "Servidor web", "LiteSpeed + .htaccess", "Estáticos de public/ y reglas [F] sobre src, uploads, *.log, *.env")
+  }
+  Deployment_Node(passenger, "Passenger", "Node.js 20, varios procesos que se reciclan") {
+    Container(api, "API", "Express 4", "server.js — sin estado en memoria: tokens HMAC y dedupe en la tabla envios")
+  }
+  Deployment_Node(mariadb, "MariaDB", "repolite_rentapn") {
+    ContainerDb(db, "Base de datos", "MariaDB")
+  }
+  Deployment_Node(disco, "/home/repolite/renta-uploads", "Fuera del árbol web") {
+    Container(archivos, "Almacén de archivos", "Disco")
+  }
+}
+
+Deployment_Node(nube, "Servicios externos", "Internet") {
+  System_Ext(brevo, "Brevo", "api.brevo.com")
+  System_Ext(cron, "Cron de cPanel", "0 7 * * *")
+}
+
+Rel(spa, web, "HTTPS")
+Rel(web, api, "/api/*")
+Rel(api, db, "mysql2")
+Rel(api, archivos, "fs")
+Rel(api, brevo, "HTTPS")
+Rel(cron, web, "curl /api/cron/alertas", $tags="async")
+
+SHOW_LEGEND()
+@enduml

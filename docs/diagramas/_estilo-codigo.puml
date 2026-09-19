@@ -1,0 +1,28 @@
+' Estilo de los diagramas de nivel 4 (código): UML de clases con la paleta DM.
+skinparam defaultFontName "Segoe UI"
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam ArrowColor #5B6573
+skinparam ArrowFontColor #3A3A3A
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #24466E
+  HeaderBackgroundColor #E8EEF6
+  FontColor #152A45
+  StereotypeFontColor #8A6D1A
+}
+skinparam interface {
+  BackgroundColor #FBF8F6
+  BorderColor #C39A3B
+}
+skinparam package {
+  BackgroundColor #FBF8F6
+  BorderColor #C39A3B
+  FontColor #152A45
+}
+skinparam note {
+  BackgroundColor #FFF6E0
+  BorderColor #C39A3B
+}
+hide empty members

@@ -1,0 +1,25 @@
+' Estilo común de los diagramas C4 del proyecto: paleta de la marca DM
+' (azul marino #152A45, dorado #C39A3B) sobre la notación C4-PlantUML.
+!$FUENTE = "Segoe UI"
+skinparam defaultFontName $FUENTE
+skinparam backgroundColor #FFFFFF
+skinparam ArrowColor #5B6573
+skinparam ArrowFontColor #3A3A3A
+
+UpdateElementStyle("person", $bgColor="#152A45", $borderColor="#0E1E33", $fontColor="#FFFFFF", $legendText="persona")
+UpdateElementStyle("system", $bgColor="#152A45", $borderColor="#C39A3B", $fontColor="#FFFFFF", $legendText="sistema")
+UpdateElementStyle("external_system", $bgColor="#8B8F96", $borderColor="#6B7078", $fontColor="#FFFFFF", $legendText="sistema externo")
+UpdateElementStyle("container", $bgColor="#24466E", $borderColor="#C39A3B", $fontColor="#FFFFFF", $legendText="contenedor")
+UpdateElementStyle("external_container", $bgColor="#8B8F96", $borderColor="#6B7078", $fontColor="#FFFFFF", $legendText="contenedor externo")
+UpdateElementStyle("component", $bgColor="#3A6595", $borderColor="#24466E", $fontColor="#FFFFFF", $legendText="componente")
+UpdateElementStyle("external_component", $bgColor="#A9ADB3", $borderColor="#8B8F96", $fontColor="#FFFFFF", $legendText="componente externo")
+' Solo procedimientos de la base común de C4: el estilo se incluye desde
+' diagramas de distintos niveles (contexto, contenedores, componentes).
+UpdateBoundaryStyle($bgColor="#FBF8F6", $borderColor="#C39A3B", $fontColor="#152A45", $legendText="límite")
+UpdateBoundaryStyle($elementName="system", $bgColor="#FBF8F6", $borderColor="#C39A3B", $fontColor="#152A45", $legendText="límite del sistema")
+UpdateBoundaryStyle($elementName="container", $bgColor="#FBF8F6", $borderColor="#C39A3B", $fontColor="#152A45", $legendText="límite del contenedor")
+
+AddElementTag("seguridad", $bgColor="#7A1F1F", $borderColor="#4F1212", $fontColor="#FFFFFF", $legendText="seguridad")
+AddElementTag("datos", $bgColor="#152A45", $borderColor="#C39A3B", $fontColor="#FFFFFF", $legendText="único acceso a SQL")
+AddElementTag("nuevo", $borderColor="#C39A3B", $legendText="captación de prospectos")
+AddRelTag("async", $textColor="#5B6573", $lineColor="#8B8F96", $lineStyle=DashedLine(), $legendText="asíncrono / programado")

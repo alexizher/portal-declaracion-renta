@@ -9,7 +9,7 @@ liquidador del Formulario 210.
 | Documento | Para quién | Qué contiene |
 |---|---|---|
 | **[Manual de usuario](docs/MANUAL-USUARIO.md)** | Contadora y clientes | Cómo se usa el sistema, sin tecnicismos |
-| **[Arquitectura](docs/ARQUITECTURA.md)** | Desarrolladores | Diagramas, patrones de diseño, modelo de datos y flujos. **Empieza aquí si es tu primer día** |
+| **[Arquitectura](docs/ARQUITECTURA.md)** | Desarrolladores | Modelo C4 completo (contexto → código), patrones de diseño, modelo de datos, flujos, decisiones y buenas prácticas con su evidencia. **Empieza aquí si es tu primer día** |
 | **[Manual técnico](docs/MANUAL-TECNICO.md)** | Desarrolladores | Endpoints, variables de entorno, despliegue y cómo extender |
 | **[Reglas tributarias AG2025](docs/reglas-tributarias-AG2025.md)** | Desarrolladores y contadores | Fundamentación normativa del Liquidador, artículo por artículo del ET |
 | **[Plan multi-tenant](docs/PLAN-MULTITENANT.md)** | Desarrolladores | Cómo pasar de una contadora a varias con suscripción. **Diseñado, no implementado** |
@@ -19,7 +19,10 @@ liquidador del Formulario 210.
 
 ```
 ┌─ Panel de administración ──── contadora, con contraseña
-│    Clientes · Correos · Revisión · Documentos · Calendario DIAN · Liquidador 210
+│    Clientes · Correos · Prospectos · Revisión · Documentos · Calendario DIAN · Liquidador 210
+│
+├─ Captación de prospectos ──── correo a posibles clientes
+│    horario Ley 2300 · tope de 20 al día · baja en un clic (RFC 8058)
 │
 ├─ Portal del cliente ───────── enlace personal, sin contraseña
 │    sube documentos · deja su clave DIAN · descarga su declaración
@@ -28,10 +31,14 @@ liquidador del Formulario 210.
      9 pasos · 156 pruebas · el servidor nunca ve los datos tributarios
 ```
 
+![C4 nivel 1: contexto del sistema](docs/diagramas/c4-1-contexto.svg)
+
 | Capa | Tecnología |
 |---|---|
 | Backend | Node.js 20 · Express 4 · MySQL/MariaDB · multer · nodemailer |
 | Frontend | React 18 · Vite · CSS propio · Vitest |
+| Pruebas | Vitest (motor210, 156) · `node --test` (reglas del backend, 12) |
+| Diagramas | C4-PlantUML (estructura) · Mermaid (secuencias, estados, ER) |
 | Hosting | cPanel compartido (LiteSpeed + Passenger) |
 | Correo | Brevo API HTTPS (producción) › SMTP › Gmail (desarrollo) |
 
@@ -59,6 +66,12 @@ navegador**: el servidor solo guarda una copia cifrada del avance para poder
 continuar desde otro computador. 156 pruebas automáticas sobre el motor de
 cálculo. Ver [docs/ARQUITECTURA.md §6](docs/ARQUITECTURA.md#6-motor-de-cálculo-motor210).
 
+**Fase 5 — Captación de prospectos:** pestaña **Prospectos** para escribirle a
+posibles clientes con un correo de marca. Guarda solo nombre y correo, envía en
+tandas de 20 al día dentro del horario de la Ley 2300 y cada correo trae baja
+en un clic; quien acepta pasa a Clientes con un botón. Ver
+[docs/ARQUITECTURA.md §7.7](docs/ARQUITECTURA.md#77-captación-de-prospectos--envío-y-baja).
+
 ## Estructura
 
 ```
@@ -68,7 +81,8 @@ docs/     Documentación (ver la tabla de arriba)
 ```
 
 Los datos viven en **MySQL/MariaDB** (tablas: `clientes`, `plantillas`,
-`calendario`, `config`, `envios`, `documentos`, `entregas`, `liquidaciones210`).
+`calendario`, `config`, `envios`, `documentos`, `entregas`, `prospectos`,
+`liquidaciones210`).
 Las tablas se crean y se precargan solas al primer arranque, incluidas las
 migraciones de columnas nuevas sobre tablas existentes — no hay archivos de
 migración ni ORM. Diagrama entidad-relación en

@@ -3,6 +3,24 @@
 Historial de cambios del portal de declaración de renta. Fechas en hora de
 Colombia; los hashes referencian los commits en `main`.
 
+## 2026-09-19 (tarde) — Documentación C4 y pruebas del backend
+
+- **Modelo C4 completo** con C4-PlantUML (`docs/diagramas/`): contexto,
+  contenedores, despliegue, componentes de la API y de la aplicación web, y
+  código de `motor210` y de la captación. Fuentes versionadas, estilo con la
+  paleta de la marca y `render.sh` para regenerar los SVG sin instalar Java.
+  Mermaid queda para secuencias, estados y el modelo entidad-relación.
+- `ARQUITECTURA.md`: sección 7.7 (captación: secuencia de envío y baja, y sus
+  controles), patrones nuevos, decisiones nuevas y la sección 13 «Buenas
+  prácticas y estándares aplicados», con la evidencia en el repositorio de
+  cada práctica y la deuda conocida.
+- **Pruebas del backend** (`server/test/`, `npm test` con `node --test`, sin
+  dependencias): 12 pruebas de festivos, horario de la Ley 2300, render del
+  correo de captación (saludo, escape de HTML, plazos vigentes, advertencias)
+  y separación de dominio de los tokens.
+- Hallazgo documentado: `cascada.js` no se usa en `liquidar()`, que aplica la
+  misma regla en línea (queda como deuda en §6 y §13).
+
 ## 2026-09-19 — Prospectos: solo nombre y correo
 
 - La tabla `prospectos` guarda solo nombre y correo (clave única); se quitaron
