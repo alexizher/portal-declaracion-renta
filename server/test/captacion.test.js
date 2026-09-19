@@ -50,21 +50,24 @@ test('Ley 2300: sábados de 8:00 a. m. a 3:00 p. m.; nunca domingos ni festivos'
 });
 
 const CONFIG = { asunto_captacion: ASUNTO, cuerpo_captacion: CUERPO, remitente: '' };
+// La plantilla de presentación no saluda por nombre; {{saludo}} se prueba
+// con una plantilla mínima porque el render lo sigue soportando.
+const CONFIG_SALUDO = { asunto_captacion: 'x', cuerpo_captacion: '<p>{{saludo}}</p>', remitente: '' };
 const prospecto = (campos = {}) => ({ id: 'abc123', nombre: '', email: 'p@ejemplo.test', estado: 'nuevo', ...campos });
 
 test('saludo: solo el primer nombre, capitalizado (las bases vienen en mayúsculas)', () => {
-  const { html } = renderCorreoCaptacion(prospecto({ nombre: 'ÁNGELA MARÍA VÉLEZ' }), CONFIG, CALENDARIO_2026, '2026-09-19');
+  const { html } = renderCorreoCaptacion(prospecto({ nombre: 'ÁNGELA MARÍA VÉLEZ' }), CONFIG_SALUDO, CALENDARIO_2026, '2026-09-19');
   assert.match(html, /Hola Ángela,/);
   assert.doesNotMatch(html, /VÉLEZ/);
 });
 
 test('saludo sin nombre: "Hola," a secas', () => {
-  const { html } = renderCorreoCaptacion(prospecto(), CONFIG, CALENDARIO_2026, '2026-09-19');
+  const { html } = renderCorreoCaptacion(prospecto(), CONFIG_SALUDO, CALENDARIO_2026, '2026-09-19');
   assert.match(html, /Hola,<\/p>/);
 });
 
 test('el nombre se escapa: no se puede inyectar HTML en el correo', () => {
-  const { html } = renderCorreoCaptacion(prospecto({ nombre: '<img src=x>' }), CONFIG, CALENDARIO_2026, '2026-09-19');
+  const { html } = renderCorreoCaptacion(prospecto({ nombre: '<img src=x>' }), CONFIG_SALUDO, CALENDARIO_2026, '2026-09-19');
   assert.doesNotMatch(html, /<img src=x>/);
   assert.match(html, /Hola &lt;img,/);
 });
@@ -73,7 +76,7 @@ test('la tabla de fechas solo trae plazos que no han vencido', () => {
   const { html } = renderCorreoCaptacion(prospecto(), CONFIG, CALENDARIO_2026, '2026-09-19');
   assert.match(html, />55-56<\/span>/, 'el 21-sep (55-56) sigue vigente');
   assert.doesNotMatch(html, />53-54<\/span>/, 'el 18-sep (53-54) ya pasó');
-  assert.match(html, /<strong>hasta el 26 de octubre<\/strong>/);
+  assert.match(html, /plazos hasta el 26 de octubre\./);
 });
 
 test('advertencias: baja, cliente y fin de temporada bloquean el envío', () => {
@@ -99,4 +102,13 @@ test('tokens con separación de dominio: uno de baja no abre un portal ni al rev
 
 test('la plantilla inicial trae el enlace de baja (obligatorio, Ley 1581)', () => {
   assert.match(CUERPO, /\{\{baja\}\}/);
+});
+
+test('la plantilla es una presentación: no usa el nombre ni supone que la persona declara', () => {
+  const { html } = renderCorreoCaptacion(prospecto({ nombre: 'ADELA MILLAN' }), CONFIG, CALENDARIO_2026, '2026-09-19');
+  assert.doesNotMatch(CUERPO, /\{\{(saludo|nombre)\}\}/);
+  assert.doesNotMatch(html, /Adela|ADELA/);
+  assert.doesNotMatch(html, /su declaraci[oó]n|le corresponde declarar|est[aá] obligad[oa]|su fecha/i);
+  assert.match(html, /asesoría personalizada/);
+  assert.match(html, />55-56<\/span>/, 'incluye la tabla de plazos vigentes');
 });

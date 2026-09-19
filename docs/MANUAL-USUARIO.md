@@ -322,8 +322,10 @@ terminar te dice cuántos agregó y cuántos omitió:
 - **Ya son clientes**: se cruzan por correo y no se duplican.
 - **Sin correo válido**.
 
-El correo saluda solo con el primer nombre ("Hola Adela,"), aunque la base lo
-traiga completo y en mayúsculas. Si no hay nombre, dice "Hola," a secas.
+El correo es una **presentación de Daniela**: saluda con "Buen día,", no usa
+el nombre de la persona ni da por hecho que tenga que declarar. Ofrece la
+asesoría personalizada en todo el proceso e incluye el calendario de plazos que
+quedan.
 
 ### Revisar el correo
 
@@ -335,10 +337,10 @@ cuerpo. Estas son las palabras que se reemplazan solas:
 
 | Escribe | Sale |
 |---|---|
-| `{{saludo}}` | "Hola Adela," o "Hola," si no hay nombre |
 | `{{fechas}}` | La tabla de los plazos que aún no vencen |
 | `{{ultimo_plazo}}` | El último día de la temporada, p. ej. "26 de octubre" |
 | `{{baja}}` | El enlace para darse de baja (no lo quites) |
+| `{{saludo}}` | "Hola Adela," o "Hola," si no hay nombre. La plantilla actual no lo usa a propósito |
 
 ### Enviar
 

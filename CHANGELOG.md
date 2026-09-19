@@ -3,6 +3,18 @@
 Historial de cambios del portal de declaración de renta. Fechas en hora de
 Colombia; los hashes referencian los commits en `main`.
 
+## 2026-09-19 (noche) — Correo de captación como presentación
+
+- La plantilla de captación pasa a ser una **presentación de Daniela**
+  (asunto «Presentación: Daniela Molina, contadora pública»): saluda con
+  «Buen día,», no usa el nombre del destinatario ni supone que esté obligado a
+  declarar, y ofrece la asesoría personalizada en todo el proceso. Conserva la
+  tabla de plazos vigentes (`{{fechas}}`), un solo botón de WhatsApp, la
+  firma con la tarjeta profesional y la sanción como dato general.
+- Prueba nueva que fija esa regla (13 en `server/test/`).
+- En producción se reemplazó `asunto_captacion` / `cuerpo_captacion`
+  (respaldo previo en el servidor).
+
 ## 2026-09-19 (tarde) — Documentación C4 y pruebas del backend
 
 - **Modelo C4 completo** con C4-PlantUML (`docs/diagramas/`): contexto,

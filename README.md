@@ -37,7 +37,7 @@ liquidador del Formulario 210.
 |---|---|
 | Backend | Node.js 20 · Express 4 · MySQL/MariaDB · multer · nodemailer |
 | Frontend | React 18 · Vite · CSS propio · Vitest |
-| Pruebas | Vitest (motor210, 156) · `node --test` (reglas del backend, 12) |
+| Pruebas | Vitest (motor210, 156) · `node --test` (reglas del backend, 13) |
 | Diagramas | C4-PlantUML (estructura) · Mermaid (secuencias, estados, ER) |
 | Hosting | cPanel compartido (LiteSpeed + Passenger) |
 | Correo | Brevo API HTTPS (producción) › SMTP › Gmail (desarrollo) |

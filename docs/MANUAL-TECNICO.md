@@ -170,9 +170,11 @@ saliente rechaza todo SMTP local y bloquea SMTP externo; ver README).
   marcados "ya declaró").
 - **Captación de prospectos** (pestaña Prospectos, plantilla editable en
   `asunto_captacion` / `cuerpo_captacion`, sembrada desde
-  `plantillaCaptacion.js`). Variables: `{{saludo}}` (primer nombre
-  capitalizado o "Hola,"), `{{fechas}}` (tabla de plazos que aún no vencen),
-  `{{ultimo_plazo}}` y `{{baja}}`. `enviarLoteCaptacion` rechaza el lote
+  `plantillaCaptacion.js`): una **presentación** de la contadora que no usa
+  el nombre ni supone que el destinatario declara (una prueba en
+  `server/test/` fija esa regla). Variables: `{{fechas}}` (tabla de plazos
+  que aún no vencen), `{{ultimo_plazo}}`, `{{baja}}` y, disponible pero sin
+  usar, `{{saludo}}` (primer nombre capitalizado o "Hola,"). `enviarLoteCaptacion` rechaza el lote
   fuera del horario de la Ley 2300 (`horarioContacto.js`), respeta el tope
   diario (`CAPTACION_LIMITE_DIARIO`, 20 por defecto, contado en `envios`),
   omite prospectos dados de baja, convertidos o descartados, y agrega

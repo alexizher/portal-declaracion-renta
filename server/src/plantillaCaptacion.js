@@ -6,11 +6,16 @@
 // Es un documento HTML completo: se envía tal cual y el panel lo muestra en
 // un iframe, así su <style> no se mezcla con los estilos del panel.
 //
-// Variables: {{saludo}} ("Hola Ana," o "Hola," si no hay nombre),
-// {{fechas}} (tabla de los plazos que aún no vencen), {{ultimo_plazo}}
-// ("26 de octubre") y {{baja}}.
+// Tono de presentación, a propósito: no saluda por el nombre ni da por hecho
+// que el destinatario está obligado a declarar (la base es de posibles
+// clientes, no de declarantes confirmados). Es Daniela presentándose y
+// ofreciendo acompañamiento.
+//
+// Variables: {{fechas}} (tabla de los plazos que aún no vencen),
+// {{ultimo_plazo}} ("26 de octubre") y {{baja}}. {{saludo}} sigue disponible
+// en renderCorreoCaptacion para quien quiera un correo personalizado.
 
-const ASUNTO = '¿Ya presentó su declaración de renta?';
+const ASUNTO = 'Presentación: Daniela Molina, contadora pública';
 
 const FUENTE = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
@@ -20,20 +25,18 @@ const CUERPO = `<!DOCTYPE html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="x-apple-disable-message-reformatting">
-<title>Declaración de renta 2025</title>
+<title>Presentación: Daniela Molina, contadora pública</title>
 <style>
   @media only screen and (max-width: 620px) {
     .cap-contenedor { width: 100% !important; }
     .cap-relleno { padding-left: 22px !important; padding-right: 22px !important; }
-    .cap-titular { font-size: 24px !important; }
-    .cap-col { display: block !important; width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
   }
 </style>
 </head>
 <body style="margin:0;padding:0;background:#fbf8f6;">
 
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#fbf8f6;font-size:1px;line-height:1px;">
-  Los plazos van hasta el {{ultimo_plazo}}. Revise en 1 minuto si le toca declarar y déjenos el resto a nosotros.
+  Me presento y le cuento cómo acompaño a personas naturales en sus temas tributarios.
 </div>
 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fbf8f6;">
@@ -43,152 +46,101 @@ const CUERPO = `<!DOCTYPE html>
        style="width:600px;max-width:600px;background:#ffffff;border:1px solid #e3ddd4;border-top:4px solid #c39a3b;border-radius:10px;font-family:${FUENTE};color:#3a3a3a;">
 
   <tr>
-    <td class="cap-relleno" align="center" style="padding:28px 40px 8px;">
-      <img src="https://declaraciones-renta-pn.repolite.link/logo_DM_120.png" width="64" height="64" alt="DM"
-           style="display:block;border-radius:50%;border:0;">
-      <p style="margin:10px 0 0;font-size:13px;letter-spacing:.4px;color:#152a45;">
-        <strong>Daniela Molina Foronda</strong><br>
-        <span style="color:#7b8794;">Contadora Pública · Asesora Tributaria</span>
+    <td class="cap-relleno" style="padding:24px 40px 0;">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <td valign="middle" style="padding-right:12px;">
+            <img src="https://declaraciones-renta-pn.repolite.link/logo_DM_120.png" width="48" height="48" alt="DM"
+                 style="display:block;border-radius:50%;border:0;">
+          </td>
+          <td valign="middle" style="font-size:14px;line-height:1.4;color:#152a45;">
+            <strong>Daniela Molina Foronda</strong><br>
+            <span style="color:#7b8794;">Contadora Pública · Asesora Tributaria</span>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
+    <td class="cap-relleno" style="padding:24px 40px 0;font-size:16px;line-height:1.65;">
+      <p style="margin:0 0 16px;">Buen día,</p>
+      <p style="margin:0 0 16px;">
+        Mi nombre es Daniela Molina Foronda, soy contadora pública y asesora tributaria. Le escribo
+        para presentarme y ponerme a su disposición ahora que está abierta la temporada de
+        declaración de renta para personas naturales, con plazos hasta el {{ultimo_plazo}}.
+      </p>
+      <p style="margin:0 0 10px;">
+        Ofrezco una <strong>asesoría personalizada que acompaña todo el proceso</strong>, de principio a fin:
+      </p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:16px;line-height:1.55;">
+        <tr><td valign="top" width="22" style="color:#c39a3b;padding:4px 0;">&#9632;</td>
+            <td style="padding:4px 0;">Revisar cada caso y aclarar si existe o no la obligación de declarar.</td></tr>
+        <tr><td valign="top" width="22" style="color:#c39a3b;padding:4px 0;">&#9632;</td>
+            <td style="padding:4px 0;">Organizar la información y los soportes necesarios, sin complicaciones.</td></tr>
+        <tr><td valign="top" width="22" style="color:#c39a3b;padding:4px 0;">&#9632;</td>
+            <td style="padding:4px 0;">Aplicar las deducciones y beneficios que permite la ley, para pagar lo justo.</td></tr>
+        <tr><td valign="top" width="22" style="color:#c39a3b;padding:4px 0;">&#9632;</td>
+            <td style="padding:4px 0;">Presentar la declaración y entregar todos los soportes.</td></tr>
+      </table>
+      <p style="margin:16px 0 0;">
+        Todo se puede hacer a distancia, por un portal seguro, o con una conversación directa si
+        así lo prefiere.
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td class="cap-relleno" style="padding:26px 40px 0;">
+      <p style="margin:0 0 4px;font-size:16px;color:#152a45;"><strong>Calendario DIAN: plazos que quedan</strong></p>
+      <p style="margin:0 0 12px;font-size:14px;color:#5b6573;">Personas naturales, según los dos últimos dígitos de la cédula.</p>
+      {{fechas}}
+      <p style="margin:10px 0 0;font-size:13px;color:#7b8794;">
+        Si una fecha ya pasó, la declaración todavía se puede presentar, con la menor sanción posible.
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td class="cap-relleno" style="padding:26px 40px 0;font-size:16px;line-height:1.65;">
+      <p style="margin:0;">
+        Si usted o alguien cercano necesita orientación, con gusto le atiendo. Solo responda este
+        correo o escríbame por WhatsApp.
       </p>
     </td>
   </tr>
 
   <tr>
     <td class="cap-relleno" style="padding:20px 40px 0;">
-      <h1 class="cap-titular" style="margin:0;font-size:26px;line-height:1.25;color:#152a45;font-weight:700;">
-        Su declaración de renta, presentada a tiempo y sin complicaciones
-      </h1>
-    </td>
-  </tr>
-
-  <tr>
-    <td class="cap-relleno" style="padding:16px 40px 0;font-size:16px;line-height:1.6;">
-      <p style="margin:0 0 14px;">{{saludo}}</p>
-      <p style="margin:0 0 14px;">
-        La DIAN ya está recibiendo las declaraciones de renta del año gravable 2025 y los plazos
-        van <strong>hasta el {{ultimo_plazo}}</strong>, según los dos últimos dígitos de su cédula.
-      </p>
-      <p style="margin:0;">
-        Si le toca declarar, nosotros nos encargamos: usted nos envía sus documentos
-        y le entregamos la declaración lista y presentada ante la DIAN.
-      </p>
-    </td>
-  </tr>
-
-  <tr>
-    <td class="cap-relleno" style="padding:22px 40px 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-             style="background:#f4f6f9;border-radius:8px;">
-        <tr>
-          <td style="padding:20px 22px;font-size:15px;line-height:1.55;">
-            <p style="margin:0 0 10px;font-size:16px;color:#152a45;"><strong>¿Le toca declarar?</strong></p>
-            <p style="margin:0 0 10px;">Debe hacerlo si en 2025 cumplió <strong>al menos una</strong> de estas condiciones:</p>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size:15px;line-height:1.5;">
-              <tr><td valign="top" width="22" style="color:#c39a3b;padding:3px 0;">&#9632;</td>
-                  <td style="padding:3px 0;">Ingresos de <strong>$69.719.000</strong> o más (unos $5,8 millones al mes).</td></tr>
-              <tr><td valign="top" width="22" style="color:#c39a3b;padding:3px 0;">&#9632;</td>
-                  <td style="padding:3px 0;">Patrimonio de <strong>$224.096.000</strong> o más al 31 de diciembre.</td></tr>
-              <tr><td valign="top" width="22" style="color:#c39a3b;padding:3px 0;">&#9632;</td>
-                  <td style="padding:3px 0;">Compras con tarjeta de crédito, consumos o consignaciones de <strong>$69.719.000</strong> o más.</td></tr>
-              <tr><td valign="top" width="22" style="color:#c39a3b;padding:3px 0;">&#9632;</td>
-                  <td style="padding:3px 0;">Es responsable de IVA.</td></tr>
-            </table>
-            <p style="margin:12px 0 0;font-size:14px;color:#5b6573;">
-              ¿No está seguro? Escríbanos y lo revisamos con usted, sin costo.
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-
-  <tr>
-    <td class="cap-relleno" style="padding:28px 40px 0;font-size:15px;line-height:1.55;">
-      <p style="margin:0 0 14px;font-size:17px;color:#152a45;"><strong>Cómo le ayudamos</strong></p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-        <tr>
-          <td class="cap-col" valign="top" width="50%" style="padding-right:10px;">
-            <p style="margin:0 0 4px;color:#152a45;"><strong>1. Revisamos su información</strong></p>
-            <p style="margin:0 0 14px;">Cruzamos sus documentos con lo que bancos y empresas le reportaron a la DIAN, para que no haya sorpresas.</p>
-          </td>
-          <td class="cap-col" valign="top" width="50%" style="padding-left:10px;">
-            <p style="margin:0 0 4px;color:#152a45;"><strong>2. Aplicamos lo que la ley le permite</strong></p>
-            <p style="margin:0 0 14px;">Deducciones y rentas exentas por dependientes, salud, vivienda o aportes voluntarios, para que pague lo justo.</p>
-          </td>
-        </tr>
-        <tr>
-          <td class="cap-col" valign="top" width="50%" style="padding-right:10px;">
-            <p style="margin:0 0 4px;color:#152a45;"><strong>3. Todo desde su portal personal</strong></p>
-            <p style="margin:0 0 14px;">Sube sus documentos desde el celular y ve cuáles aprobamos. Su información se guarda cifrada.</p>
-          </td>
-          <td class="cap-col" valign="top" width="50%" style="padding-left:10px;">
-            <p style="margin:0 0 4px;color:#152a45;"><strong>4. Presentamos y le entregamos todo</strong></p>
-            <p style="margin:0 0 14px;">Declaración presentada, anexo explicativo y recibo de pago (si aplica), listos para descargar.</p>
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-
-  <tr>
-    <td class="cap-relleno" style="padding:10px 40px 0;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
-             style="border-left:4px solid #b97f7f;background:#fbf4f3;border-radius:0 8px 8px 0;">
-        <tr>
-          <td style="padding:14px 18px;font-size:15px;line-height:1.5;">
-            Declarar tarde tiene una sanción mínima de <strong>$524.000</strong>, aunque no tenga impuesto
-            a pagar. Presentarla a tiempo cuesta menos que la multa.
-          </td>
-        </tr>
-      </table>
-    </td>
-  </tr>
-
-  <tr>
-    <td class="cap-relleno" style="padding:26px 40px 0;">
-      <p style="margin:0 0 4px;font-size:17px;color:#152a45;"><strong>Fechas que quedan</strong></p>
-      <p style="margin:0 0 12px;font-size:14px;color:#5b6573;">Busque los dos últimos dígitos de su cédula.</p>
-      {{fechas}}
-      <p style="margin:10px 0 0;font-size:13px;color:#7b8794;">¿Su fecha ya pasó? Todavía podemos ayudarle a presentarla con la menor sanción posible.</p>
-    </td>
-  </tr>
-
-  <tr>
-    <td class="cap-relleno" style="padding:26px 40px 0;font-size:15px;line-height:1.55;">
-      <p style="margin:0 0 8px;font-size:17px;color:#152a45;"><strong>Para empezar solo necesitamos</strong></p>
-      <p style="margin:0;">
-        Su cédula, su RUT (si no lo tiene, le ayudamos a sacarlo) y su clave de la DIAN.
-        Con eso le enviamos la lista exacta de documentos según su caso.
-      </p>
-    </td>
-  </tr>
-
-  <tr>
-    <td class="cap-relleno" align="center" style="padding:28px 40px 6px;">
       <table role="presentation" cellpadding="0" cellspacing="0" border="0">
         <tr>
           <td align="center" bgcolor="#152a45" style="border-radius:6px;">
-            <a href="https://wa.me/573117809709?text=Hola%20Daniela%2C%20quiero%20ayuda%20con%20mi%20declaraci%C3%B3n%20de%20renta%202025."
-               style="display:inline-block;padding:14px 30px;font-size:16px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:6px;font-family:${FUENTE};">
-              Quiero declarar con ustedes
+            <a href="https://wa.me/573117809709?text=Hola%20Daniela%2C%20me%20gustar%C3%ADa%20recibir%20orientaci%C3%B3n%20sobre%20la%20declaraci%C3%B3n%20de%20renta."
+               style="display:inline-block;padding:12px 24px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:6px;font-family:${FUENTE};">
+              Conversar con Daniela por WhatsApp
             </a>
           </td>
         </tr>
       </table>
-      <p style="margin:12px 0 0;font-size:14px;color:#5b6573;">
-        Le respondemos por WhatsApp al <strong>311 780 9709</strong>, o simplemente responda este correo.
+    </td>
+  </tr>
+
+  <tr>
+    <td class="cap-relleno" style="padding:26px 40px 0;font-size:16px;line-height:1.6;">
+      <p style="margin:0;">Cordialmente,</p>
+      <p style="margin:8px 0 0;">
+        <strong style="color:#152a45;">Daniela Molina Foronda</strong><br>
+        <span style="font-size:14px;color:#5b6573;">Contadora Pública · Asesora Tributaria<br>
+        T.P. 260769-T · 311 780 9709</span>
       </p>
     </td>
   </tr>
 
   <tr>
-    <td class="cap-relleno" style="padding:24px 40px 28px;font-size:15px;line-height:1.55;">
-      <p style="margin:0;">Cordial saludo,</p>
-      <p style="margin:6px 0 0;">
-        <strong style="color:#152a45;">Daniela Molina Foronda</strong><br>
-        <span style="font-size:14px;color:#5b6573;">Contadora Pública · Asesora Tributaria<br>
-        Tarjeta profesional 260769-T<br>
-        Tel. / WhatsApp 311 780 9709</span>
+    <td class="cap-relleno" style="padding:22px 40px 28px;">
+      <p style="margin:0;padding-top:14px;border-top:1px solid #efe9e1;font-size:14px;line-height:1.55;color:#5b6573;">
+        <em>Un dato útil: presentar la declaración de renta fuera de plazo genera una sanción mínima
+        de $524.000, aunque no haya impuesto a pagar.</em>
       </p>
     </td>
   </tr>

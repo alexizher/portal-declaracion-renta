@@ -848,6 +848,7 @@ sequenceDiagram
 | Baja con confirmación | `Baja.jsx` pide un botón; no actúa al abrir la página | Los filtros de seguridad del correo abren los enlaces solos |
 | Token de baja con dominio propio | `auth.js > firmaBaja()` firma `baja:{id}` | Un token de baja nunca sirve como token de portal, ni al revés |
 | Minimización de datos | `prospectos` guarda solo nombre y correo | La cédula se pide cuando la persona ya aceptó ser cliente |
+| Tono de presentación | La plantilla no usa el nombre ni supone que la persona declara; lo verifica una prueba | En frío, mostrar datos personales o presumir la situación del destinatario genera desconfianza |
 
 ---
 
@@ -1085,11 +1086,12 @@ Esa es exactamente la razón de haberlo mantenido puro.
 cd server && npm test        # node --test, sin dependencias
 ```
 
-**12 pruebas** sobre las reglas de la captación, que tienen consecuencias
+**13 pruebas** sobre las reglas de la captación, que tienen consecuencias
 legales: festivos de Colombia (2026 y el cálculo de la Pascua en otro año),
 todos los bordes del horario de la Ley 2300, el saludo, el escape de HTML en el
 nombre, que la tabla de fechas no muestre plazos vencidos, las advertencias que
-bloquean el envío y la separación de dominio de los tokens.
+bloquean el envío, la separación de dominio de los tokens y que la plantilla
+no use el nombre ni presuma la situación del destinatario.
 
 **Lo que no está cubierto por pruebas automáticas**: el resto del backend (rutas
 y SQL), las vistas de React y los envíos de correo reales. Se validan a mano; `GET /api/correos/verificar`
@@ -1169,7 +1171,7 @@ cumplirse, esta tabla debe corregirse en el mismo cambio.
 |---|---|---|
 | Ley 1581 de 2012 (habeas data) — minimización | Prospectos: solo nombre y correo; la importación ignora el resto de columnas | `datos.importarProspectos()` |
 | Ley 1581 — derecho a no ser contactado | Baja en cada correo; quien se da de baja queda excluido para siempre | `{{baja}}`, `darDeBajaProspecto()` |
-| Ley 2300 de 2023 — horarios de contacto | Validado en el servidor, con festivos calculados | `horarioContacto.js` + 12 pruebas |
+| Ley 2300 de 2023 — horarios de contacto | Validado en el servidor, con festivos calculados | `horarioContacto.js` + 13 pruebas |
 | RFC 2369 / RFC 8058 — baja en un clic | Cabeceras `List-Unsubscribe` y `List-Unsubscribe-Post` | `enviarLoteCaptacion()` |
 | Buenas prácticas de envío masivo | Tope diario, pausa entre correos, versión de texto plano | `correo.js` |
 | Estatuto Tributario | Cada módulo del motor cita el artículo que implementa | `motor210/`, [reglas-tributarias-AG2025.md](reglas-tributarias-AG2025.md) |
