@@ -343,16 +343,23 @@ cuerpo. Estas son las palabras que se reemplazan solas:
 ### Enviar
 
 1. Filtra **Por contactar** (la opción por defecto).
-2. Marca los prospectos. No se pueden marcar los dados de baja, descartados
-   ni los que ya son clientes.
+2. La tabla va en **páginas de 20**, que es una tanda de un día. La casilla del
+   encabezado marca los 20 de la página. No se pueden marcar los dados de
+   baja, descartados ni los que ya son clientes.
 3. **Enviar correo de captación**.
+
+> **Antes de la primera tanda, pruébalo contigo.** Con **+ Agregar prospecto**
+> te agregas con tu nombre y tu correo, lo buscas, lo marcas solo a él y lo
+> envías. Revisa cómo llega (bandeja, spam, celular) antes de enviar a la
+> lista. El alta manual sí permite a alguien que ya es cliente.
 
 El sistema te protege de tres errores comunes:
 
 - **Horario de la Ley 2300**: solo deja enviar de lunes a viernes de 7:00 a. m.
   a 7:00 p. m. y los sábados de 8:00 a. m. a 3:00 p. m. Nunca domingos ni
   festivos. Fuera de ese horario el botón se bloquea y te dice por qué.
-- **Tope diario**: máximo 50 correos de captación por día. Enviar una lista
+- **Tope diario**: máximo 20 correos de captación por día. El panel no deja
+  seleccionar más de lo que queda del cupo de hoy. Enviar una lista
   grande de golpe hace que los correos (también los de tus clientes) empiecen
   a caer en spam.
 - **Bajas**: quien toca "darse de baja" en el correo queda marcado y **nunca

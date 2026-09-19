@@ -242,6 +242,28 @@ async function importarProspectos(filas, origen) {
   return { agregados, duplicados, yaClientes, cortados, invalidos, total };
 }
 
+// Alta manual desde el panel (p. ej. un referido o un correo de prueba). A
+// diferencia de la importación no se omite a quien ya es cliente: si se
+// agrega a mano, es a propósito.
+async function crearProspecto({ nombre, email, notas }) {
+  const correo = String(email || '').trim().toLowerCase();
+  if (!correoValido(correo)) return { error: 'El correo no es válido.', status: 400 };
+  const id = nuevoId();
+  try {
+    await q('INSERT INTO prospectos (id, nombre, email, origen, notas) VALUES (?, ?, ?, ?, ?)', [
+      id,
+      limpiarNombre(nombre),
+      correo,
+      'agregado a mano',
+      notas || '',
+    ]);
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return { error: 'Ya existe un prospecto con ese correo.', status: 409 };
+    throw err;
+  }
+  return { prospecto: await obtenerProspecto(id) };
+}
+
 async function actualizarProspecto(id, campos) {
   const p = await obtenerProspecto(id);
   if (!p) return null;
@@ -672,6 +694,7 @@ module.exports = {
   listarProspectos,
   obtenerProspecto,
   importarProspectos,
+  crearProspecto,
   actualizarProspecto,
   eliminarProspecto,
   darDeBajaProspecto,

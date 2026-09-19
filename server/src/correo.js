@@ -264,7 +264,7 @@ const urlBajaUnClic = (prospectoId) => `${baseUrl()}/api/portal/baja/${tokenBaja
 
 // Tope diario de correos de captación: una base fría enviada de golpe daña la
 // reputación del remitente, que es el mismo de los correos a clientes.
-const LIMITE_DIARIO_CAPTACION = Number(process.env.CAPTACION_LIMITE_DIARIO || 50);
+const LIMITE_DIARIO_CAPTACION = Number(process.env.CAPTACION_LIMITE_DIARIO || 20);
 
 const MESES_CORTO = [
   'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',

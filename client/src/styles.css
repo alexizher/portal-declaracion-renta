@@ -344,6 +344,15 @@ th.th-check {
   display: none;
 }
 
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.75rem 0;
+  font-size: 0.9rem;
+}
+
 .fila-tenue {
   opacity: 0.55;
 }

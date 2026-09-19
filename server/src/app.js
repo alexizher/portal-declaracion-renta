@@ -608,6 +608,12 @@ api.get('/prospectos', ruta(async (req, res) => {
   });
 }));
 
+api.post('/prospectos', ruta(async (req, res) => {
+  const r = await datos.crearProspecto(req.body);
+  if (r.error) return res.status(r.status).json({ error: r.error });
+  res.status(201).json(r.prospecto);
+}));
+
 api.post('/prospectos/importar', ruta(async (req, res) => {
   const { filas, origen } = req.body;
   if (!Array.isArray(filas)) {

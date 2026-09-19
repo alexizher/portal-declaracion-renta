@@ -12,6 +12,10 @@ Colombia; los hashes referencian los commits en `main`.
   de la fecha personal por NIT. El saludo usa el primer nombre capitalizado.
 - La importación omite los nombres cortados (terminan en "de", "del"…), los
   correos repetidos o inválidos y a quienes ya son clientes (por correo).
+- Paginación de 20 en Prospectos (una página = una tanda), selección por
+  página limitada al cupo del día, y tope diario por defecto bajado a 20.
+- **+ Agregar prospecto** (alta manual, p. ej. un correo de prueba o un
+  referido; no omite a quien ya es cliente).
 - Tabla de prospectos con encabezados ordenables (nombre, correo, estado,
   último envío), igual que Clientes.
 - Filas desparejas en las tablas: `td.acciones` tenía `display: flex` y

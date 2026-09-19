@@ -31,6 +31,12 @@ const EXTRACTORES_ORDEN = {
   ultimoEnvio: (p) => p.ultimoEnvio || '9999',
 };
 
+// Lotes de 20: una página de la tabla es una tanda de envío (el tope diario
+// del servidor es el mismo por defecto).
+const POR_PAGINA = 20;
+
+const PROSPECTO_NUEVO = { nombre: '', email: '', estado: 'nuevo', notas: '' };
+
 const FILTROS = [
   { id: 'activos', texto: 'Por contactar' },
   { id: 'todos', texto: 'Todos' },
@@ -43,6 +49,7 @@ export default function Prospectos() {
   const [busqueda, setBusqueda] = useState('');
   const [filtro, setFiltro] = useState('activos');
   const [orden, setOrden] = useState({ campo: 'nombre', direccion: 'asc' });
+  const [pagina, setPagina] = useState(0);
   const [seleccion, setSeleccion] = useState(new Set());
   const [preview, setPreview] = useState(null);
   const [editando, setEditando] = useState(null);
@@ -90,19 +97,46 @@ export default function Prospectos() {
     );
   }
 
-  const listos = useMemo(() => visibles.filter(listoParaEnvio), [visibles]);
+  // Al cambiar búsqueda, filtro u orden se vuelve a la primera página.
+  useEffect(() => setPagina(0), [busqueda, filtro, orden]);
+
+  const totalPaginas = Math.max(1, Math.ceil(visibles.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas - 1);
+  const enPagina = visibles.slice(paginaActual * POR_PAGINA, (paginaActual + 1) * POR_PAGINA);
+  const listosPagina = enPagina.filter(listoParaEnvio);
   const contactados = prospectos.filter((p) => p.ultimoEnvio).length;
+
+  // Cupo que queda hoy: la selección nunca puede pasarlo (el servidor
+  // omitiría el resto).
+  const cupo = datos ? Math.max(0, datos.limiteDiario - datos.enviadosHoy) : 0;
 
   function alternar(id) {
     const s = new Set(seleccion);
     if (s.has(id)) s.delete(id);
-    else s.add(id);
+    else if (s.size < cupo) s.add(id);
+    else {
+      setError(`El cupo de hoy es de ${cupo} correo(s). Quita alguno para agregar otro.`);
+      return;
+    }
+    setError(null);
     setSeleccion(s);
   }
 
-  function seleccionarTodos() {
-    if (seleccion.size === listos.length) setSeleccion(new Set());
-    else setSeleccion(new Set(listos.map((p) => p.id)));
+  const paginaSeleccionada =
+    listosPagina.length > 0 && listosPagina.every((p) => seleccion.has(p.id));
+
+  // Marca los listos de la página, hasta donde alcance el cupo.
+  function seleccionarPagina() {
+    const s = new Set(seleccion);
+    if (paginaSeleccionada) listosPagina.forEach((p) => s.delete(p.id));
+    else {
+      for (const p of listosPagina) {
+        if (s.size >= cupo) break;
+        s.add(p.id);
+      }
+    }
+    setError(null);
+    setSeleccion(s);
   }
 
   async function verPreview(p) {
@@ -155,6 +189,7 @@ export default function Prospectos() {
           ))}
         </select>
         <button onClick={() => setEditandoMensaje(true)}>Editar mensaje</button>
+        <button onClick={() => setEditando(PROSPECTO_NUEVO)}>+ Agregar prospecto</button>
         <button className="primario" onClick={() => setImportando(true)}>
           Importar CSV/Excel
         </button>
@@ -165,7 +200,8 @@ export default function Prospectos() {
 
       <p className="tenue">
         {prospectos.length} prospecto(s) · {contactados} ya contactado(s) · enviados hoy{' '}
-        {enviadosHoy} de {limiteDiario}
+        {enviadosHoy} de {limiteDiario} · <strong>seleccionados {seleccion.size} de {cupo}</strong>{' '}
+        disponibles hoy
       </p>
 
       <div className="tabla-scroll">
@@ -175,10 +211,10 @@ export default function Prospectos() {
               <th className="th-check">
                 <input
                   type="checkbox"
-                  aria-label="Seleccionar todos los listos"
-                  disabled={listos.length === 0}
-                  checked={listos.length > 0 && seleccion.size === listos.length}
-                  onChange={seleccionarTodos}
+                  aria-label="Seleccionar los de esta página"
+                  disabled={listosPagina.length === 0 || (cupo === 0 && !paginaSeleccionada)}
+                  checked={paginaSeleccionada}
+                  onChange={seleccionarPagina}
                 />
               </th>
               <ThOrdenable campo="nombre" orden={orden} onClick={alternarOrden}>Nombre</ThOrdenable>
@@ -189,7 +225,7 @@ export default function Prospectos() {
             </tr>
           </thead>
           <tbody>
-            {visibles.map((p) => {
+            {enPagina.map((p) => {
               const listo = listoParaEnvio(p);
               const estado = estadoDe(p.estado);
               return (
@@ -238,10 +274,30 @@ export default function Prospectos() {
         </table>
       </div>
 
+      {totalPaginas > 1 && (
+        <nav className="paginacion" aria-label="Páginas">
+          <button disabled={paginaActual === 0} onClick={() => setPagina(paginaActual - 1)}>
+            ‹ Anterior
+          </button>
+          <span>
+            Página {paginaActual + 1} de {totalPaginas}
+          </span>
+          <button
+            disabled={paginaActual >= totalPaginas - 1}
+            onClick={() => setPagina(paginaActual + 1)}
+          >
+            Siguiente ›
+          </button>
+        </nav>
+      )}
+
       {error && <div className="error">{error}</div>}
+      {cupo === 0 && (
+        <div className="aviso">Ya se envió el cupo de hoy ({limiteDiario}). Mañana puedes seguir.</div>
+      )}
       <button
         className="primario grande"
-        disabled={seleccion.size === 0 || enviando || !horario.ok}
+        disabled={seleccion.size === 0 || seleccion.size > cupo || enviando || !horario.ok}
         onClick={enviar}
       >
         {enviando
@@ -355,11 +411,14 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
     };
   }
 
+  const esNuevo = !prospecto.id;
+
   async function guardar(e) {
     e.preventDefault();
     setError(null);
     try {
-      await api(`/prospectos/${prospecto.id}`, { method: 'PUT', body: datos });
+      if (esNuevo) await api('/prospectos', { method: 'POST', body: datos });
+      else await api(`/prospectos/${prospecto.id}`, { method: 'PUT', body: datos });
       onGuardado();
     } catch (err) {
       setError(err.message);
@@ -397,7 +456,7 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
   return (
     <div className="modal-fondo" onClick={onCerrar}>
       <form className="tarjeta modal" onClick={(e) => e.stopPropagation()} onSubmit={guardar}>
-        <h2>{prospecto.nombre || 'Prospecto'}</h2>
+        <h2>{esNuevo ? 'Nuevo prospecto' : prospecto.nombre || 'Prospecto'}</h2>
         {prospecto.origen && <p className="tenue">Importado de {prospecto.origen}</p>}
         <label>
           Nombre
@@ -407,16 +466,18 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
           Correo electrónico *
           <input type="email" {...campo('email')} required />
         </label>
-        <label>
-          Estado
-          <select {...campo('estado')} disabled={convertido}>
-            {ESTADOS.filter((e) => e.id !== 'convertido' || convertido).map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.texto}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!esNuevo && (
+          <label>
+            Estado
+            <select {...campo('estado')} disabled={convertido}>
+              {ESTADOS.filter((e) => e.id !== 'convertido' || convertido).map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.texto}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         {datos.estado === 'baja' && (
           <p className="tenue">Dado de baja: no se le vuelve a enviar ningún correo de captación.</p>
         )}
@@ -425,7 +486,7 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
           <textarea rows={2} {...campo('notas')} />
         </label>
 
-        {!convertido && (
+        {!esNuevo && !convertido && (
           <fieldset className="convertir">
             <legend>Convertir en cliente</legend>
             <label>
@@ -451,9 +512,11 @@ function FormularioProspecto({ prospecto, plantillas, onCerrar, onGuardado }) {
 
         {error && <div className="error">{error}</div>}
         <div className="fila-botones">
-          <button type="button" className="peligro" onClick={eliminar}>
-            Eliminar
-          </button>
+          {!esNuevo && (
+            <button type="button" className="peligro" onClick={eliminar}>
+              Eliminar
+            </button>
+          )}
           <button type="button" onClick={onCerrar}>
             Cancelar
           </button>
