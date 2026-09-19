@@ -112,6 +112,30 @@ const TABLAS = [
   // depender solo del localStorage del navegador. Clave por cedula_norm
   // (no por clientes.id): el Liquidador se usa también para cédulas que
   // aún no son clientes formales del portal.
+  // Posibles clientes a los que se les ofrece el servicio (correo de
+  // captación). Tabla aparte de clientes: no tienen portal, plantilla ni
+  // clave DIAN, y el nombre puede faltar. Al convertirse pasan a clientes y
+  // aquí queda cliente_id. estado: nuevo | contactado | respondio |
+  // convertido | descartado | baja (pidió no recibir más correos; nunca se
+  // le vuelve a escribir).
+  `CREATE TABLE IF NOT EXISTS prospectos (
+    id VARCHAR(20) PRIMARY KEY,
+    nit VARCHAR(50) NOT NULL,
+    nit_norm VARCHAR(50) NOT NULL,
+    nombre VARCHAR(255) NOT NULL DEFAULT '',
+    email VARCHAR(255) NOT NULL DEFAULT '',
+    telefono VARCHAR(50) NOT NULL DEFAULT '',
+    actividad VARCHAR(40) NOT NULL DEFAULT '',
+    origen VARCHAR(255) NOT NULL DEFAULT '',
+    estado VARCHAR(20) NOT NULL DEFAULT 'nuevo',
+    notas TEXT NULL,
+    cliente_id VARCHAR(20) NULL,
+    baja_en DATETIME NULL,
+    ultimo_envio DATETIME NULL,
+    creado DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_nit_norm (nit_norm)
+  ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
+
   `CREATE TABLE IF NOT EXISTS liquidaciones210 (
     cedula_norm VARCHAR(50) PRIMARY KEY,
     datos_cifrados LONGTEXT NOT NULL,

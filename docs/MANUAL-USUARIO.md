@@ -304,6 +304,79 @@ falló. Ahí también ves los avisos internos y los reenvíos de enlace.
 
 ---
 
+## Pestaña Prospectos
+
+Personas que **todavía no son clientes** y a las que les ofreces el servicio con
+el correo de captación. Viven en una lista aparte: no tienen portal ni lista de
+documentos hasta que aceptan.
+
+### Importar la lista
+
+**Importar CSV/Excel** reconoce las columnas *NIT/cédula* (obligatoria),
+*nombre*, *correo*, *celular* y *actividad*. Al terminar te dice cuántos
+agregó y cuántos omitió:
+
+- **Repetidos**: el mismo NIT dos veces, o ya importado antes.
+- **Ya son clientes**: se cruzan por cédula y no se duplican.
+
+Los ingresos y las fechas que traiga la base **no se guardan**. La fecha límite
+se calcula siempre con el calendario DIAN a partir del NIT, igual que con los
+clientes. Si la base trae "N/A" como nombre, queda vacío y el correo saluda con
+un "Hola," a secas.
+
+### Revisar el correo
+
+**Ver correo** muestra el mensaje tal como le llegaría a esa persona, con su
+propia fecha límite y los días que le faltan. Puedes verlo al ancho de un
+celular o de un computador. Con **Editar mensaje** cambias el asunto y el
+cuerpo. Estas son las palabras que se reemplazan solas:
+
+| Escribe | Sale |
+|---|---|
+| `{{saludo}}` | "Hola Ana," o "Hola," si no hay nombre |
+| `{{vencimiento}}` | Su fecha límite |
+| `{{dias}}` | "Faltan 12 días", "Vence mañana" o "Vence hoy" |
+| `{{digitos}}` | Los dos últimos dígitos de su NIT |
+| `{{baja}}` | El enlace para darse de baja (no lo quites) |
+
+### Enviar
+
+1. Filtra **Por contactar** (la opción por defecto).
+2. Marca los prospectos. Solo se pueden marcar los que tienen correo y cuyo
+   plazo no ha vencido.
+3. **Enviar correo de captación**.
+
+El sistema te protege de tres errores comunes:
+
+- **Horario de la Ley 2300**: solo deja enviar de lunes a viernes de 7:00 a. m.
+  a 7:00 p. m. y los sábados de 8:00 a. m. a 3:00 p. m. Nunca domingos ni
+  festivos. Fuera de ese horario el botón se bloquea y te dice por qué.
+- **Tope diario**: máximo 50 correos de captación por día. Enviar una lista
+  grande de golpe hace que los correos (también los de tus clientes) empiecen
+  a caer en spam.
+- **Bajas**: quien toca "darse de baja" en el correo queda marcado y **nunca
+  más** recibe un correo de captación.
+
+### Estados
+
+| Estado | Significa |
+|---|---|
+| Nuevo | Recién importado |
+| Contactado | Ya se le envió el correo (se marca solo) |
+| Respondió | Te escribió; márcalo tú desde **Editar** |
+| Cliente | Lo pasaste a Clientes |
+| Descartado | No le interesa o no aplica |
+| Dado de baja | Pidió no recibir más correos |
+
+### Cuando alguien acepta
+
+En **Editar**, escribe su nombre (es obligatorio para ser cliente), elige su
+lista de documentos (se sugiere según la actividad) y toca **Pasar a
+Clientes**. Desde ahí sigue el camino normal: invitación al portal, documentos
+y revisión.
+
+---
+
 ## Pestaña Revisión
 
 El día a día de la temporada.

@@ -1,6 +1,8 @@
 // Datos iniciales que se insertan en la base de datos la primera vez que
 // arranca la aplicación (solo si las tablas están vacías).
 
+const captacion = require('./plantillaCaptacion');
+
 // Calendario tributario DIAN — declaración de renta personas naturales,
 // año gravable 2025 (vence en 2026). Decreto 2229 de 2023.
 // Editable desde la interfaz si la DIAN llega a modificar fechas.
@@ -169,6 +171,10 @@ const CONFIG_INICIAL = {
     '<p style="color:#2b3440;margin-bottom:0;">Cordial saludo,<br><strong style="color:#152a45;">{{remitente}}</strong></p>',
     '</div></div>',
   ].join('\n'),
+  // Captación de prospectos (pestaña Prospectos): documento HTML completo,
+  // ver plantillaCaptacion.js.
+  asunto_captacion: captacion.ASUNTO,
+  cuerpo_captacion: captacion.CUERPO,
   remitente: '',
   // Correo interno (el de Daniela) al que llegan los avisos de subidas al
   // portal y la alerta diaria de vencimientos próximos. Vacío = sin avisos.

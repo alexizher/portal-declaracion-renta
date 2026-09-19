@@ -4,7 +4,7 @@
 // Redactadas en lenguaje sencillo a propósito: el público es el cliente
 // normal (no técnico), no un abogado ni un ingeniero.
 
-function CascaronLegal({ titulo, children }) {
+export function CascaronLegal({ titulo, children }) {
   return (
     <div className="portal">
       <header className="barra portal-barra">

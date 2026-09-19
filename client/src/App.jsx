@@ -3,6 +3,7 @@ import { hayToken, setToken } from './api.js';
 import Guia, { GUIA_VISTA_KEY } from './Guia.jsx';
 import Login from './vistas/Login.jsx';
 import Clientes from './vistas/Clientes.jsx';
+import Prospectos from './vistas/Prospectos.jsx';
 import Plantillas from './vistas/Plantillas.jsx';
 import Correos from './vistas/Correos.jsx';
 import Revision from './vistas/Revision.jsx';
@@ -12,6 +13,7 @@ import Liquidador210 from './vistas/Liquidador210.jsx';
 const PESTANAS = [
   { id: 'clientes', titulo: 'Clientes', Vista: Clientes },
   { id: 'correos', titulo: 'Correos', Vista: Correos },
+  { id: 'prospectos', titulo: 'Prospectos', Vista: Prospectos },
   { id: 'revision', titulo: 'Revisión', Vista: Revision },
   { id: 'plantillas', titulo: 'Documentos', Vista: Plantillas },
   { id: 'calendario', titulo: 'Calendario DIAN', Vista: Calendario },

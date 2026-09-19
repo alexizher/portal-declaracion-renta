@@ -428,6 +428,8 @@ erDiagram
     CLIENTES ||--o{ ENVIOS : "registra correos"
     PLANTILLAS ||--o{ CLIENTES : "define checklist de"
     CLIENTES |o..o| LIQUIDACIONES210 : "por cedula_norm"
+    PROSPECTOS |o..o| CLIENTES : "se convierte en"
+    PROSPECTOS ||--o{ ENVIOS : "registra captación"
 
     CLIENTES {
         varchar id PK "id aleatorio"
@@ -501,6 +503,17 @@ erDiagram
         longtext datos_cifrados "AES-256-GCM del estado del Wizard"
         datetime actualizado_en
     }
+
+    PROSPECTOS {
+        varchar id PK
+        varchar nit_norm UK "solo dígitos"
+        varchar nombre "puede ir vacío"
+        varchar email
+        varchar actividad "sugiere la plantilla al convertir"
+        varchar estado "nuevo · contactado · respondio · convertido · descartado · baja"
+        varchar cliente_id "lógica, al convertirse"
+        datetime baja_en
+    }
 ```
 
 ### Notas de modelado que no se ven en el diagrama
@@ -514,6 +527,9 @@ erDiagram
 | `envios` es historial **y** candado | `hayEnvioDesde(tipo, desde, clienteId)` implementa el *dedupe* de avisos. La base de datos es el único estado compartido entre los procesos de Passenger |
 | Fechas en **hora de Bogotá**, no UTC | `ahoraBogota()` con formato `sv-SE`. El historial se muestra tal cual, sin conversiones que confundan a la usuaria |
 | `cedula_norm` `UNIQUE` | Clave natural del negocio: evita duplicados al importar el mismo Excel dos veces |
+| `prospectos` es tabla **aparte** de `clientes` | Un prospecto no tiene portal, plantilla, clave DIAN ni alertas, y el nombre puede faltar. Mezclarlos habría obligado a filtrar en cada consulta de clientes. Al convertirse se crea el cliente y queda `cliente_id` |
+| Sin ingresos ni vencimientos guardados en `prospectos` | El vencimiento se deriva del NIT con el calendario (las bases externas traen fechas desactualizadas) y los ingresos no se usan: minimización de datos, Ley 1581 |
+| `envios.cliente_id` guarda también ids de prospecto | Los ids son aleatorios y no chocan; `tipo = 'captacion'` distingue. El tope diario de captación se cuenta sobre esta misma tabla |
 
 ### El checklist es derivado, no almacenado
 
@@ -1046,6 +1062,33 @@ stateDiagram-v2
     alerta --> alerta : 8 · 3 · hoy<br/>colores por urgencia
     invitado --> alerta
     recolectando --> alerta
+```
+
+### Prospecto (captación)
+
+```mermaid
+stateDiagram-v2
+    [*] --> nuevo : importado de CSV/Excel<br/>(se omiten los que ya son clientes)
+    nuevo --> contactado : correo de captación<br/>horario Ley 2300 · tope diario
+    contactado --> respondio : marcado a mano
+    nuevo --> convertido : "Pasar a Clientes"
+    contactado --> convertido
+    respondio --> convertido
+    nuevo --> descartado
+    contactado --> descartado
+    respondio --> descartado
+    nuevo --> baja : enlace del correo<br/>o List-Unsubscribe
+    contactado --> baja
+    respondio --> baja
+    convertido --> [*]
+    baja --> [*]
+
+    note right of baja
+        Terminal para la captación:
+        renderCorreoCaptacion() lo
+        marca con advertencia y
+        enviarLoteCaptacion() lo omite.
+    end note
 ```
 
 ---

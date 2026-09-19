@@ -2,9 +2,20 @@ const path = require('path');
 const express = require('express');
 
 const datos = require('./datos');
-const { login, requiereAuth, clienteIdDelPortal, igualSeguro } = require('./auth');
+const { login, requiereAuth, clienteIdDelPortal, prospectoIdDeBaja, igualSeguro } = require('./auth');
 const { vencimientoDe } = require('./vencimientos');
-const { renderCorreo, enviarLote, enviarRevision, enviarEnlacePortal, urlPortal, verificarEnvio } = require('./correo');
+const {
+  renderCorreo,
+  enviarLote,
+  enviarRevision,
+  enviarEnlacePortal,
+  urlPortal,
+  verificarEnvio,
+  renderCorreoCaptacion,
+  enviarLoteCaptacion,
+  LIMITE_DIARIO_CAPTACION,
+} = require('./correo');
+const { puedeContactar } = require('./horarioContacto');
 const { avisarSubida, revisarVencimientos } = require('./avisos');
 const { turnstileSiteKey, verificarTurnstile } = require('./turnstile');
 const { cabeceras, limitador } = require('./seguridad');
@@ -103,6 +114,17 @@ portal.post('/recuperar', limiteSensible, ruta(async (req, res) => {
     }
   }
   res.json(RESPUESTA_RECUPERAR);
+}));
+
+// Baja de los correos de captación. La usan la página /baja/{token} (botón
+// "Confirmar") y, en un clic, los clientes de correo vía List-Unsubscribe.
+// Registrada antes de las rutas /:token/... del portal.
+portal.post('/baja/:token', ruta(async (req, res) => {
+  const id = prospectoIdDeBaja(req.params.token);
+  const prospecto = id && (await datos.obtenerProspecto(id));
+  if (!prospecto) return res.status(404).json({ error: 'Este enlace no es válido.' });
+  await datos.darDeBajaProspecto(prospecto.id);
+  res.json({ ok: true });
 }));
 
 // Resuelve el token del enlace a un cliente y lo deja en req.cliente.
@@ -385,6 +407,8 @@ api.put('/config', ruta(async (req, res) => {
     cuerpo_portal,
     asunto_novedades,
     cuerpo_novedades,
+    asunto_captacion,
+    cuerpo_captacion,
     remitente,
     correo_avisos,
   } = req.body;
@@ -396,6 +420,8 @@ api.put('/config', ruta(async (req, res) => {
       cuerpo_portal,
       asunto_novedades,
       cuerpo_novedades,
+      asunto_captacion,
+      cuerpo_captacion,
       remitente,
       correo_avisos,
     })
@@ -567,6 +593,71 @@ api.delete('/clientes/:id/entrega/:tipo', validarTipoEntrega, ruta(async (req, r
   const r = await datos.borrarEntrega(req.params.id, req.params.tipo);
   if (r && r.anterior) borrarArchivo(req.params.id, r.anterior);
   res.json({ ok: true, entregas: await datos.listarEntregas(req.params.id) });
+}));
+
+// ---------- Prospectos (captación) ----------
+
+api.get('/prospectos', ruta(async (req, res) => {
+  const [prospectos, calendario] = await Promise.all([
+    datos.listarProspectos(),
+    datos.obtenerCalendario(),
+  ]);
+  const ahora = datos.ahoraBogota();
+  res.json({
+    prospectos: prospectos.map((p) => ({ ...p, vencimiento: vencimientoDe(p.nit, calendario) })),
+    horario: puedeContactar(ahora),
+    limiteDiario: LIMITE_DIARIO_CAPTACION,
+    enviadosHoy: await datos.contarEnviosDesde('captacion', `${ahora.slice(0, 10)} 00:00:00`),
+  });
+}));
+
+api.post('/prospectos/importar', ruta(async (req, res) => {
+  const { filas, origen } = req.body;
+  if (!Array.isArray(filas)) {
+    return res.status(400).json({ error: 'Se esperaba un arreglo de filas.' });
+  }
+  res.json(await datos.importarProspectos(filas, origen));
+}));
+
+api.put('/prospectos/:id', ruta(async (req, res) => {
+  const prospecto = await datos.actualizarProspecto(req.params.id, req.body);
+  if (!prospecto) return res.status(404).json({ error: 'Prospecto no encontrado.' });
+  res.json(prospecto);
+}));
+
+api.delete('/prospectos/:id', ruta(async (req, res) => {
+  const ok = await datos.eliminarProspecto(req.params.id);
+  if (!ok) return res.status(404).json({ error: 'Prospecto no encontrado.' });
+  res.json({ ok: true });
+}));
+
+api.post('/prospectos/:id/convertir', ruta(async (req, res) => {
+  const r = await datos.convertirProspecto(req.params.id, req.body.plantillaId || null);
+  if (r.error) return res.status(r.status).json({ error: r.error });
+  res.json(r);
+}));
+
+api.get('/prospectos/:id/previsualizar', ruta(async (req, res) => {
+  const prospecto = await datos.obtenerProspecto(req.params.id);
+  if (!prospecto) return res.status(404).json({ error: 'Prospecto no encontrado.' });
+  const [config, calendario] = await Promise.all([datos.obtenerConfig(), datos.obtenerCalendario()]);
+  const preview = renderCorreoCaptacion(prospecto, config, calendario);
+  res.json({
+    para: prospecto.email,
+    asunto: preview.asunto,
+    html: preview.html,
+    advertencias: preview.advertencias,
+  });
+}));
+
+api.post('/prospectos/enviar', ruta(async (req, res) => {
+  const { ids } = req.body;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'Selecciona al menos un prospecto.' });
+  }
+  const r = await enviarLoteCaptacion(ids);
+  if (r.error) return res.status(400).json({ error: r.error });
+  res.json(r);
 }));
 
 // ---------- Correos ----------

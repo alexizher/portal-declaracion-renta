@@ -3,6 +3,24 @@
 Historial de cambios del portal de declaración de renta. Fechas en hora de
 Colombia; los hashes referencian los commits en `main`.
 
+## 2026-09-18 — Prospectos y correo de captación
+
+- **Tabla `prospectos`** separada de `clientes` (NIT, nombre opcional, correo,
+  celular, actividad, estado). No guarda ingresos ni vencimientos de la base
+  de origen: el vencimiento se calcula con el calendario a partir del NIT.
+- **Pestaña Prospectos**: importación CSV/Excel (omite repetidos y a quienes
+  ya son clientes), filtros por estado, vista previa del correo en un iframe
+  con ancho de celular o de escritorio, edición y conversión a cliente con la
+  lista de documentos sugerida por la actividad.
+- **Correo de captación** (`plantillaCaptacion.js` → `asunto_captacion` /
+  `cuerpo_captacion`, editable desde el panel): la fecha límite y los días
+  que faltan son los de cada prospecto.
+- **Protecciones de envío**: horario de la Ley 2300 de 2023 con festivos
+  calculados (`horarioContacto.js`), tope diario configurable
+  (`CAPTACION_LIMITE_DIARIO`, 50 por defecto), baja con enlace firmado
+  (`/baja/{token}`) y en un clic (`List-Unsubscribe` + `List-Unsubscribe-Post`,
+  RFC 8058). Quien se da de baja no vuelve a recibir correos de captación.
+
 ## 2026-07-17 (noche) — Uploads fuera del docroot y comparación segura en auth
 
 - **Subidas fuera del document root** (solo servidor, sin cambio de código):

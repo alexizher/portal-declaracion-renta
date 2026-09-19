@@ -155,6 +155,162 @@ async function actualizarPerfilPortal(id, { email, telefono }) {
   return obtenerCliente(id);
 }
 
+// ---------- Prospectos (captación) ----------
+
+const ESTADOS_PROSPECTO = ['nuevo', 'contactado', 'respondio', 'convertido', 'descartado', 'baja'];
+
+// Las bases compartidas suelen traer "N/A", "-" o "sin nombre" donde no hay
+// dato: se guardan vacíos para que el correo salude con "Hola," a secas.
+function limpiarNombre(nombre) {
+  const n = String(nombre || '').trim();
+  return /^(n\/?a|na|-+|sin nombre|ninguno|null)$/i.test(n) ? '' : n;
+}
+
+function mapProspecto(r) {
+  return {
+    id: r.id,
+    nit: r.nit,
+    nombre: r.nombre,
+    email: r.email,
+    telefono: r.telefono,
+    actividad: r.actividad,
+    origen: r.origen,
+    estado: r.estado,
+    notas: r.notas || '',
+    clienteId: r.cliente_id,
+    bajaEn: r.baja_en,
+    ultimoEnvio: r.ultimo_envio,
+    creado: r.creado,
+  };
+}
+
+async function listarProspectos() {
+  const filas = await q('SELECT * FROM prospectos ORDER BY creado DESC, nit');
+  return filas.map(mapProspecto);
+}
+
+async function obtenerProspecto(id) {
+  const filas = await q('SELECT * FROM prospectos WHERE id = ?', [id]);
+  return filas.length ? mapProspecto(filas[0]) : null;
+}
+
+// Importación masiva. No se guardan ingresos ni fechas de vencimiento de la
+// base original: la fecha se calcula siempre con el calendario a partir del
+// NIT. Quien ya es cliente no se importa (ya tiene su propio canal).
+async function importarProspectos(filas, origen) {
+  let agregados = 0;
+  let duplicados = 0;
+  let yaClientes = 0;
+  let invalidos = 0;
+
+  for (const fila of filas) {
+    const nit = String(fila.nit || '').trim();
+    const nitNorm = normalizarCedula(nit);
+    if (nitNorm.length < 5) {
+      invalidos += 1;
+      continue;
+    }
+    const [{ n: esCliente }] = await q('SELECT COUNT(*) AS n FROM clientes WHERE cedula_norm = ?', [nitNorm]);
+    if (esCliente) {
+      yaClientes += 1;
+      continue;
+    }
+    try {
+      await q(
+        `INSERT INTO prospectos (id, nit, nit_norm, nombre, email, telefono, actividad, origen)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          nuevoId(),
+          nit,
+          nitNorm,
+          limpiarNombre(fila.nombre),
+          String(fila.email || '').trim().toLowerCase(),
+          String(fila.telefono || '').trim(),
+          String(fila.actividad || '').trim().slice(0, 40),
+          String(origen || '').trim().slice(0, 255),
+        ]
+      );
+      agregados += 1;
+    } catch (err) {
+      if (err.code === 'ER_DUP_ENTRY') duplicados += 1;
+      else throw err;
+    }
+  }
+
+  const [{ n: total }] = await q('SELECT COUNT(*) AS n FROM prospectos');
+  return { agregados, duplicados, yaClientes, invalidos, total };
+}
+
+async function actualizarProspecto(id, campos) {
+  const p = await obtenerProspecto(id);
+  if (!p) return null;
+  const { nombre, email, telefono, actividad, estado, notas } = campos;
+  const nuevoEstado = ESTADOS_PROSPECTO.includes(estado) ? estado : p.estado;
+  await q(
+    `UPDATE prospectos SET nombre = ?, email = ?, telefono = ?, actividad = ?, estado = ?, notas = ?,
+       baja_en = ?
+     WHERE id = ?`,
+    [
+      nombre !== undefined ? limpiarNombre(nombre) : p.nombre,
+      email !== undefined ? String(email).trim().toLowerCase() : p.email,
+      telefono !== undefined ? String(telefono).trim() : p.telefono,
+      actividad !== undefined ? String(actividad).trim().slice(0, 40) : p.actividad,
+      nuevoEstado,
+      notas !== undefined ? notas : p.notas,
+      nuevoEstado === 'baja' ? p.bajaEn || ahoraBogota() : null,
+      id,
+    ]
+  );
+  return obtenerProspecto(id);
+}
+
+async function eliminarProspecto(id) {
+  const r = await q('DELETE FROM prospectos WHERE id = ?', [id]);
+  return r.affectedRows > 0;
+}
+
+// Baja pedida por el propio prospecto desde el enlace del correo.
+async function darDeBajaProspecto(id) {
+  await q(
+    `UPDATE prospectos SET estado = 'baja', baja_en = COALESCE(baja_en, ?) WHERE id = ?`,
+    [ahoraBogota(), id]
+  );
+}
+
+async function marcarProspectoContactado(id, fecha) {
+  await q(
+    `UPDATE prospectos SET ultimo_envio = ?,
+       estado = IF(estado = 'nuevo', 'contactado', estado)
+     WHERE id = ?`,
+    [fecha, id]
+  );
+}
+
+// Pasa el prospecto a la tabla de clientes (con su lista de documentos) y lo
+// deja marcado como convertido con el enlace al cliente creado.
+async function convertirProspecto(id, plantillaId) {
+  const p = await obtenerProspecto(id);
+  if (!p) return { error: 'Prospecto no encontrado.', status: 404 };
+  if (p.clienteId) return { error: 'Este prospecto ya se convirtió en cliente.', status: 409 };
+  if (!p.nombre) return { error: 'Agrega el nombre del prospecto antes de convertirlo en cliente.', status: 400 };
+  let cliente;
+  try {
+    cliente = await crearCliente({
+      nombre: p.nombre,
+      email: p.email,
+      cedula: p.nit,
+      telefono: p.telefono,
+      plantillaId,
+      notas: p.notas,
+    });
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return { error: 'Ya existe un cliente con ese NIT.', status: 409 };
+    throw err;
+  }
+  await q(`UPDATE prospectos SET estado = 'convertido', cliente_id = ? WHERE id = ?`, [cliente.id, id]);
+  return { cliente, prospecto: await obtenerProspecto(id) };
+}
+
 // ---------- Entregas (documentos finales que el panel sube al cliente) ----------
 
 // Tipos válidos: declaración presentada, anexo de renta y recibo de pago DIAN.
@@ -466,6 +622,14 @@ async function hayEnvioDesde(tipo, desde, clienteId = null) {
   return n > 0;
 }
 
+async function contarEnviosDesde(tipo, desde) {
+  const [{ n }] = await q(
+    `SELECT COUNT(*) AS n FROM envios WHERE tipo = ? AND estado = 'enviado' AND fecha >= ?`,
+    [tipo, desde]
+  );
+  return n;
+}
+
 async function listarEnvios(limite = 500) {
   const filas = await q('SELECT * FROM envios ORDER BY fecha DESC, id DESC LIMIT ?', [limite]);
   return filas.map((r) => ({
@@ -502,6 +666,15 @@ module.exports = {
   borrarEntrega,
   eliminarCliente,
   marcarUltimoEnvio,
+  ESTADOS_PROSPECTO,
+  listarProspectos,
+  obtenerProspecto,
+  importarProspectos,
+  actualizarProspecto,
+  eliminarProspecto,
+  darDeBajaProspecto,
+  marcarProspectoContactado,
+  convertirProspecto,
   listarPlantillas,
   crearPlantilla,
   actualizarPlantilla,
@@ -518,5 +691,6 @@ module.exports = {
   armarChecklist,
   registrarEnvio,
   hayEnvioDesde,
+  contarEnviosDesde,
   listarEnvios,
 };

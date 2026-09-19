@@ -1,7 +1,8 @@
 const nodemailer = require('nodemailer');
 const datos = require('./datos');
 const { vencimientoDe } = require('./vencimientos');
-const { tokenPortal } = require('./auth');
+const { tokenPortal, tokenBaja } = require('./auth');
+const { puedeContactar } = require('./horarioContacto');
 
 let transporter = null;
 
@@ -66,7 +67,8 @@ function remitenteEmail() {
 // Con BREVO_API_KEY definida los correos salen por la API HTTPS de Brevo en
 // lugar de SMTP (el hosting bloquea SMTP externo y su filtro saliente rechaza
 // el SMTP local). El remitente (FROM_EMAIL) debe estar verificado en Brevo.
-async function enviarCorreo({ remitenteNombre, para, asunto, texto, html }) {
+// headers: cabeceras extra (p. ej. List-Unsubscribe en los de captación).
+async function enviarCorreo({ remitenteNombre, para, asunto, texto, html, headers }) {
   const replyTo = process.env.REPLY_TO || process.env.GMAIL_USER || undefined;
   if (process.env.BREVO_API_KEY) {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -82,6 +84,7 @@ async function enviarCorreo({ remitenteNombre, para, asunto, texto, html }) {
         subject: asunto,
         textContent: texto,
         htmlContent: html,
+        headers,
       }),
     });
     if (!res.ok) {
@@ -96,6 +99,7 @@ async function enviarCorreo({ remitenteNombre, para, asunto, texto, html }) {
     subject: asunto,
     text: texto,
     html,
+    headers,
   });
 }
 
@@ -246,6 +250,131 @@ async function enviarLote(clienteIds, tipo = 'recordatorio') {
   }
 
   return resultados;
+}
+
+// ---------- Correo de captación (prospectos) ----------
+
+const baseUrl = () => (process.env.BASE_URL || '').replace(/\/+$/, '');
+
+// Página donde el prospecto confirma la baja (enlace visible del correo) y
+// endpoint de baja en un clic para la cabecera List-Unsubscribe (RFC 8058:
+// Gmail y Outlook hacen un POST directo, sin abrir la página).
+const urlBaja = (prospectoId) => `${baseUrl()}/baja/${tokenBaja(prospectoId)}`;
+const urlBajaUnClic = (prospectoId) => `${baseUrl()}/api/portal/baja/${tokenBaja(prospectoId)}`;
+
+// Tope diario de correos de captación: una base fría enviada de golpe daña la
+// reputación del remitente, que es el mismo de los correos a clientes.
+const LIMITE_DIARIO_CAPTACION = Number(process.env.CAPTACION_LIMITE_DIARIO || 50);
+
+function diasHasta(fechaIso, hoyIso) {
+  const [y1, m1, d1] = hoyIso.split('-').map(Number);
+  const [y2, m2, d2] = fechaIso.split('-').map(Number);
+  return Math.round((Date.UTC(y2, m2 - 1, d2) - Date.UTC(y1, m1 - 1, d1)) / 86400000);
+}
+
+function textoDias(dias) {
+  if (dias === 0) return 'Vence hoy';
+  if (dias === 1) return 'Vence mañana';
+  return `Faltan ${dias} días`;
+}
+
+function renderCorreoCaptacion(prospecto, config, calendario, hoyIso = ahoraBogota().slice(0, 10)) {
+  const venc = vencimientoDe(prospecto.nit, calendario);
+  const dias = venc ? diasHasta(venc.fecha, hoyIso) : null;
+  const nombre = (prospecto.nombre || '').trim();
+
+  const reemplazos = {
+    '{{saludo}}': nombre ? `Hola ${escapeHtml(nombre)},` : 'Hola,',
+    '{{nombre}}': escapeHtml(nombre),
+    '{{vencimiento}}': venc ? venc.fechaTexto : '(sin fecha)',
+    '{{digitos}}': venc ? venc.digitos : '--',
+    '{{dias}}': dias !== null && dias >= 0 ? textoDias(dias) : '',
+    '{{baja}}': urlBaja(prospecto.id),
+    '{{remitente}}': config.remitente || '',
+  };
+  const aplicar = (texto) =>
+    Object.entries(reemplazos).reduce((acc, [marca, valor]) => acc.split(marca).join(valor), texto || '');
+
+  const html = aplicar(config.cuerpo_captacion);
+  return {
+    asunto: aplicar(config.asunto_captacion),
+    html,
+    texto: htmlAtexto(html.replace(/<(style|title)[\s\S]*?<\/\1>/gi, '')),
+    vencimiento: venc,
+    dias,
+    advertencias: [
+      prospecto.estado === 'baja' && 'Pidió no recibir más correos.',
+      prospecto.estado === 'convertido' && 'Ya es cliente.',
+      prospecto.estado === 'descartado' && 'Está marcado como descartado.',
+      !prospecto.email && 'No tiene correo electrónico.',
+      !venc && 'No se pudo calcular el vencimiento (NIT inválido).',
+      dias !== null && dias < 0 && 'Su plazo ya venció.',
+      !process.env.BASE_URL && 'Falta BASE_URL en el .env: el enlace de baja quedaría roto.',
+    ].filter(Boolean),
+  };
+}
+
+// Mismo esquema que enviarLote: secuencial, con pausa, y todo queda en el
+// historial (tipo "captacion"). Además respeta el horario de la Ley 2300 y el
+// tope diario.
+async function enviarLoteCaptacion(prospectoIds) {
+  const horario = puedeContactar(ahoraBogota());
+  if (!horario.ok) return { error: horario.motivo };
+
+  const [config, calendario] = await Promise.all([datos.obtenerConfig(), datos.obtenerCalendario()]);
+  const hoy = ahoraBogota().slice(0, 10);
+  let cupo = LIMITE_DIARIO_CAPTACION - (await datos.contarEnviosDesde('captacion', `${hoy} 00:00:00`));
+  const resultados = [];
+
+  for (const id of prospectoIds) {
+    const prospecto = await datos.obtenerProspecto(id);
+    if (!prospecto) continue;
+
+    const registro = {
+      id: datos.nuevoId(),
+      clienteId: prospecto.id,
+      nombre: prospecto.nombre || `NIT ${prospecto.nit}`,
+      email: prospecto.email,
+      fecha: ahoraBogota(),
+      estado: 'enviado',
+      error: null,
+      tipo: 'captacion',
+    };
+
+    const { asunto, html, texto, advertencias } = renderCorreoCaptacion(prospecto, config, calendario, hoy);
+    if (advertencias.length) {
+      registro.estado = 'omitido';
+      registro.error = advertencias.join(' ');
+    } else if (cupo <= 0) {
+      registro.estado = 'omitido';
+      registro.error = `Se alcanzó el tope de ${LIMITE_DIARIO_CAPTACION} correos de captación por día; envíalo mañana.`;
+    } else {
+      try {
+        await enviarCorreo({
+          remitenteNombre: config.remitente || 'Declaración de Renta',
+          para: prospecto.email,
+          asunto,
+          texto,
+          html,
+          headers: {
+            'List-Unsubscribe': `<${urlBajaUnClic(prospecto.id)}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          },
+        });
+        cupo -= 1;
+        await datos.marcarProspectoContactado(prospecto.id, registro.fecha);
+      } catch (err) {
+        registro.estado = 'error';
+        registro.error = err.message;
+      }
+      await pausa(1500);
+    }
+
+    await datos.registrarEnvio(registro);
+    resultados.push(registro);
+  }
+
+  return { resultados };
 }
 
 // ---------- Correo de resultado de la revisión (Fase 2) ----------
@@ -418,6 +547,9 @@ async function enviarEnlacePortal(cliente) {
 
 module.exports = {
   renderCorreo,
+  renderCorreoCaptacion,
+  enviarLoteCaptacion,
+  LIMITE_DIARIO_CAPTACION,
   renderCorreoRevision,
   enviarLote,
   enviarRevision,

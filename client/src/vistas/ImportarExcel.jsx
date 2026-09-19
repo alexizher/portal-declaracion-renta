@@ -10,7 +10,7 @@ const ALIAS = {
   telefono: ['telefono', 'celular', 'movil', 'tel'],
 };
 
-function normalizar(texto) {
+export function normalizar(texto) {
   return String(texto || '')
     .toLowerCase()
     .normalize('NFD')

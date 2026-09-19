@@ -20,6 +20,12 @@ const PASOS = [
       'Desde aquí envías dos tipos de mensaje: el recordatorio del vencimiento y la invitación al portal (con el enlace personal para subir documentos). Cada plantilla es editable, tiene vista previa y todo queda en el historial.',
   },
   {
+    id: 'prospectos',
+    titulo: 'Prospectos',
+    texto:
+      'Posibles clientes a los que les ofreces el servicio. Importa la lista (con NIT y correo), revisa el correo de captación con la fecha límite de cada uno y envíalo en tandas. Quien se da de baja no vuelve a recibir nada, y cuando alguien acepta lo pasas a Clientes con un botón.',
+  },
+  {
     id: 'revision',
     titulo: 'Revisión',
     texto:

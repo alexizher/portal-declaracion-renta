@@ -95,6 +95,26 @@ function clienteIdDelPortal(token) {
   return igualSeguro(firma, firmaPortal(clienteId)) ? clienteId : null;
 }
 
+// Enlace de baja de los correos de captación: "prospectoId.firmaHMAC", con
+// otro prefijo para que un token de baja nunca sirva como token de portal.
+function firmaBaja(prospectoId) {
+  return crypto
+    .createHmac('sha256', claveFirma())
+    .update(`baja:${prospectoId}`)
+    .digest('hex')
+    .slice(0, 32);
+}
+
+function tokenBaja(prospectoId) {
+  return `${prospectoId}.${firmaBaja(prospectoId)}`;
+}
+
+function prospectoIdDeBaja(token) {
+  const [prospectoId, firma] = String(token || '').split('.');
+  if (!prospectoId || !firma) return null;
+  return igualSeguro(firma, firmaBaja(prospectoId)) ? prospectoId : null;
+}
+
 function requiereAuth(req, res, next) {
   const header = req.headers.authorization || '';
   const token = header.startsWith('Bearer ') ? header.slice(7) : null;
@@ -104,4 +124,12 @@ function requiereAuth(req, res, next) {
   next();
 }
 
-module.exports = { login, requiereAuth, tokenPortal, clienteIdDelPortal, igualSeguro };
+module.exports = {
+  login,
+  requiereAuth,
+  tokenPortal,
+  clienteIdDelPortal,
+  tokenBaja,
+  prospectoIdDeBaja,
+  igualSeguro,
+};

@@ -9,6 +9,7 @@ const TIPO_TEXTO = {
   'aviso-subida': 'aviso subida',
   'alerta-vencimiento': 'alerta vencimientos',
   recuperacion: 'reenvío enlace',
+  captacion: 'captación',
 };
 
 // Los tres mensajes masivos, cada uno con su plantilla editable.
