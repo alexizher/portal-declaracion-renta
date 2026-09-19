@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
 import { api } from '../api.js';
+import { ThOrdenable } from './Clientes.jsx';
 import { normalizar } from './ImportarExcel.jsx';
 
 const ESTADOS = [
@@ -20,6 +21,16 @@ const CONTACTABLES = ['nuevo', 'contactado', 'respondio'];
 // servidor vuelve a validar todo al enviar.
 const listoParaEnvio = (p) => Boolean(p.email && CONTACTABLES.includes(p.estado));
 
+// Valor por el que ordena cada columna. El estado ordena por su lugar en el
+// embudo (nuevo → baja), no alfabéticamente; los que nunca recibieron correo
+// van al final en "Último envío".
+const EXTRACTORES_ORDEN = {
+  nombre: (p) => (p.nombre || p.email).toLowerCase(),
+  email: (p) => p.email,
+  estado: (p) => String(ESTADOS.findIndex((e) => e.id === p.estado)),
+  ultimoEnvio: (p) => p.ultimoEnvio || '9999',
+};
+
 const FILTROS = [
   { id: 'activos', texto: 'Por contactar' },
   { id: 'todos', texto: 'Todos' },
@@ -31,6 +42,7 @@ export default function Prospectos() {
   const [plantillas, setPlantillas] = useState([]);
   const [busqueda, setBusqueda] = useState('');
   const [filtro, setFiltro] = useState('activos');
+  const [orden, setOrden] = useState({ campo: 'nombre', direccion: 'asc' });
   const [seleccion, setSeleccion] = useState(new Set());
   const [preview, setPreview] = useState(null);
   const [editando, setEditando] = useState(null);
@@ -63,8 +75,20 @@ export default function Prospectos() {
         (p) =>
           !q || p.nombre.toLowerCase().includes(q) || p.email.includes(q)
       )
-      .sort((a, b) => (a.nombre || a.email).localeCompare(b.nombre || b.email, 'es'));
-  }, [prospectos, busqueda, filtro]);
+      .sort((a, b) => {
+        const extraer = EXTRACTORES_ORDEN[orden.campo];
+        const signo = orden.direccion === 'asc' ? 1 : -1;
+        return extraer(a).localeCompare(extraer(b), 'es', { numeric: true }) * signo;
+      });
+  }, [prospectos, busqueda, filtro, orden]);
+
+  function alternarOrden(campo) {
+    setOrden((o) =>
+      o.campo === campo
+        ? { campo, direccion: o.direccion === 'asc' ? 'desc' : 'asc' }
+        : { campo, direccion: 'asc' }
+    );
+  }
 
   const listos = useMemo(() => visibles.filter(listoParaEnvio), [visibles]);
   const contactados = prospectos.filter((p) => p.ultimoEnvio).length;
@@ -148,7 +172,7 @@ export default function Prospectos() {
         <table>
           <thead>
             <tr>
-              <th>
+              <th className="th-check">
                 <input
                   type="checkbox"
                   aria-label="Seleccionar todos los listos"
@@ -157,9 +181,10 @@ export default function Prospectos() {
                   onChange={seleccionarTodos}
                 />
               </th>
-              <th>Nombre / correo</th>
-              <th>Estado</th>
-              <th className="oculta-movil">Último envío</th>
+              <ThOrdenable campo="nombre" orden={orden} onClick={alternarOrden}>Nombre</ThOrdenable>
+              <ThOrdenable campo="email" orden={orden} onClick={alternarOrden} className="oculta-movil">Correo</ThOrdenable>
+              <ThOrdenable campo="estado" orden={orden} onClick={alternarOrden}>Estado</ThOrdenable>
+              <ThOrdenable campo="ultimoEnvio" orden={orden} onClick={alternarOrden} className="oculta-movil">Último envío</ThOrdenable>
               <th></th>
             </tr>
           </thead>
@@ -180,8 +205,9 @@ export default function Prospectos() {
                   </td>
                   <td>
                     {p.nombre || <span className="tenue">sin nombre</span>}
-                    <div className="tenue">{p.email}</div>
+                    <div className="tenue solo-movil">{p.email}</div>
                   </td>
+                  <td className="oculta-movil">{p.email}</td>
                   <td>
                     <span className={estado.clase}>{estado.texto}</span>
                   </td>
@@ -201,7 +227,7 @@ export default function Prospectos() {
             })}
             {visibles.length === 0 && (
               <tr>
-                <td colSpan={5} className="tenue centrado">
+                <td colSpan={6} className="tenue centrado">
                   {prospectos.length === 0
                     ? 'Aún no hay prospectos. Importa la lista desde CSV o Excel.'
                     : 'Ningún prospecto coincide con el filtro.'}

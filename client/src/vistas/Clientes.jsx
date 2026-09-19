@@ -204,7 +204,7 @@ export default function Clientes() {
   );
 }
 
-function ThOrdenable({ campo, orden, onClick, className, children }) {
+export function ThOrdenable({ campo, orden, onClick, className, children }) {
   const activo = orden.campo === campo;
   return (
     <th className={className}>

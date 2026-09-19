@@ -319,14 +319,29 @@ tr:last-child td {
   border-bottom: none;
 }
 
-td.acciones {
-  display: flex;
-  gap: 0.4rem;
+/* La celda de acciones sigue siendo celda de tabla (con display:flex perdía
+   la altura de la fila y su borde quedaba desfasado del resto). */
+td {
+  vertical-align: middle;
 }
 
 td.acciones button {
   padding: 0.25rem 0.6rem;
   font-size: 0.8rem;
+}
+
+td.acciones button + button {
+  margin-left: 0.4rem;
+}
+
+/* Columna del checkbox: el th general va sin padding por los ordenables. */
+th.th-check {
+  padding: 0.55rem 0.75rem;
+  width: 1%;
+}
+
+.solo-movil {
+  display: none;
 }
 
 .fila-tenue {
@@ -1424,8 +1439,17 @@ a.portal-boton-doc:hover {
     padding: 0.55rem 0.9rem;
   }
 
-  td.acciones {
-    flex-direction: column;
+  td.acciones button {
+    display: block;
+    width: 100%;
+  }
+
+  td.acciones button + button {
+    margin: 0.3rem 0 0;
+  }
+
+  .solo-movil {
+    display: block;
   }
 
   td .tenue {
