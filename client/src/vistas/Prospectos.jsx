@@ -11,7 +11,19 @@ const ESTADOS = [
   { id: 'convertido', texto: 'Cliente', clase: 'pill aprobado' },
   { id: 'descartado', texto: 'Descartado', clase: 'pill pendiente' },
   { id: 'baja', texto: 'Dado de baja', clase: 'pill alerta' },
+  { id: 'rebote', texto: 'Rebotó', clase: 'pill vencido' },
 ];
+
+// Estado de entrega según Brevo (lo actualiza el servidor cada 30 min o con
+// "Revisar entregas"). Rebote y spam ya dejan al prospecto fuera de envíos.
+const ENTREGAS = {
+  entregado: { texto: 'Entregado', clase: 'pill ok' },
+  diferido: { texto: 'Diferido', clase: 'pill f15' },
+  temporal: { texto: 'Rebote temporal', clase: 'pill f8' },
+  rebote: { texto: 'Rebotó', clase: 'pill vencido' },
+  spam: { texto: 'Marcado como spam', clase: 'pill vencido' },
+  baja: { texto: 'Se dio de baja', clase: 'pill alerta' },
+};
 const estadoDe = (id) => ESTADOS.find((e) => e.id === id) || ESTADOS[0];
 
 // Estados a los que todavía se les puede escribir.
@@ -29,6 +41,7 @@ const EXTRACTORES_ORDEN = {
   email: (p) => p.email,
   estado: (p) => String(ESTADOS.findIndex((e) => e.id === p.estado)),
   ultimoEnvio: (p) => p.ultimoEnvio || '9999',
+  entrega: (p) => p.entrega || 'zzz',
 };
 
 // Lotes de 20: una página de la tabla es una tanda de envío (el tope diario
@@ -59,6 +72,7 @@ export default function Prospectos() {
   const [error, setError] = useState(null);
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [revisando, setRevisando] = useState(false);
 
   async function cargar() {
     const [d, pla] = await Promise.all([api('/prospectos'), api('/plantillas')]);
@@ -168,6 +182,26 @@ export default function Prospectos() {
     }
   }
 
+  async function revisarEntregas() {
+    setRevisando(true);
+    setError(null);
+    try {
+      const r = await api('/prospectos/revisar-entregas', { method: 'POST' });
+      const nuevos = r.marcadosAhora.length
+        ? ` Excluidos ahora: ${r.marcadosAhora.map((m) => m.email).join(', ')}.`
+        : ' Sin exclusiones nuevas.';
+      setMensaje(
+        `Revisión de entregas: ${r.entregados} entregados, ${r.temporales} con demora o rebote temporal, ` +
+          `${r.rebotes} rebotes y ${r.bajas} bajas o quejas.${nuevos}`
+      );
+      cargar();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRevisando(false);
+    }
+  }
+
   if (!datos) return error ? <div className="error">{error}</div> : <p className="tenue">Cargando…</p>;
 
   const { horario, limiteDiario, enviadosHoy } = datos;
@@ -190,6 +224,9 @@ export default function Prospectos() {
         </select>
         <button onClick={() => setEditandoMensaje(true)}>Editar mensaje</button>
         <button onClick={() => setEditando(PROSPECTO_NUEVO)}>+ Agregar prospecto</button>
+        <button onClick={revisarEntregas} disabled={revisando}>
+          {revisando ? 'Revisando…' : 'Revisar entregas'}
+        </button>
         <button className="primario" onClick={() => setImportando(true)}>
           Importar CSV/Excel
         </button>
@@ -202,6 +239,9 @@ export default function Prospectos() {
         {prospectos.length} prospecto(s) · {contactados} ya contactado(s) · enviados hoy{' '}
         {enviadosHoy} de {limiteDiario} · <strong>seleccionados {seleccion.size} de {cupo}</strong>{' '}
         disponibles hoy
+        {datos.ultimaRevisionEntregas && (
+          <> · entregas revisadas {new Date(datos.ultimaRevisionEntregas).toLocaleString('es-CO')}</>
+        )}
       </p>
 
       <div className="tabla-scroll">
@@ -246,6 +286,16 @@ export default function Prospectos() {
                   <td className="oculta-movil">{p.email}</td>
                   <td>
                     <span className={estado.clase}>{estado.texto}</span>
+                    {p.entrega && ENTREGAS[p.entrega] && p.entrega !== p.estado && (
+                      <div>
+                        <span
+                          className={ENTREGAS[p.entrega].clase}
+                          title={p.entregaDetalle || undefined}
+                        >
+                          {ENTREGAS[p.entrega].texto}
+                        </span>
+                      </div>
+                    )}
                   </td>
                   <td className="oculta-movil">
                     {p.ultimoEnvio ? (

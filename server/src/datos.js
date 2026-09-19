@@ -157,7 +157,7 @@ async function actualizarPerfilPortal(id, { email, telefono }) {
 
 // ---------- Prospectos (captación) ----------
 
-const ESTADOS_PROSPECTO = ['nuevo', 'contactado', 'respondio', 'convertido', 'descartado', 'baja'];
+const ESTADOS_PROSPECTO = ['nuevo', 'contactado', 'respondio', 'convertido', 'descartado', 'baja', 'rebote'];
 
 // Las bases compartidas suelen traer "N/A", "-" o "sin nombre" donde no hay
 // dato: se guardan vacíos para que el correo salude con "Hola," a secas.
@@ -184,6 +184,11 @@ function mapProspecto(r) {
     notas: r.notas || '',
     clienteId: r.cliente_id,
     bajaEn: r.baja_en,
+    // Estado de entrega según Brevo (estadoEntrega.js): entregado, diferido,
+    // temporal, rebote, spam o baja; null si aún no se ha revisado.
+    entrega: r.entrega || null,
+    entregaDetalle: r.entrega_detalle || '',
+    entregaEn: r.entrega_en || null,
     ultimoEnvio: r.ultimo_envio,
     creado: r.creado,
   };
@@ -197,6 +202,35 @@ async function listarProspectos() {
 async function obtenerProspecto(id) {
   const filas = await q('SELECT * FROM prospectos WHERE id = ?', [id]);
   return filas.length ? mapProspecto(filas[0]) : null;
+}
+
+async function obtenerProspectoPorEmail(email) {
+  const filas = await q('SELECT * FROM prospectos WHERE email = ?', [String(email || '').trim().toLowerCase()]);
+  return filas.length ? mapProspecto(filas[0]) : null;
+}
+
+// Guarda el último estado de entrega conocido y, si viene `estado` (rebote o
+// baja), saca al prospecto de los envíos. La fecha de Brevo llega en ISO con
+// zona horaria y se guarda en hora de Bogotá, como el resto del historial.
+async function registrarEntregaProspecto(id, { entrega, detalle, fecha, estado }) {
+  const enBogota = fecha
+    ? new Date(fecha).toLocaleString('sv-SE', { timeZone: 'America/Bogota' })
+    : ahoraBogota();
+  if (estado) {
+    await q(
+      `UPDATE prospectos SET entrega = ?, entrega_detalle = ?, entrega_en = ?, estado = ?,
+         baja_en = IF(? = 'baja', COALESCE(baja_en, ?), baja_en)
+       WHERE id = ?`,
+      [entrega, detalle, enBogota, estado, estado, enBogota, id]
+    );
+  } else {
+    await q('UPDATE prospectos SET entrega = ?, entrega_detalle = ?, entrega_en = ? WHERE id = ?', [
+      entrega,
+      detalle,
+      enBogota,
+      id,
+    ]);
+  }
 }
 
 // Importación masiva: solo nombre y correo (minimización, Ley 1581). Quien
@@ -693,6 +727,8 @@ module.exports = {
   ESTADOS_PROSPECTO,
   listarProspectos,
   obtenerProspecto,
+  obtenerProspectoPorEmail,
+  registrarEntregaProspecto,
   importarProspectos,
   crearProspecto,
   actualizarProspecto,

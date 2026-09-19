@@ -23,6 +23,17 @@ db.init()
       revisarVencimientos().catch((err) => console.error('Alerta de vencimientos:', err.message));
     setTimeout(revisar, 30_000);
     setInterval(revisar, 30 * 60 * 1000);
+
+    // Estado de entrega de la captación (rebotes, quejas, entregados): se
+    // consulta en Brevo con el mismo ritmo, para que un rebote quede excluido
+    // de los envíos aunque nadie abra el panel.
+    if (process.env.BREVO_API_KEY) {
+      const { sincronizarEntregas } = require('./src/estadoEntrega');
+      const entregas = () =>
+        sincronizarEntregas().catch((err) => console.error('Estado de entrega:', err.message));
+      setTimeout(entregas, 60_000);
+      setInterval(entregas, 30 * 60 * 1000);
+    }
   })
   .catch((err) => {
     console.error('No se pudo conectar a la base de datos:', err.message);

@@ -36,6 +36,7 @@ package "server/src" {
     POST   /api/prospectos/:id/convertir
     GET    /api/prospectos/:id/previsualizar
     POST   /api/prospectos/enviar
+    POST   /api/prospectos/revisar-entregas
     POST   /api/portal/baja/:token  (sin login)
   }
 
@@ -71,9 +72,17 @@ package "server/src" {
     +actualizarProspecto(id, campos)
     +darDeBajaProspecto(id)
     +marcarProspectoContactado(id, fecha)
+    +registrarEntregaProspecto(id, {entrega, estado})
     +convertirProspecto(id, {cedula, plantillaId})
     +contarEnviosDesde(tipo, desde)
     -limpiarNombre() / nombreCortado() / correoValido()
+  }
+
+  class "estadoEntrega.js" as entrega <<anti-corruption layer>> {
+    +EVENTOS   // hardBounces, invalid, blocked → rebote; spam → baja
+    +clasificarEventos(eventos) : Map   // función pura
+    +sincronizarEntregas({dias})
+    -consultarEventosBrevo(dias)
   }
 
   class "plantillaCaptacion.js" as plantilla <<plantilla inicial>> {
@@ -87,6 +96,7 @@ database "MariaDB" as db {
     id PK
     email UNIQUE
     nombre · estado · notas · origen
+    entrega · entrega_detalle · entrega_en
     cliente_id · baja_en · ultimo_envio
   }
   class envios <<tabla>> {
@@ -108,6 +118,8 @@ rutas --> datos
 rutas --> correo
 rutas --> horario : estado del botón
 rutas --> auth : prospectoIdDeBaja()
+rutas --> entrega : revisar entregas
+entrega --> datos : rebote / baja
 correo --> horario : puedeContactar()
 correo --> auth : tokenBaja()
 correo --> datos : config, cupo, contactado

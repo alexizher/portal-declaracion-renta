@@ -118,7 +118,8 @@ const TABLAS = [
   // correo); el correo es la clave. Al convertirse pasan a clientes y aquí
   // queda cliente_id. estado: nuevo | contactado | respondio | convertido |
   // descartado | baja (pidió no recibir más correos; nunca se le vuelve a
-  // escribir).
+  // escribir) | rebote (la dirección no existe o no acepta correo). Las
+  // columnas entrega* llegan por migración en init().
   `CREATE TABLE IF NOT EXISTS prospectos (
     id VARCHAR(20) PRIMARY KEY,
     nombre VARCHAR(255) NOT NULL DEFAULT '',
@@ -171,6 +172,17 @@ async function init() {
   if (tieneDian === 0) {
     await q(`ALTER TABLE clientes ADD COLUMN dian_clave TEXT NULL`);
     await q(`ALTER TABLE clientes ADD COLUMN dian_actualizado DATETIME NULL`);
+  }
+
+  // Migración: estado de entrega de los correos de captación (estadoEntrega.js).
+  const [{ n: tieneEntrega }] = await q(
+    `SELECT COUNT(*) AS n FROM information_schema.columns
+     WHERE table_schema = DATABASE() AND table_name = 'prospectos' AND column_name = 'entrega'`
+  );
+  if (tieneEntrega === 0) {
+    await q(`ALTER TABLE prospectos ADD COLUMN entrega VARCHAR(20) NULL`);
+    await q(`ALTER TABLE prospectos ADD COLUMN entrega_detalle VARCHAR(255) NULL`);
+    await q(`ALTER TABLE prospectos ADD COLUMN entrega_en DATETIME NULL`);
   }
 
   const [{ n: nCalendario }] = await q('SELECT COUNT(*) AS n FROM calendario');

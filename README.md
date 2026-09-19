@@ -22,7 +22,7 @@ liquidador del Formulario 210.
 │    Clientes · Correos · Prospectos · Revisión · Documentos · Calendario DIAN · Liquidador 210
 │
 ├─ Captación de prospectos ──── correo a posibles clientes
-│    horario Ley 2300 · tope de 20 al día · baja en un clic (RFC 8058)
+│    horario Ley 2300 · tope diario · baja en un clic (RFC 8058) · rebotes excluidos solos
 │
 ├─ Portal del cliente ───────── enlace personal, sin contraseña
 │    sube documentos · deja su clave DIAN · descarga su declaración
@@ -37,7 +37,7 @@ liquidador del Formulario 210.
 |---|---|
 | Backend | Node.js 20 · Express 4 · MySQL/MariaDB · multer · nodemailer |
 | Frontend | React 18 · Vite · CSS propio · Vitest |
-| Pruebas | Vitest (motor210, 156) · `node --test` (reglas del backend, 13) |
+| Pruebas | Vitest (motor210, 156) · `node --test` (reglas del backend, 21) |
 | Diagramas | C4-PlantUML (estructura) · Mermaid (secuencias, estados, ER) |
 | Hosting | cPanel compartido (LiteSpeed + Passenger) |
 | Correo | Brevo API HTTPS (producción) › SMTP › Gmail (desarrollo) |

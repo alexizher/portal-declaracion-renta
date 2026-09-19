@@ -3,6 +3,18 @@
 Historial de cambios del portal de declaración de renta. Fechas en hora de
 Colombia; los hashes referencian los commits en `main`.
 
+## 2026-09-19 (noche) — Rebotes y estado de entrega de la captación
+
+- `estadoEntrega.js`: consulta los eventos de Brevo (entregado, diferido,
+  rebote temporal, rebote, bloqueado, inválido, spam, baja) y guarda el último
+  estado por prospecto (`entrega`, `entrega_detalle`, `entrega_en`, migración
+  automática). Rebote/bloqueado/inválido pasan al estado nuevo **`rebote`** y
+  una queja de spam a **`baja`**: quedan fuera de los envíos para siempre.
+- Corre cada 30 min desde `server.js` y con el botón **Revisar entregas**
+  (`POST /api/prospectos/revisar-entregas`). La tabla muestra la entrega bajo
+  el estado, con el motivo exacto al pasar el cursor.
+- 8 pruebas nuevas de la clasificación (21 en el backend).
+
 ## 2026-09-19 (noche) — Correo de captación como presentación
 
 - La plantilla de captación pasa a ser una **presentación de Daniela**

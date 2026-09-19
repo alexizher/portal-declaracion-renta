@@ -16,6 +16,7 @@ const {
   LIMITE_DIARIO_CAPTACION,
 } = require('./correo');
 const { puedeContactar } = require('./horarioContacto');
+const { sincronizarEntregas } = require('./estadoEntrega');
 const { avisarSubida, revisarVencimientos } = require('./avisos');
 const { turnstileSiteKey, verificarTurnstile } = require('./turnstile');
 const { cabeceras, limitador } = require('./seguridad');
@@ -598,10 +599,11 @@ api.delete('/clientes/:id/entrega/:tipo', validarTipoEntrega, ruta(async (req, r
 // ---------- Prospectos (captación) ----------
 
 api.get('/prospectos', ruta(async (req, res) => {
-  const prospectos = await datos.listarProspectos();
+  const [prospectos, config] = await Promise.all([datos.listarProspectos(), datos.obtenerConfig()]);
   const ahora = datos.ahoraBogota();
   res.json({
     prospectos,
+    ultimaRevisionEntregas: config.captacion_ultima_revision || null,
     horario: puedeContactar(ahora),
     limiteDiario: LIMITE_DIARIO_CAPTACION,
     enviadosHoy: await datos.contarEnviosDesde('captacion', `${ahora.slice(0, 10)} 00:00:00`),
@@ -612,6 +614,15 @@ api.post('/prospectos', ruta(async (req, res) => {
   const r = await datos.crearProspecto(req.body);
   if (r.error) return res.status(r.status).json({ error: r.error });
   res.status(201).json(r.prospecto);
+}));
+
+// Consulta en Brevo el estado de entrega de los correos de captación y marca
+// los rebotes y quejas para que no se les vuelva a escribir. También corre
+// sola cada 30 minutos (server.js).
+api.post('/prospectos/revisar-entregas', ruta(async (req, res) => {
+  const r = await sincronizarEntregas({ dias: 7 });
+  if (r.error) return res.status(400).json(r);
+  res.json(r);
 }));
 
 api.post('/prospectos/importar', ruta(async (req, res) => {

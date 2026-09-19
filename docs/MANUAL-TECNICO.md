@@ -42,6 +42,7 @@ server/
     correo.js          canales de envío, render de plantillas, envíos masivos
                        y captación de prospectos (tope diario, List-Unsubscribe)
     horarioContacto.js horario de la Ley 2300 + festivos de Colombia calculados
+    estadoEntrega.js   eventos de Brevo → entregado/diferido/temporal/rebote/baja
     plantillaCaptacion.js  correo de captación inicial (siembra la config)
     avisos.js          avisos internos a la contadora (subidas y vencimientos)
     archivos.js        multer: subida, borrado y rutas de archivos en disco
@@ -97,7 +98,7 @@ Sin ORM ni archivos de migración: `db.init()` crea las tablas con
 | `documentos` | subidas del cliente | UNIQUE (cliente, sha1(nombre)); estados `subido→aprobado/rechazado`; los nombres fuera de la plantilla son "adicionales" |
 | `entregas` | archivos que sube el panel PARA el cliente | PK (cliente_id, tipo); tipos `declaracion\|anexo\|recibo` |
 | `envios` | historial de correos | `tipo`: recordatorio, portal, novedades, revision, aviso-subida, alerta-vencimiento, recuperacion, captacion; también sirve de **candado anti-duplicados** (`hayEnvioDesde`) y de contador del tope diario de captación (`contarEnviosDesde`). En `captacion`, `cliente_id` guarda el id del prospecto |
-| `prospectos` | posibles clientes (captación) | **Solo nombre y correo** (`email` UNIQUE). `estado`: nuevo, contactado, respondio, convertido, descartado, baja; `cliente_id` al convertirse; `baja_en` |
+| `prospectos` | posibles clientes (captación) | **Solo nombre y correo** (`email` UNIQUE). `estado`: nuevo, contactado, respondio, convertido, descartado, baja, rebote; `cliente_id` al convertirse; `baja_en`; `entrega`/`entrega_detalle`/`entrega_en` con el último estado de entrega según Brevo |
 | `liquidaciones210` | estado completo del Liquidador | PK `cedula_norm` (**no** `clientes.id`: se liquida también para cédulas que aún no son clientes del portal); `datos_cifrados` es el estado del Wizard en AES-256-GCM (§11) |
 
 Las fechas se guardan en hora de Bogotá (`ahoraBogota()`, formato sv-SE),
@@ -252,6 +253,7 @@ Del panel (Bearer token en todo `/api/*`):
 | `POST /api/prospectos/:id/convertir` | pasa a `clientes` (`cedula`, `plantillaId`) |
 | `GET /api/prospectos/:id/previsualizar` | correo de captación con sus advertencias |
 | `POST /api/prospectos/enviar` | envío de captación (`ids`); 400 fuera de horario |
+| `POST /api/prospectos/revisar-entregas` | consulta los eventos de Brevo (7 días) y marca rebotes y quejas; también corre cada 30 min desde `server.js` |
 
 Los diagramas de secuencia de los flujos críticos (login, subida de un
 documento, alerta diaria, autoguardado del Liquidador, revisión, recuperación

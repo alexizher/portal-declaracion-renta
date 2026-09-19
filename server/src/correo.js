@@ -333,6 +333,7 @@ function renderCorreoCaptacion(prospecto, config, calendario, hoyIso = ahoraBogo
     texto: htmlAtexto(html.replace(/<(style|title)[\s\S]*?<\/\1>/gi, '')),
     advertencias: [
       prospecto.estado === 'baja' && 'Pidió no recibir más correos.',
+      prospecto.estado === 'rebote' && 'El correo rebotó: la dirección no existe o no acepta correos.',
       prospecto.estado === 'convertido' && 'Ya es cliente.',
       prospecto.estado === 'descartado' && 'Está marcado como descartado.',
       !prospecto.email && 'No tiene correo electrónico.',

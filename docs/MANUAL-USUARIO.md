@@ -377,6 +377,25 @@ El sistema te protege de tres errores comunes:
 | Cliente | Lo pasaste a Clientes |
 | Descartado | No le interesa o no aplica |
 | Dado de baja | Pidió no recibir más correos |
+| Rebotó | La dirección no existe o no acepta correos (lo marca el sistema solo) |
+
+### Rebotes y entregas
+
+El sistema consulta a Brevo **cada 30 minutos** qué pasó con cada correo de
+captación, y también puedes pedirlo con el botón **Revisar entregas**. Debajo del
+estado aparece la entrega (pasa el cursor para ver el motivo exacto):
+
+| Entrega | Qué significa | Qué hace el sistema |
+|---|---|---|
+| Entregado | Llegó al servidor de correo de la persona | Nada |
+| Diferido | Su servidor no respondió o pidió reintentar | Nada: Brevo reintenta solo durante horas |
+| Rebote temporal | Por ejemplo, buzón lleno | Nada: la dirección existe |
+| **Rebotó** | La cuenta no existe o rechaza el correo | **La marca como "Rebotó" y nunca más le envía** |
+| **Marcado como spam** | La persona lo reportó como spam | **La pasa a "Dado de baja"** |
+
+No tienes que sacar a nadie a mano: quien rebota queda fuera de los envíos solo.
+Si una dirección rebotó por un error de digitación, corrígela en **Editar** y
+vuelve a ponerla en "Nuevo".
 
 ### Cuando alguien acepta
 

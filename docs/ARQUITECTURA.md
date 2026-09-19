@@ -203,6 +203,7 @@ En rojo, los componentes de seguridad; en azul oscuro, el único con acceso a SQ
 | `auth.js` | Emitir/validar tokens (sesión, portal, baja), bloquear fuerza bruta | No toca la base de datos |
 | `correo.js` | Elegir canal, renderizar plantillas, enviar en lote; en captación aplica el tope diario | No decide *cuándo* enviar |
 | `horarioContacto.js` | Regla pura: ¿se puede contactar con publicidad ahora? (Ley 2300 + festivos) | No envía ni consulta la base |
+| `estadoEntrega.js` | Traducir los eventos de Brevo a un estado de entrega por prospecto y excluir rebotes y quejas | No envía correos ni toca clientes |
 | `plantillaCaptacion.js` | Plantilla inicial del correo de captación | No se usa en caliente: siembra `config` una vez |
 | `avisos.js` | Decidir *cuándo* avisar a la contadora + *dedupe* | No renderiza correos de clientes |
 | `archivos.js` | Guardar, validar y borrar archivos en disco | No sabe qué representa el archivo |
@@ -848,6 +849,7 @@ sequenceDiagram
 | Baja con confirmación | `Baja.jsx` pide un botón; no actúa al abrir la página | Los filtros de seguridad del correo abren los enlaces solos |
 | Token de baja con dominio propio | `auth.js > firmaBaja()` firma `baja:{id}` | Un token de baja nunca sirve como token de portal, ni al revés |
 | Minimización de datos | `prospectos` guarda solo nombre y correo | La cédula se pide cuando la persona ya aceptó ser cliente |
+| Exclusión automática de rebotes y quejas | `estadoEntrega.js`, cada 30 min y con "Revisar entregas" | Seguir escribiendo a direcciones inexistentes o a quien marcó spam es lo que más rápido daña la reputación del remitente |
 | Tono de presentación | La plantilla no usa el nombre ni supone que la persona declara; lo verifica una prueba | En frío, mostrar datos personales o presumir la situación del destinatario genera desconfianza |
 
 ---
@@ -926,6 +928,9 @@ stateDiagram-v2
     nuevo --> baja : enlace del correo<br/>o List-Unsubscribe
     contactado --> baja
     respondio --> baja
+    contactado --> rebote : Brevo informa hardBounce,<br/>invalid o blocked
+    contactado --> baja : queja de spam en Brevo
+    rebote --> [*]
     convertido --> [*]
     baja --> [*]
 
@@ -967,6 +972,7 @@ uno y el problema concreto que resuelve.
 | **Separación de dominio en firmas** | `auth.js`: prefijos `portal:` y `baja:` en el HMAC | Un token emitido para un propósito no es válido para otro |
 | **Regla de negocio como función pura** | `horarioContacto.js > puedeContactar()` | La regla legal se prueba sin reloj, red ni base de datos |
 | **Throttling de negocio** | `enviarLoteCaptacion()` + `contarEnviosDesde()` | El tope diario sobrevive a reinicios y a varios procesos porque se cuenta en `envios` |
+| **Anti-corruption layer** | `estadoEntrega.js > clasificarEventos()` | Traduce el vocabulario de Brevo (hardBounces, deferred…) al del dominio (rebote, diferido) en un solo lugar, como función pura |
 | **Guard clauses con advertencias** | `renderCorreoCaptacion().advertencias` | El mismo cálculo alimenta la vista previa ("no se le enviaría: …") y el envío |
 
 ### Frontend
@@ -1086,12 +1092,14 @@ Esa es exactamente la razón de haberlo mantenido puro.
 cd server && npm test        # node --test, sin dependencias
 ```
 
-**13 pruebas** sobre las reglas de la captación, que tienen consecuencias
+**21 pruebas** sobre las reglas de la captación, que tienen consecuencias
 legales: festivos de Colombia (2026 y el cálculo de la Pascua en otro año),
 todos los bordes del horario de la Ley 2300, el saludo, el escape de HTML en el
 nombre, que la tabla de fechas no muestre plazos vencidos, las advertencias que
 bloquean el envío, la separación de dominio de los tokens y que la plantilla
-no use el nombre ni presuma la situación del destinatario.
+no use el nombre ni presuma la situación del destinatario, y la clasificación
+de los eventos de Brevo (qué excluye y qué no, orden por fecha real con zonas
+horarias distintas).
 
 **Lo que no está cubierto por pruebas automáticas**: el resto del backend (rutas
 y SQL), las vistas de React y los envíos de correo reales. Se validan a mano; `GET /api/correos/verificar`
@@ -1171,9 +1179,9 @@ cumplirse, esta tabla debe corregirse en el mismo cambio.
 |---|---|---|
 | Ley 1581 de 2012 (habeas data) — minimización | Prospectos: solo nombre y correo; la importación ignora el resto de columnas | `datos.importarProspectos()` |
 | Ley 1581 — derecho a no ser contactado | Baja en cada correo; quien se da de baja queda excluido para siempre | `{{baja}}`, `darDeBajaProspecto()` |
-| Ley 2300 de 2023 — horarios de contacto | Validado en el servidor, con festivos calculados | `horarioContacto.js` + 13 pruebas |
+| Ley 2300 de 2023 — horarios de contacto | Validado en el servidor, con festivos calculados | `horarioContacto.js` + 21 pruebas |
 | RFC 2369 / RFC 8058 — baja en un clic | Cabeceras `List-Unsubscribe` y `List-Unsubscribe-Post` | `enviarLoteCaptacion()` |
-| Buenas prácticas de envío masivo | Tope diario, pausa entre correos, versión de texto plano | `correo.js` |
+| Buenas prácticas de envío masivo | Tope diario, pausa entre correos, versión de texto plano, exclusión automática de rebotes y quejas | `correo.js`, `estadoEntrega.js` |
 | Estatuto Tributario | Cada módulo del motor cita el artículo que implementa | `motor210/`, [reglas-tributarias-AG2025.md](reglas-tributarias-AG2025.md) |
 
 ### Experiencia de uso y accesibilidad
